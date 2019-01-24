@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GriffinPlus.Lib.Common" Version="0.2.0" />
+    <PackageReference Include="GriffinPlus.Lib.FastActivator" Version="1.0.8" />
+    <PackageReference Include="GriffinPlus.Lib.Logging" Version="1.1.6" />
+  </ItemGroup>
+
+</Project>
