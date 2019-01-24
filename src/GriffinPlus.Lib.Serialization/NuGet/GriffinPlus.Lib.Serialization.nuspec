@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package>
+  <metadata minClientVersion="3.3">
+    <id>GriffinPlus.Lib.Serialization</id>
+    <version>$version$</version>
+    <authors>Sascha Falk</authors>
+    <copyright>Copyright (c) 2019 Sascha Falk</copyright>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <description>Flexible serialization of .NET objects with versioning support.</description>
+    <licenseUrl>https://github.com/GriffinPlus/dotnet-libs-serialization/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/GriffinPlus/dotnet-libs-serialization</projectUrl>
+    <iconUrl>https://griffin.plus/img/nuget_icon.png</iconUrl>
+    <tags>serialization serializer</tags>
+  </metadata>
+  <files>
+    <file src="..\..\..\_build\Serialization.AnyCPU.Release\net461\GriffinPlus.Lib.Serialization.dll" target="lib\net461"/>
+    <file src="..\..\..\_build\Serialization.AnyCPU.Release\net461\GriffinPlus.Lib.Serialization.xml" target="lib\net461"/>
+  </files>
+</package>
