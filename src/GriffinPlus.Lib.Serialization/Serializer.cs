@@ -1069,7 +1069,7 @@ namespace GriffinPlus.Lib.Serialization
 				return obj;
 			} else {
 				string error = "Invalid object id detected.";
-				sLog.Write(LogLevel.Failure, error);
+				sLog.Write(LogLevel.Error, error);
 				throw new SerializationException(error);
 			}
 		}
@@ -1110,7 +1110,7 @@ namespace GriffinPlus.Lib.Serialization
 					// version of the archive that is about to be deserialized is greater than
 					// the version the internal object serializer supports
 					error = string.Format("Deserializing type '{0}' failed due to a version conflict (got version: {1}, max. supported version: {2}).", mCurrentDeserializedType.Type.FullName, deserializedVersion, currentVersion);
-					sLog.Write(LogLevel.Failure, error);
+					sLog.Write(LogLevel.Error, error);
 					throw new SerializationException(error);
 				}
 
@@ -1133,7 +1133,7 @@ namespace GriffinPlus.Lib.Serialization
 					// version of the archive that is about to be deserialized is greater than
 					// the version the internal object serializer supports
 					error = string.Format("Deserializing type '{0}' failed due to a version conflict (got version: {1}, max. supported version: {2}).", mCurrentDeserializedType.Type.FullName, deserializedVersion, currentVersion);
-					sLog.Write(LogLevel.Failure, error);
+					sLog.Write(LogLevel.Error, error);
 					throw new SerializationException(error);
 				}
 
@@ -1150,7 +1150,7 @@ namespace GriffinPlus.Lib.Serialization
 			#endregion
 
 			error = string.Format("Deserializing type '{0}' failed because it lacks an internal/external object serializer.", mCurrentDeserializedType.Type.FullName);
-			sLog.Write(LogLevel.Failure, error);
+			sLog.Write(LogLevel.Error, error);
 			throw new SerializationException(error);
 		}
 
@@ -1168,7 +1168,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (readbyte != (int)type) {
 				StackTrace trace = new StackTrace();
 				string error = string.Format("Unexpected payload type during deserialization. Stack Trace:\n{0}", trace.ToString());
-				sLog.Write(LogLevel.Failure, error);
+				sLog.Write(LogLevel.Error, error);
 				throw new SerializationException(error);
 			}
 		}
@@ -1201,7 +1201,7 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			sLog.Write(
-				LogLevel.Developer,
+				LogLevel.Debug,
 				"Trying to load assembly by its full name ({0}).",
 				assemblyName.FullName);
 
@@ -1214,7 +1214,7 @@ namespace GriffinPlus.Lib.Serialization
 				assembly = Assembly.Load(assemblyName);
 
 				sLog.Write(
-					LogLevel.Developer,
+					LogLevel.Debug,
 					"Loading assembly by its full name ({0}) succeeded.",
 					assemblyName.FullName);
 
@@ -1226,7 +1226,7 @@ namespace GriffinPlus.Lib.Serialization
 				if (mIsVersionTolerant)
 				{
 					sLog.Write(
-						LogLevel.Developer,
+						LogLevel.Debug,
 						"Loading assembly by its full name ({0}) failed. Trying to load assembly allowing a different version.\nException: {1}",
 						assemblyName.FullName, ex.ToString());
 				}
@@ -1249,7 +1249,7 @@ namespace GriffinPlus.Lib.Serialization
 			string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, assemblyName.Name + ".dll");
 
 			sLog.Write(
-				LogLevel.Developer,
+				LogLevel.Debug,
 				"Trying to load assembly ({0}) from file ({1}).",
 				assemblyName.Name, path);
 
@@ -1258,7 +1258,7 @@ namespace GriffinPlus.Lib.Serialization
 				assembly = Assembly.LoadFrom(path);
 
 				sLog.Write(
-					LogLevel.Developer,
+					LogLevel.Debug,
 					"Loading assembly ({0}) from file ({1}) succeeded.",
 					assemblyName.Name, path);
 
@@ -1289,7 +1289,7 @@ namespace GriffinPlus.Lib.Serialization
 				path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, AppDomain.CurrentDomain.RelativeSearchPath, assemblyName.Name);
 
 				sLog.Write(
-					LogLevel.Developer,
+					LogLevel.Debug,
 					"Trying to load assembly ({0}) from ({1}).",
 					assemblyName.Name, path);
 
@@ -1298,7 +1298,7 @@ namespace GriffinPlus.Lib.Serialization
 					assembly = Assembly.LoadFrom(path);
 
 					sLog.Write(
-						LogLevel.Developer,
+						LogLevel.Debug,
 						"Loading assembly ({0}) from file ({1}) succeeded.",
 						assemblyName.Name, path);
 

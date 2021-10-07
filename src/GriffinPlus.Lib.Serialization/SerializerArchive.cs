@@ -334,7 +334,7 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				StackTrace trace = new StackTrace();
 				string error = string.Format("Unexpected payload type during deserialization. Stack Trace:\n{0}", trace.ToString());
-				sLog.Write(LogLevel.Failure, error);
+				sLog.Write(LogLevel.Error, error);
 				throw new SerializationException(error);
 			}
 
@@ -356,7 +356,7 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				StackTrace trace = new StackTrace();
 				string error = string.Format("Unexpected payload type during deserialization. Stack Trace:\n{0}", trace.ToString());
-				sLog.Write(LogLevel.Failure, error);
+				sLog.Write(LogLevel.Error, error);
 				throw new SerializationException(error);
 			}
 
@@ -645,7 +645,7 @@ namespace GriffinPlus.Lib.Serialization
 				// version of the archive that is about to be deserialized is greater than
 				// the version the internal object serializer supports
 				string error = string.Format("Deserializing type '{0}' failed due to a version conflict (got version: {1}, max. supported version: {2}).", type.FullName, deserializedVersion, currentVersion);
-				sLog.Write(LogLevel.Failure, error);
+				sLog.Write(LogLevel.Error, error);
 				throw new SerializationException(error);
 			}
 
@@ -943,7 +943,7 @@ namespace GriffinPlus.Lib.Serialization
 				Debug.Fail("Unexpected payload type during deserialization.");
 				StackTrace trace = new StackTrace();
 				string error = string.Format("Unexpected payload type during deserialization. Stack Trace:\n{0}", trace.ToString());
-				sLog.Write(LogLevel.Failure, error);
+				sLog.Write(LogLevel.Error, error);
 				throw new SerializationException(error);
 			}
 		}
@@ -962,7 +962,7 @@ namespace GriffinPlus.Lib.Serialization
 				Debug.Fail("Unexpected type during deserialization.");
 				StackTrace trace = new StackTrace();
 				string error = string.Format("Unexpected type during deserialization (expected: '{0}', got: null). Stack Trace:\n{1}", type.FullName, trace.ToString());
-				sLog.Write(LogLevel.Failure, error);
+				sLog.Write(LogLevel.Error, error);
 				throw new SerializationException(error);
 			}
 
@@ -970,7 +970,7 @@ namespace GriffinPlus.Lib.Serialization
 				Debug.Fail("Unexpected type during deserialization.");
 				StackTrace trace = new StackTrace();
 				string error = string.Format("Unexpected type during deserialization (expected: '{0}', got: '{1}'). Stack Trace:\n{2}", type.FullName, obj.GetType().FullName, trace.ToString());
-				sLog.Write(LogLevel.Failure, error);
+				sLog.Write(LogLevel.Error, error);
 				throw new SerializationException(error);
 			}
 		}

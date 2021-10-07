@@ -217,7 +217,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// initialize the cache
 			Initialize();
-			PrintToLog(LogLevel.Developer);
+			PrintToLog(LogLevel.Debug);
 		}
 
 		#endregion
@@ -352,7 +352,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		private void Initialize()
 		{
-			sLog.Write(LogLevel.Developer, "Initializing cache with existing assemblies...");
+			sLog.Write(LogLevel.Debug, "Initializing cache with existing assemblies...");
 
 			string path = AppDomain.CurrentDomain.BaseDirectory;
 
@@ -431,13 +431,13 @@ namespace GriffinPlus.Lib.Serialization
 						if (!attributeOk)
 						{
 							// attribute is missing
-							sLog.Write(LogLevel.Failure, "Class '{0}' seems to be an external serializer class, but it is not annotated with the '{1}' attribute.", type.FullName, typeof(ExternalObjectSerializerAttribute).FullName);
+							sLog.Write(LogLevel.Error, "Class '{0}' seems to be an external serializer class, but it is not annotated with the '{1}' attribute.", type.FullName, typeof(ExternalObjectSerializerAttribute).FullName);
 						}
 
 						if (!interfaceOk)
 						{
 							// interface is missing
-							sLog.Write(LogLevel.Failure, "Class '{0}' seems to be an external serializer class, but does not implement the '{1}' interface.", type.FullName, typeof(IExternalObjectSerializer).FullName);
+							sLog.Write(LogLevel.Error, "Class '{0}' seems to be an external serializer class, but does not implement the '{1}' interface.", type.FullName, typeof(IExternalObjectSerializer).FullName);
 						}
 					}
 				}
@@ -485,25 +485,25 @@ namespace GriffinPlus.Lib.Serialization
 						if (!iosAttributeOk)
 						{
 							// attribute is missing
-							sLog.Write(LogLevel.Failure, "Class '{0}' seems to be an internal serializer class, but it is not annotated with the '{1}' attribute.", type.FullName, typeof(InternalObjectSerializerAttribute).FullName);
+							sLog.Write(LogLevel.Error, "Class '{0}' seems to be an internal serializer class, but it is not annotated with the '{1}' attribute.", type.FullName, typeof(InternalObjectSerializerAttribute).FullName);
 						}
 
 						if (!interfaceOk)
 						{
 							// interface is missing
-							sLog.Write(LogLevel.Failure, "Class '{0}' seems to be an internal serializer class, but it does not implement the '{1}' interface.", type.FullName, typeof(IInternalObjectSerializer).FullName);
+							sLog.Write(LogLevel.Error, "Class '{0}' seems to be an internal serializer class, but it does not implement the '{1}' interface.", type.FullName, typeof(IInternalObjectSerializer).FullName);
 						}
 
 						if (!constructorOk)
 						{
 							// serialization constructor is missing
-							sLog.Write(LogLevel.Failure, "Class '{0}' seems to be an internal serializer class, but it lacks the serialization constructor.", type.FullName);
+							sLog.Write(LogLevel.Error, "Class '{0}' seems to be an internal serializer class, but it lacks the serialization constructor.", type.FullName);
 						}
 
 						if (virtualSerializeMethod)
 						{
 							// 'Serialize' method is virtual
-							sLog.Write(LogLevel.Failure, "Class '{0}' seems to be an internal serializer class, but its 'Serialize' method is virtual which will cause problems when serializing nested classes. You should overwrite the 'Serialize' method in derived classes instead.", type.FullName);
+							sLog.Write(LogLevel.Error, "Class '{0}' seems to be an internal serializer class, but its 'Serialize' method is virtual which will cause problems when serializing nested classes. You should overwrite the 'Serialize' method in derived classes instead.", type.FullName);
 						}
 					}
 				}
