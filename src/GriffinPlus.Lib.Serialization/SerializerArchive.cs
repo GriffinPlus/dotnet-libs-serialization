@@ -731,7 +731,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		/// <param name="p">Pointer to the beginning of the buffer.</param>
 		/// <param name="count">Number of bytes to write.</param>
-		public void Write(IntPtr p, long count)
+		public unsafe void Write(IntPtr p, long count)
 		{
 			CloseArchiveStream();
 
@@ -746,7 +746,7 @@ namespace GriffinPlus.Lib.Serialization
 				MemoryBlockStream mbs = mStream as MemoryBlockStream;
 				while (count > 0) {
 					int bytesToCopy = (int)Math.Min(count, int.MaxValue);
-					mbs.Write(p, bytesToCopy);
+					mbs.Write(new ReadOnlySpan<byte>(p.ToPointer(), bytesToCopy));
 					count -= bytesToCopy;
 					p += bytesToCopy;
 				}
@@ -773,7 +773,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="count">Size of the buffer to fill.</param>
 		/// <returns>Number of bytes actually read.</returns>
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
-		public long ReadBuffer(IntPtr p, long count)
+		public unsafe long ReadBuffer(IntPtr p, long count)
 		{
 			// read payload type and size of the following buffer
 			ReadAndCheckPayloadType(PayloadType.Buffer);
@@ -789,7 +789,7 @@ namespace GriffinPlus.Lib.Serialization
 				MemoryBlockStream mbs = mStream as MemoryBlockStream;
 				while (count > 0 && length > 0) {
 					int bytesToRead = (int)Math.Min(Math.Min(count, length), int.MaxValue);
-					if (mbs.Read(p, bytesToRead) < bytesToRead) throw new SerializationException("Stream ended unexpectedly.");
+					if (mbs.Read(new Span<byte>(p.ToPointer(), bytesToRead)) < bytesToRead) throw new SerializationException("Stream ended unexpectedly.");
 					length -= bytesToRead;
 					count -= bytesToRead;
 					p += bytesToRead;
