@@ -7,15 +7,16 @@ using System;
 
 namespace GriffinPlus.Lib.Serialization
 {
+
 	/// <summary>
 	/// Attribute attached to an external object serializer class telling the serializer to use the annotated class
 	/// for serializing/deserializing the specified type.
 	/// </summary>
-	[AttributeUsage(AttributeTargets.Class, AllowMultiple=true)]
+	[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
 	public class ExternalObjectSerializerAttribute : Attribute
 	{
-		private readonly Type   mTypeToSerialize;
-		private readonly uint   mVersion;
+		private readonly Type mTypeToSerialize;
+		private readonly uint mVersion;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ExternalObjectSerializerAttribute"/> class.
@@ -33,22 +34,12 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Gets the class/struct that should be serialized using the annotated external object serializer class.
 		/// </summary>
-		public Type TypeToSerialize
-		{
-			get {
-				return mTypeToSerialize;
-			}
-		}
+		public Type TypeToSerialize => mTypeToSerialize;
 
 		/// <summary>
 		/// Gets the current version of the external object serializer.
 		/// </summary>
-		public uint Version
-		{
-			get {
-				return mVersion;
-			}
-		}
-
+		public uint Version => mVersion;
 	}
+
 }

@@ -5,18 +5,20 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Reflection;
-using System.IO;
 using System.Diagnostics;
-using System.Threading;
-using GriffinPlus.Lib.Logging;
-using System.Linq.Expressions;
+using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
+using System.Text;
+using System.Threading;
+
 using GriffinPlus.Lib.Io;
+using GriffinPlus.Lib.Logging;
 
 namespace GriffinPlus.Lib.Serialization
 {
+
 	/// <summary>
 	/// Serializer for serializing and deserializing various objects
 	/// </summary>
@@ -27,7 +29,7 @@ namespace GriffinPlus.Lib.Serialization
 		private struct TypeItem
 		{
 			public readonly string Name;
-			public readonly Type Type;
+			public readonly Type   Type;
 
 			public static readonly TypeItem Empty = new TypeItem();
 
@@ -38,9 +40,16 @@ namespace GriffinPlus.Lib.Serialization
 			}
 		}
 
-		private delegate void SerializerDelegate(Serializer serializer, Stream stream, object obj, object context);
+		private delegate void SerializerDelegate(
+			Serializer serializer,
+			Stream     stream,
+			object     obj,
+			object     context);
+
 		private delegate object DeserializerDelegate(Serializer serializer, Stream stream, object context);
+
 		private delegate object EnumCasterDelegate(long value);
+
 		internal delegate void IosSerializeDelegate(IInternalObjectSerializer ios, SerializerArchive archive, uint version);
 
 		#endregion
@@ -48,49 +57,49 @@ namespace GriffinPlus.Lib.Serialization
 		#region Class Variables
 
 		// logging
-		private static readonly LogWriter                                     sLog                                    = Log.GetWriter<Serializer>();
+		private static readonly LogWriter sLog = Log.GetWriter<Serializer>();
 
 		// initialization
-		private static          bool                                          sInitializing                           = false;
-		private static          bool                                          sInitialized                            = false;
-		private static          object                                        sInitializationSync                     = new object();
+		private static          bool   sInitializing       = false;
+		private static          bool   sInitialized        = false;
+		private static readonly object sInitializationSync = new object();
 
-		private static readonly object                                        sSync                                   = new object();
-		private static readonly Type[]                                        sConstructorArgumentTypes               = new Type[] { typeof(SerializerArchive) };
-		private static Dictionary<string, Assembly>                           sAssemblyTable                          = new Dictionary<string, Assembly>();
-		private static object                                                 sAssemblyTableLock                      = new object();
-		private static Dictionary<string, Type>                               sTypeTable                              = new Dictionary<string,Type>();
-		private static readonly object                                        sTypeTableLock                          = new object();
-		private static Dictionary<Type, SerializerDelegate>                   sSerializers                            = new Dictionary<Type,SerializerDelegate>();
-		private static readonly Dictionary<Type, SerializerDelegate>          sMultidimensionalArraySerializers       = new Dictionary<Type,SerializerDelegate>();
-		private static readonly Dictionary<PayloadType, DeserializerDelegate> sDeserializers                          = new Dictionary<PayloadType,DeserializerDelegate>();
-		private static Dictionary<Type,ExternalObjectSerializerInfo>          sExternalObjectSerializersBySerializee  = new Dictionary<Type,ExternalObjectSerializerInfo>();
-		private static Dictionary<Type,IosSerializeDelegate>                  sIosSerializeCallers                    = new Dictionary<Type,IosSerializeDelegate>();
-		private static int                                                    sIosSerializeCallersId                  = -1;
-		private static Dictionary<Type, EnumCasterDelegate>                   sEnumCasters                            = new Dictionary<Type,EnumCasterDelegate>();
-		private static int                                                    sEnumCasterId                           = -1;
-		private static SerializerCache                                        sCache                                  = null;
-		private static bool                                                   sIsVersionTolerantDefault               = false;
+		private static readonly object                                         sSync                                  = new object();
+		private static readonly Type[]                                         sConstructorArgumentTypes              = { typeof(SerializerArchive) };
+		private static          Dictionary<string, Assembly>                   sAssemblyTable                         = new Dictionary<string, Assembly>();
+		private static readonly object                                         sAssemblyTableLock                     = new object();
+		private static          Dictionary<string, Type>                       sTypeTable                             = new Dictionary<string, Type>();
+		private static readonly object                                         sTypeTableLock                         = new object();
+		private static          Dictionary<Type, SerializerDelegate>           sSerializers                           = new Dictionary<Type, SerializerDelegate>();
+		private static readonly Dictionary<Type, SerializerDelegate>           sMultidimensionalArraySerializers      = new Dictionary<Type, SerializerDelegate>();
+		private static readonly Dictionary<PayloadType, DeserializerDelegate>  sDeserializers                         = new Dictionary<PayloadType, DeserializerDelegate>();
+		private static          Dictionary<Type, ExternalObjectSerializerInfo> sExternalObjectSerializersBySerializee = new Dictionary<Type, ExternalObjectSerializerInfo>();
+		private static          Dictionary<Type, IosSerializeDelegate>         sIosSerializeCallers                   = new Dictionary<Type, IosSerializeDelegate>();
+		private static          int                                            sIosSerializeCallersId                 = -1;
+		private static          Dictionary<Type, EnumCasterDelegate>           sEnumCasters                           = new Dictionary<Type, EnumCasterDelegate>();
+		private static          int                                            sEnumCasterId                          = -1;
+		private static          SerializerCache                                sCache                                 = null;
+		private static          bool                                           sIsVersionTolerantDefault              = false;
 
 		#endregion
 
 		#region Member Variables
 
 		// for serialization only
-		private Type                         mCurrentSerializedType;
-		private Dictionary<Type, uint>       mSerializedTypeIdTable;
-		private SerializerVersionTable       mSerializedTypeVersionTable;
-		private Dictionary<object, uint>     mSerializedObjectIdTable;
-		private uint                         mNextSerializedTypeId;
-		private uint                         mNextSerializedObjectId;
+		private          Type                     mCurrentSerializedType;
+		private readonly Dictionary<Type, uint>   mSerializedTypeIdTable;
+		private readonly SerializerVersionTable   mSerializedTypeVersionTable;
+		private readonly Dictionary<object, uint> mSerializedObjectIdTable;
+		private          uint                     mNextSerializedTypeId;
+		private          uint                     mNextSerializedObjectId;
 
 		// for deserialization only
-		private TypeItem                       mCurrentDeserializedType;
-		private Dictionary<uint,TypeItem>      mDeserializedTypeIdTable;
-		private Dictionary<uint,object>        mDeserializedObjectIdTable;
-		private uint                           mNextDeserializedTypeId;
-		private uint                           mNextDeserializedObjectId;
-		private bool                           mIsVersionTolerant;
+		private          TypeItem                   mCurrentDeserializedType;
+		private readonly Dictionary<uint, TypeItem> mDeserializedTypeIdTable;
+		private readonly Dictionary<uint, object>   mDeserializedObjectIdTable;
+		private          uint                       mNextDeserializedTypeId;
+		private          uint                       mNextDeserializedObjectId;
+		private          bool                       mIsVersionTolerant;
 
 		#endregion
 
@@ -105,9 +114,12 @@ namespace GriffinPlus.Lib.Serialization
 		/// </param>
 		public static void Init(bool isVersionTolerant = false)
 		{
-			if (!sInitialized) {
-				lock (sInitializationSync) {
-					if (!sInitialized && !sInitializing) {
+			if (!sInitialized)
+			{
+				lock (sInitializationSync)
+				{
+					if (!sInitialized && !sInitializing)
+					{
 						sInitializing = true;
 						sIsVersionTolerantDefault = isVersionTolerant;
 						sCache = SerializerCache.Instance;
@@ -130,9 +142,12 @@ namespace GriffinPlus.Lib.Serialization
 		/// </param>
 		public static void TriggerInit(bool isVersionTolerant = false)
 		{
-			if (!sInitialized && !sInitializing) {
-				lock (sInitializationSync) {
-					if (!sInitialized && !sInitializing) {
+			if (!sInitialized && !sInitializing)
+			{
+				lock (sInitializationSync)
+				{
+					if (!sInitialized && !sInitializing)
+					{
 						sIsVersionTolerantDefault = isVersionTolerant;
 						ThreadPool.QueueUserWorkItem(x => Init(isVersionTolerant));
 					}
@@ -146,56 +161,470 @@ namespace GriffinPlus.Lib.Serialization
 		private static void InitSerializers()
 		{
 			// simple types
-			sSerializers.Add(typeof(SByte),    (serializer, stream, obj, context) => { serializer.WritePrimitive_SByte((sbyte)obj, stream);        });
-			sSerializers.Add(typeof(Int16),    (serializer, stream, obj, context) => { serializer.WritePrimitive_Int16((short)obj, stream);        });
-			sSerializers.Add(typeof(Int32),    (serializer, stream, obj, context) => { serializer.WritePrimitive_Int32((int)obj, stream);          });
-			sSerializers.Add(typeof(Int64),    (serializer, stream, obj, context) => { serializer.WritePrimitive_Int64((long)obj, stream);         });
-			sSerializers.Add(typeof(Byte),     (serializer, stream, obj, context) => { serializer.WritePrimitive_Byte((byte)obj, stream);          });
-			sSerializers.Add(typeof(UInt16),   (serializer, stream, obj, context) => { serializer.WritePrimitive_UInt16((ushort)obj, stream);      });
-			sSerializers.Add(typeof(UInt32),   (serializer, stream, obj, context) => { serializer.WritePrimitive_UInt32((uint)obj, stream);        });
-			sSerializers.Add(typeof(UInt64),   (serializer, stream, obj, context) => { serializer.WritePrimitive_UInt64((ulong)obj, stream);       });
-			sSerializers.Add(typeof(Single),   (serializer, stream, obj, context) => { serializer.WritePrimitive_Single((float)obj, stream);       });
-			sSerializers.Add(typeof(Double),   (serializer, stream, obj, context) => { serializer.WritePrimitive_Double((double)obj, stream);      });
-			sSerializers.Add(typeof(Boolean),  (serializer, stream, obj, context) => { serializer.WritePrimitive_Boolean((bool)obj, stream);       });
-			sSerializers.Add(typeof(Char),     (serializer, stream, obj, context) => { serializer.WritePrimitive_Char((char)obj, stream);          });
-			sSerializers.Add(typeof(Decimal),  (serializer, stream, obj, context) => { serializer.WritePrimitive_Decimal((decimal)obj, stream);    });
-			sSerializers.Add(typeof(DateTime), (serializer, stream, obj, context) => { serializer.WritePrimitive_DateTime((DateTime)obj, stream);  });
-			sSerializers.Add(typeof(String),   (serializer, stream, obj, context) => { serializer.WritePrimitive_String((string)obj, stream);      });
-			sSerializers.Add(typeof(Object),   (serializer, stream, obj, context) => { serializer.WritePrimitive_Object(obj, stream);              });
+			sSerializers.Add(
+				typeof(sbyte),
+				(
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_SByte((sbyte)obj, stream);
+				});
+			sSerializers.Add(
+				typeof(short),
+				(
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_Int16((short)obj, stream);
+				});
+			sSerializers.Add(
+				typeof(int),
+				(
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_Int32((int)obj, stream);
+				});
+			sSerializers.Add(
+				typeof(long),
+				(
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_Int64((long)obj, stream);
+				});
+			sSerializers.Add(
+				typeof(byte),
+				(
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_Byte((byte)obj, stream);
+				});
+			sSerializers.Add(
+				typeof(ushort),
+				(
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_UInt16((ushort)obj, stream);
+				});
+			sSerializers.Add(
+				typeof(uint),
+				(
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_UInt32((uint)obj, stream);
+				});
+			sSerializers.Add(
+				typeof(ulong),
+				(
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_UInt64((ulong)obj, stream);
+				});
+			sSerializers.Add(
+				typeof(float),
+				(
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_Single((float)obj, stream);
+				});
+			sSerializers.Add(
+				typeof(double),
+				(
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_Double((double)obj, stream);
+				});
+			sSerializers.Add(
+				typeof(bool),
+				(
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_Boolean((bool)obj, stream);
+				});
+			sSerializers.Add(
+				typeof(char),
+				(
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_Char((char)obj, stream);
+				});
+			sSerializers.Add(
+				typeof(decimal),
+				(
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_Decimal((decimal)obj, stream);
+				});
+			sSerializers.Add(
+				typeof(DateTime),
+				(
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_DateTime((DateTime)obj, stream);
+				});
+			sSerializers.Add(
+				typeof(string),
+				(
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_String((string)obj, stream);
+				});
+			sSerializers.Add(
+				typeof(object),
+				(
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_Object(obj, stream);
+				});
 
 			// arrays of simple types (one-dimensional, zero-based indexing)
-			sSerializers.Add(typeof(SByte[]),    (serializer, stream, array, context) => { serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfSByte,   array as sbyte[], 1, stream);    });
-			sSerializers.Add(typeof(Int16[]),    (serializer, stream, array, context) => { serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfInt16,   array as short[], 2, stream);    });
-			sSerializers.Add(typeof(Int32[]),    (serializer, stream, array, context) => { serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfInt32,   array as int[],   4, stream);    });
-			sSerializers.Add(typeof(Int64[]),    (serializer, stream, array, context) => { serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfInt64,   array as long[],  8, stream);    });
-			sSerializers.Add(typeof(Byte[]),     (serializer, stream, array, context) => { serializer.WriteArrayOfByte(array as byte[], stream);                                          });
-			sSerializers.Add(typeof(UInt16[]),   (serializer, stream, array, context) => { serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfUInt16,  array as ushort[], 2, stream);   });
-			sSerializers.Add(typeof(UInt32[]),   (serializer, stream, array, context) => { serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfUInt32,  array as uint[],   4, stream);   });
-			sSerializers.Add(typeof(UInt64[]),   (serializer, stream, array, context) => { serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfUInt64,  array as ulong[],  8, stream);   });
-			sSerializers.Add(typeof(Single[]),   (serializer, stream, array, context) => { serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfSingle,  array as float[], 4, stream);    });
-			sSerializers.Add(typeof(Double[]),   (serializer, stream, array, context) => { serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfDouble,  array as double[], 8, stream);   });
-			sSerializers.Add(typeof(Boolean[]),  (serializer, stream, array, context) => { serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfBoolean, array as bool[], 1, stream);     });
-			sSerializers.Add(typeof(Char[]),     (serializer, stream, array, context) => { serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfChar,    array as char[], 2, stream);     });
-			sSerializers.Add(typeof(Decimal[]),  (serializer, stream, array, context) => { serializer.WriteArrayOfDecimal(array as decimal[], stream);                                    });
-			sSerializers.Add(typeof(DateTime[]), (serializer, stream, array, context) => { serializer.WriteArrayOfDateTime(array as DateTime[], stream);                                  });
-			sSerializers.Add(typeof(String[]),   (serializer, stream, array, context) => { serializer.WriteArrayOfString(array as string[], stream);                                      });
+			sSerializers.Add(
+				typeof(sbyte[]),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfSByte, array as sbyte[], 1, stream);
+				});
+			sSerializers.Add(
+				typeof(short[]),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfInt16, array as short[], 2, stream);
+				});
+			sSerializers.Add(
+				typeof(int[]),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfInt32, array as int[], 4, stream);
+				});
+			sSerializers.Add(
+				typeof(long[]),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfInt64, array as long[], 8, stream);
+				});
+			sSerializers.Add(
+				typeof(byte[]),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteArrayOfByte(array as byte[], stream);
+				});
+			sSerializers.Add(
+				typeof(ushort[]),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfUInt16, array as ushort[], 2, stream);
+				});
+			sSerializers.Add(
+				typeof(uint[]),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfUInt32, array as uint[], 4, stream);
+				});
+			sSerializers.Add(
+				typeof(ulong[]),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfUInt64, array as ulong[], 8, stream);
+				});
+			sSerializers.Add(
+				typeof(float[]),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfSingle, array as float[], 4, stream);
+				});
+			sSerializers.Add(
+				typeof(double[]),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfDouble, array as double[], 8, stream);
+				});
+			sSerializers.Add(
+				typeof(bool[]),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfBoolean, array as bool[], 1, stream);
+				});
+			sSerializers.Add(
+				typeof(char[]),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteArrayOfPrimitives(PayloadType.ArrayOfChar, array as char[], 2, stream);
+				});
+			sSerializers.Add(
+				typeof(decimal[]),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteArrayOfDecimal(array as decimal[], stream);
+				});
+			sSerializers.Add(
+				typeof(DateTime[]),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteArrayOfDateTime(array as DateTime[], stream);
+				});
+			sSerializers.Add(
+				typeof(string[]),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteArrayOfString(array as string[], stream);
+				});
 
 			// multidimensional arrays
-			sMultidimensionalArraySerializers.Add(typeof(SByte),    (serializer, stream, array, context) => { serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfSByte,   array as Array,  1, stream);   });
-			sMultidimensionalArraySerializers.Add(typeof(Int16),    (serializer, stream, array, context) => { serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfInt16,   array as Array,  2, stream);   });
-			sMultidimensionalArraySerializers.Add(typeof(Int32),    (serializer, stream, array, context) => { serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfInt32,   array as Array,  4, stream);   });
-			sMultidimensionalArraySerializers.Add(typeof(Int64),    (serializer, stream, array, context) => { serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfInt64,   array as Array,  8, stream);   });
-			sMultidimensionalArraySerializers.Add(typeof(Byte),     (serializer, stream, array, context) => { serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfByte,    array as Array,  1, stream);   });
-			sMultidimensionalArraySerializers.Add(typeof(UInt16),   (serializer, stream, array, context) => { serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfUInt16,  array as Array,  2, stream);   });
-			sMultidimensionalArraySerializers.Add(typeof(UInt32),   (serializer, stream, array, context) => { serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfUInt32,  array as Array,  4, stream);   });
-			sMultidimensionalArraySerializers.Add(typeof(UInt64),   (serializer, stream, array, context) => { serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfUInt64,  array as Array,  8, stream);   });
-			sMultidimensionalArraySerializers.Add(typeof(Single),   (serializer, stream, array, context) => { serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfSingle,  array as Array,  4, stream);   });
-			sMultidimensionalArraySerializers.Add(typeof(Double),   (serializer, stream, array, context) => { serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfDouble,  array as Array,  8, stream);   });
-			sMultidimensionalArraySerializers.Add(typeof(Boolean),  (serializer, stream, array, context) => { serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfBoolean, array as Array,  1, stream);   });
-			sMultidimensionalArraySerializers.Add(typeof(Char),     (serializer, stream, array, context) => { serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfChar,    array as Array,  2, stream);   });
-			sMultidimensionalArraySerializers.Add(typeof(Decimal),  (serializer, stream, array, context) => { serializer.WriteMultidimensionalArrayOfDecimal(array as Array, stream);                                                      });
-			sMultidimensionalArraySerializers.Add(typeof(DateTime), (serializer, stream, array, context) => { serializer.WriteMultidimensionalArrayOfDateTime(array as Array, stream);                                                     });
-			sMultidimensionalArraySerializers.Add(typeof(String),   (serializer, stream, array, context) => { serializer.WriteMultidimensionalArrayOfString(array as Array, stream);                                                       });
+			sMultidimensionalArraySerializers.Add(
+				typeof(sbyte),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfSByte, array as Array, 1, stream);
+				});
+			sMultidimensionalArraySerializers.Add(
+				typeof(short),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfInt16, array as Array, 2, stream);
+				});
+			sMultidimensionalArraySerializers.Add(
+				typeof(int),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfInt32, array as Array, 4, stream);
+				});
+			sMultidimensionalArraySerializers.Add(
+				typeof(long),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfInt64, array as Array, 8, stream);
+				});
+			sMultidimensionalArraySerializers.Add(
+				typeof(byte),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfByte, array as Array, 1, stream);
+				});
+			sMultidimensionalArraySerializers.Add(
+				typeof(ushort),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfUInt16, array as Array, 2, stream);
+				});
+			sMultidimensionalArraySerializers.Add(
+				typeof(uint),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfUInt32, array as Array, 4, stream);
+				});
+			sMultidimensionalArraySerializers.Add(
+				typeof(ulong),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfUInt64, array as Array, 8, stream);
+				});
+			sMultidimensionalArraySerializers.Add(
+				typeof(float),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfSingle, array as Array, 4, stream);
+				});
+			sMultidimensionalArraySerializers.Add(
+				typeof(double),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfDouble, array as Array, 8, stream);
+				});
+			sMultidimensionalArraySerializers.Add(
+				typeof(bool),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfBoolean, array as Array, 1, stream);
+				});
+			sMultidimensionalArraySerializers.Add(
+				typeof(char),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfChar, array as Array, 2, stream);
+				});
+			sMultidimensionalArraySerializers.Add(
+				typeof(decimal),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteMultidimensionalArrayOfDecimal(array as Array, stream);
+				});
+			sMultidimensionalArraySerializers.Add(
+				typeof(DateTime),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteMultidimensionalArrayOfDateTime(array as Array, stream);
+				});
+			sMultidimensionalArraySerializers.Add(
+				typeof(string),
+				(
+					serializer,
+					stream,
+					array,
+					context) =>
+				{
+					serializer.WriteMultidimensionalArrayOfString(array as Array, stream);
+				});
 		}
 
 		/// <summary>
@@ -204,78 +633,84 @@ namespace GriffinPlus.Lib.Serialization
 		private static void InitDeserializers()
 		{
 			// special types
-			sDeserializers.Add(PayloadType.NullReference,     (serializer, stream, context) => { return null; });
+			sDeserializers.Add(PayloadType.NullReference, (serializer,     stream, context) => { return null; });
 			sDeserializers.Add(PayloadType.AlreadySerialized, (serializer, stream, context) => { return serializer.ReadAlreadySerializedObject(stream); });
-			sDeserializers.Add(PayloadType.Enum,              (serializer, stream, context) => { return serializer.ReadEnum(stream);                    });
-			sDeserializers.Add(PayloadType.ArchiveStart,      (serializer, stream, context) => { return serializer.ReadArchive(stream, context);        });
+			sDeserializers.Add(PayloadType.Enum, (serializer,              stream, context) => { return serializer.ReadEnum(stream); });
+			sDeserializers.Add(PayloadType.ArchiveStart, (serializer,      stream, context) => { return serializer.ReadArchive(stream, context); });
 
 			// simple types
-			sDeserializers.Add(PayloadType.SByte,      (serializer, stream, context) => { return serializer.ReadPrimitive_SByte(stream);       });
-			sDeserializers.Add(PayloadType.Int16,      (serializer, stream, context) => { return serializer.ReadPrimitive_Int16(stream);       });
-			sDeserializers.Add(PayloadType.Int32,      (serializer, stream, context) => { return serializer.ReadPrimitive_Int32(stream);       });
-			sDeserializers.Add(PayloadType.Int64,      (serializer, stream, context) => { return serializer.ReadPrimitive_Int64(stream);       });
-			sDeserializers.Add(PayloadType.Byte,       (serializer, stream, context) => { return serializer.ReadPrimitive_Byte(stream);        });
-			sDeserializers.Add(PayloadType.UInt16,     (serializer, stream, context) => { return serializer.ReadPrimitive_UInt16(stream);      });
-			sDeserializers.Add(PayloadType.UInt32,     (serializer, stream, context) => { return serializer.ReadPrimitive_UInt32(stream);      });
-			sDeserializers.Add(PayloadType.UInt64,     (serializer, stream, context) => { return serializer.ReadPrimitive_UInt64(stream);      });
-			sDeserializers.Add(PayloadType.Single,     (serializer, stream, context) => { return serializer.ReadPrimitive_Single(stream);      });
-			sDeserializers.Add(PayloadType.Double,     (serializer, stream, context) => { return serializer.ReadPrimitive_Double(stream);      });
-			sDeserializers.Add(PayloadType.Boolean,    (serializer, stream, context) => { return serializer.ReadPrimitive_Boolean(stream);     });
-			sDeserializers.Add(PayloadType.Char,       (serializer, stream, context) => { return serializer.ReadPrimitive_Char(stream);        });
-			sDeserializers.Add(PayloadType.Decimal,    (serializer, stream, context) => { return serializer.ReadPrimitive_Decimal(stream);     });
-			sDeserializers.Add(PayloadType.DateTime,   (serializer, stream, context) => { return serializer.ReadPrimitive_DateTime(stream);    });
-			sDeserializers.Add(PayloadType.String,     (serializer, stream, context) => { return serializer.ReadPrimitive_String(stream);      });
-			sDeserializers.Add(PayloadType.Object,     (serializer, stream, context) => { return serializer.ReadPrimitive_Object();            });
-			sDeserializers.Add(PayloadType.TypeObject, (serializer, stream, context) => { return serializer.ReadTypeObject(stream);            });
+			sDeserializers.Add(PayloadType.SByte, (serializer,      stream, context) => { return serializer.ReadPrimitive_SByte(stream); });
+			sDeserializers.Add(PayloadType.Int16, (serializer,      stream, context) => { return serializer.ReadPrimitive_Int16(stream); });
+			sDeserializers.Add(PayloadType.Int32, (serializer,      stream, context) => { return serializer.ReadPrimitive_Int32(stream); });
+			sDeserializers.Add(PayloadType.Int64, (serializer,      stream, context) => { return serializer.ReadPrimitive_Int64(stream); });
+			sDeserializers.Add(PayloadType.Byte, (serializer,       stream, context) => { return serializer.ReadPrimitive_Byte(stream); });
+			sDeserializers.Add(PayloadType.UInt16, (serializer,     stream, context) => { return serializer.ReadPrimitive_UInt16(stream); });
+			sDeserializers.Add(PayloadType.UInt32, (serializer,     stream, context) => { return serializer.ReadPrimitive_UInt32(stream); });
+			sDeserializers.Add(PayloadType.UInt64, (serializer,     stream, context) => { return serializer.ReadPrimitive_UInt64(stream); });
+			sDeserializers.Add(PayloadType.Single, (serializer,     stream, context) => { return serializer.ReadPrimitive_Single(stream); });
+			sDeserializers.Add(PayloadType.Double, (serializer,     stream, context) => { return serializer.ReadPrimitive_Double(stream); });
+			sDeserializers.Add(PayloadType.Boolean, (serializer,    stream, context) => { return serializer.ReadPrimitive_Boolean(stream); });
+			sDeserializers.Add(PayloadType.Char, (serializer,       stream, context) => { return serializer.ReadPrimitive_Char(stream); });
+			sDeserializers.Add(PayloadType.Decimal, (serializer,    stream, context) => { return serializer.ReadPrimitive_Decimal(stream); });
+			sDeserializers.Add(PayloadType.DateTime, (serializer,   stream, context) => { return serializer.ReadPrimitive_DateTime(stream); });
+			sDeserializers.Add(PayloadType.String, (serializer,     stream, context) => { return serializer.ReadPrimitive_String(stream); });
+			sDeserializers.Add(PayloadType.Object, (serializer,     stream, context) => { return serializer.ReadPrimitive_Object(); });
+			sDeserializers.Add(PayloadType.TypeObject, (serializer, stream, context) => { return serializer.ReadTypeObject(stream); });
 
 			// arrays of simple types (one-dimensional, zero-based indexing)
-			sDeserializers.Add(PayloadType.ArrayOfSByte,    (serializer, stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(sbyte),    1);  });
-			sDeserializers.Add(PayloadType.ArrayOfInt16,    (serializer, stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(short),    2);  });
-			sDeserializers.Add(PayloadType.ArrayOfInt32,    (serializer, stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(int),      4);  });
-			sDeserializers.Add(PayloadType.ArrayOfInt64,    (serializer, stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(long),     8);  });
-			sDeserializers.Add(PayloadType.ArrayOfByte,     (serializer, stream, context) => { return serializer.ReadArrayOfByte(stream);                             });
-			sDeserializers.Add(PayloadType.ArrayOfUInt16,   (serializer, stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(ushort),   2);  });
-			sDeserializers.Add(PayloadType.ArrayOfUInt32,   (serializer, stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(uint),     4);  });
-			sDeserializers.Add(PayloadType.ArrayOfUInt64,   (serializer, stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(ulong),    8);  });
-			sDeserializers.Add(PayloadType.ArrayOfSingle,   (serializer, stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(float),    4);  });
-			sDeserializers.Add(PayloadType.ArrayOfDouble,   (serializer, stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(double),   8);  });
-			sDeserializers.Add(PayloadType.ArrayOfBoolean,  (serializer, stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(bool),     1);  });
-			sDeserializers.Add(PayloadType.ArrayOfChar,     (serializer, stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(char),     2);  });
-			sDeserializers.Add(PayloadType.ArrayOfDecimal,  (serializer, stream, context) => { return serializer.ReadArrayOfDecimal(stream);                          });
-			sDeserializers.Add(PayloadType.ArrayOfDateTime, (serializer, stream, context) => { return serializer.ReadDateTimeArray(stream);                           });
-			sDeserializers.Add(PayloadType.ArrayOfString,   (serializer, stream, context) => { return serializer.ReadStringArray(stream);                             });
-			sDeserializers.Add(PayloadType.ArrayOfObjects,  (serializer, stream, context) => { return serializer.ReadArrayOfObjects(stream, context);                 });
+			sDeserializers.Add(PayloadType.ArrayOfSByte, (serializer,    stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(sbyte), 1); });
+			sDeserializers.Add(PayloadType.ArrayOfInt16, (serializer,    stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(short), 2); });
+			sDeserializers.Add(PayloadType.ArrayOfInt32, (serializer,    stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(int), 4); });
+			sDeserializers.Add(PayloadType.ArrayOfInt64, (serializer,    stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(long), 8); });
+			sDeserializers.Add(PayloadType.ArrayOfByte, (serializer,     stream, context) => { return serializer.ReadArrayOfByte(stream); });
+			sDeserializers.Add(PayloadType.ArrayOfUInt16, (serializer,   stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(ushort), 2); });
+			sDeserializers.Add(PayloadType.ArrayOfUInt32, (serializer,   stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(uint), 4); });
+			sDeserializers.Add(PayloadType.ArrayOfUInt64, (serializer,   stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(ulong), 8); });
+			sDeserializers.Add(PayloadType.ArrayOfSingle, (serializer,   stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(float), 4); });
+			sDeserializers.Add(PayloadType.ArrayOfDouble, (serializer,   stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(double), 8); });
+			sDeserializers.Add(PayloadType.ArrayOfBoolean, (serializer,  stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(bool), 1); });
+			sDeserializers.Add(PayloadType.ArrayOfChar, (serializer,     stream, context) => { return serializer.ReadArrayOfPrimitives(stream, typeof(char), 2); });
+			sDeserializers.Add(PayloadType.ArrayOfDecimal, (serializer,  stream, context) => { return serializer.ReadArrayOfDecimal(stream); });
+			sDeserializers.Add(PayloadType.ArrayOfDateTime, (serializer, stream, context) => { return serializer.ReadDateTimeArray(stream); });
+			sDeserializers.Add(PayloadType.ArrayOfString, (serializer,   stream, context) => { return serializer.ReadStringArray(stream); });
+			sDeserializers.Add(PayloadType.ArrayOfObjects, (serializer,  stream, context) => { return serializer.ReadArrayOfObjects(stream, context); });
 
 			// multidimensional arrays
-			sDeserializers.Add(PayloadType.MultidimensionalArrayOfSByte,    (serializer, stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(sbyte),    1);  });
-			sDeserializers.Add(PayloadType.MultidimensionalArrayOfInt16,    (serializer, stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(short),    2);  });
-			sDeserializers.Add(PayloadType.MultidimensionalArrayOfInt32,    (serializer, stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(int),      4);  });
-			sDeserializers.Add(PayloadType.MultidimensionalArrayOfInt64,    (serializer, stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(long),     8);  });
-			sDeserializers.Add(PayloadType.MultidimensionalArrayOfByte,     (serializer, stream, context) => { return serializer.DeserializeMultidimensionalByteArray(stream);                        });
-			sDeserializers.Add(PayloadType.MultidimensionalArrayOfUInt16,   (serializer, stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(ushort),   2);  });
-			sDeserializers.Add(PayloadType.MultidimensionalArrayOfUInt32,   (serializer, stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(uint),     4);  });
-			sDeserializers.Add(PayloadType.MultidimensionalArrayOfUInt64,   (serializer, stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(ulong),    8);  });
-			sDeserializers.Add(PayloadType.MultidimensionalArrayOfSingle,   (serializer, stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(float),    4);  });
-			sDeserializers.Add(PayloadType.MultidimensionalArrayOfDouble,   (serializer, stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(double),   8);  });
-			sDeserializers.Add(PayloadType.MultidimensionalArrayOfBoolean,  (serializer, stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(bool),     1);  });
-			sDeserializers.Add(PayloadType.MultidimensionalArrayOfChar,     (serializer, stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(char),     2);  });
-			sDeserializers.Add(PayloadType.MultidimensionalArrayOfDecimal,  (serializer, stream, context) => { return serializer.ReadMultidimensionalArrayOfDecimal(stream);                          });
-			sDeserializers.Add(PayloadType.MultidimensionalArrayOfDateTime, (serializer, stream, context) => { return serializer.ReadMultidimensionalDateTimeArray(stream);                           });
-			sDeserializers.Add(PayloadType.MultidimensionalArrayOfString,   (serializer, stream, context) => { return serializer.ReadMultidimensionalStringArray(stream);                             });
-			sDeserializers.Add(PayloadType.MultidimensionalArrayOfObjects,  (serializer, stream, context) => { return serializer.ReadMultidimensionalArrayOfObjects(stream, context);                 });
+			sDeserializers.Add(PayloadType.MultidimensionalArrayOfSByte, (serializer,    stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(sbyte), 1); });
+			sDeserializers.Add(PayloadType.MultidimensionalArrayOfInt16, (serializer,    stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(short), 2); });
+			sDeserializers.Add(PayloadType.MultidimensionalArrayOfInt32, (serializer,    stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(int), 4); });
+			sDeserializers.Add(PayloadType.MultidimensionalArrayOfInt64, (serializer,    stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(long), 8); });
+			sDeserializers.Add(PayloadType.MultidimensionalArrayOfByte, (serializer,     stream, context) => { return serializer.DeserializeMultidimensionalByteArray(stream); });
+			sDeserializers.Add(PayloadType.MultidimensionalArrayOfUInt16, (serializer,   stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(ushort), 2); });
+			sDeserializers.Add(PayloadType.MultidimensionalArrayOfUInt32, (serializer,   stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(uint), 4); });
+			sDeserializers.Add(PayloadType.MultidimensionalArrayOfUInt64, (serializer,   stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(ulong), 8); });
+			sDeserializers.Add(PayloadType.MultidimensionalArrayOfSingle, (serializer,   stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(float), 4); });
+			sDeserializers.Add(PayloadType.MultidimensionalArrayOfDouble, (serializer,   stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(double), 8); });
+			sDeserializers.Add(PayloadType.MultidimensionalArrayOfBoolean, (serializer,  stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(bool), 1); });
+			sDeserializers.Add(PayloadType.MultidimensionalArrayOfChar, (serializer,     stream, context) => { return serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(char), 2); });
+			sDeserializers.Add(PayloadType.MultidimensionalArrayOfDecimal, (serializer,  stream, context) => { return serializer.ReadMultidimensionalArrayOfDecimal(stream); });
+			sDeserializers.Add(PayloadType.MultidimensionalArrayOfDateTime, (serializer, stream, context) => { return serializer.ReadMultidimensionalDateTimeArray(stream); });
+			sDeserializers.Add(PayloadType.MultidimensionalArrayOfString, (serializer,   stream, context) => { return serializer.ReadMultidimensionalStringArray(stream); });
+			sDeserializers.Add(PayloadType.MultidimensionalArrayOfObjects, (serializer,  stream, context) => { return serializer.ReadMultidimensionalArrayOfObjects(stream, context); });
 
 			// type
-			sDeserializers.Add(PayloadType.Type, (serializer, stream, context) => {
-				serializer.ReadTypeMetadata(stream);
-				return serializer.InnerDeserialize(stream, context);
-			});
+			sDeserializers.Add(
+				PayloadType.Type,
+				(serializer, stream, context) =>
+				{
+					serializer.ReadTypeMetadata(stream);
+					return serializer.InnerDeserialize(stream, context);
+				});
 
 
 			// type id
-			sDeserializers.Add(PayloadType.TypeId, (serializer, stream, context) => {
-				serializer.ReadTypeId(stream);
-				return serializer.InnerDeserialize(stream, context);
-			});
+			sDeserializers.Add(
+				PayloadType.TypeId,
+				(serializer, stream, context) =>
+				{
+					serializer.ReadTypeId(stream);
+					return serializer.InnerDeserialize(stream, context);
+				});
 		}
 
 		/// <summary>
@@ -302,12 +737,12 @@ namespace GriffinPlus.Lib.Serialization
 			// serializer specific
 			mSerializedTypeIdTable = new Dictionary<Type, uint>();
 			mSerializedTypeVersionTable = new SerializerVersionTable();
-			mSerializedObjectIdTable = new Dictionary<object,uint>(new IdentityComparer<object>());
+			mSerializedObjectIdTable = new Dictionary<object, uint>(new IdentityComparer<object>());
 
 			// deserializer specific
 			mIsVersionTolerant = sIsVersionTolerantDefault;
 			mDeserializedTypeIdTable = new Dictionary<uint, TypeItem>();
-			mDeserializedObjectIdTable = new Dictionary<uint,object>();
+			mDeserializedObjectIdTable = new Dictionary<uint, object>();
 
 			// init the serializer/deserializer
 			Reset();
@@ -368,11 +803,11 @@ namespace GriffinPlus.Lib.Serialization
 						// create a copy of the serializer delegate dictionary and add a new serializer for type to register
 						IExternalObjectSerializer eos = FastActivator.CreateInstance(type) as IExternalObjectSerializer;
 						SerializerDelegate serializer = CreateExternalObjectSerializer(attribute.TypeToSerialize, eos, attribute.Version);
-						Dictionary<Type,SerializerDelegate> serDictCopy = new Dictionary<Type,SerializerDelegate>(sSerializers);
+						Dictionary<Type, SerializerDelegate> serDictCopy = new Dictionary<Type, SerializerDelegate>(sSerializers);
 						serDictCopy[attribute.TypeToSerialize] = serializer;
 
 						// create a copy of the dictionary mapping types to serialize to external object serializers
-						Dictionary<Type, ExternalObjectSerializerInfo> eosDictCopy = new Dictionary<Type,ExternalObjectSerializerInfo>(sExternalObjectSerializersBySerializee);
+						Dictionary<Type, ExternalObjectSerializerInfo> eosDictCopy = new Dictionary<Type, ExternalObjectSerializerInfo>(sExternalObjectSerializersBySerializee);
 						eosDictCopy[attribute.TypeToSerialize] = new ExternalObjectSerializerInfo(eos, attribute.Version);
 
 						Thread.MemoryBarrier();
@@ -390,7 +825,8 @@ namespace GriffinPlus.Lib.Serialization
 				sLog.Write(
 					LogLevel.Error,
 					"Class '{0}' seems to be an external serializer class, but it is not annotated with the '{1}' attribute.",
-					type.FullName, typeof(ExternalObjectSerializerAttribute).FullName);
+					type.FullName,
+					typeof(ExternalObjectSerializerAttribute).FullName);
 			}
 
 			if (!interfaceOk)
@@ -399,12 +835,16 @@ namespace GriffinPlus.Lib.Serialization
 				sLog.Write(
 					LogLevel.Error,
 					"Class '{0}' seems to be an external serializer class, but does not implement the '{1}' interface.",
-					type.FullName, typeof(IExternalObjectSerializer).FullName);
+					type.FullName,
+					typeof(IExternalObjectSerializer).FullName);
 			}
 
-			throw new ArgumentException(string.Format(
-				"The specified type ({0}) is not annotated with the '{1}' attribute or does not implement the '{2}' interface.",
-				type.FullName, typeof(ExternalObjectSerializerAttribute).FullName, typeof(IExternalObjectSerializer).FullName));
+			throw new ArgumentException(
+				string.Format(
+					"The specified type ({0}) is not annotated with the '{1}' attribute or does not implement the '{2}' interface.",
+					type.FullName,
+					typeof(ExternalObjectSerializerAttribute).FullName,
+					typeof(IExternalObjectSerializer).FullName));
 		}
 
 		#endregion
@@ -419,7 +859,8 @@ namespace GriffinPlus.Lib.Serialization
 		internal void WriteTypeMetadata(Stream stream, Type type)
 		{
 			// abort if the type has not changed to avoid blowing the stream up
-			if (type == mCurrentSerializedType) {
+			if (type == mCurrentSerializedType)
+			{
 				return;
 			}
 
@@ -445,7 +886,7 @@ namespace GriffinPlus.Lib.Serialization
 				// write header
 				mTempBuffer_Buffer[0] = (byte)PayloadType.Type;
 				int count = LEB128.Write(mTempBuffer_Buffer, 1, byteCount);
-				stream.Write(mTempBuffer_Buffer, 0, 1+count);
+				stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 
 				// write type name
 				stream.Write(mTempBuffer_BigBuffer, 0, byteCount);
@@ -463,7 +904,7 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			mTempBuffer_Buffer[0] = (byte)PayloadType.TypeId;
 			int count = LEB128.Write(mTempBuffer_Buffer, 1, id);
-			stream.Write(mTempBuffer_Buffer, 0, 1+count);
+			stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 		}
 
 		/// <summary>
@@ -492,7 +933,7 @@ namespace GriffinPlus.Lib.Serialization
 				typeItem = new TypeItem(typename, type);
 				mDeserializedTypeIdTable.Add(mNextDeserializedTypeId++, typeItem);
 			}
-			else 
+			else
 			{
 				type = Type.GetType(typename, ResolveAssembly, null, false);
 				if (type != null)
@@ -502,7 +943,7 @@ namespace GriffinPlus.Lib.Serialization
 					{
 						if (!sTypeTable.ContainsKey(typename))
 						{
-							Dictionary<string, Type> copy = new Dictionary<string,Type>(sTypeTable);
+							Dictionary<string, Type> copy = new Dictionary<string, Type>(sTypeTable);
 							copy.Add(typename, type);
 							Thread.MemoryBarrier();
 							sTypeTable = copy;
@@ -540,9 +981,12 @@ namespace GriffinPlus.Lib.Serialization
 			uint id = LEB128.ReadUInt32(stream);
 
 			TypeItem item;
-			if (mDeserializedTypeIdTable.TryGetValue(id, out item)) {
+			if (mDeserializedTypeIdTable.TryGetValue(id, out item))
+			{
 				mCurrentDeserializedType = item;
-			} else {
+			}
+			else
+			{
 				throw new SerializationException("Deserialized type id that does not match a previously deserialized type.");
 			}
 		}
@@ -559,7 +1003,7 @@ namespace GriffinPlus.Lib.Serialization
 			ResetSerializer();
 			ResetDeserializer();
 		}
-		
+
 		/// <summary>
 		/// Resets the internal state of the serializer.
 		/// </summary>
@@ -576,7 +1020,7 @@ namespace GriffinPlus.Lib.Serialization
 			mNextSerializedTypeId = 0;
 			ResetSerializerObjectTable();
 		}
-		
+
 		/// <summary>
 		/// Resets the table used to detect objects that have already been serialized.
 		/// </summary>
@@ -600,7 +1044,7 @@ namespace GriffinPlus.Lib.Serialization
 			mNextDeserializedTypeId = 0;
 			ResetDeserializerObjectTable();
 		}
-		
+
 		/// <summary>
 		/// Clears the table used to map object ids to already deserialized objects.
 		/// </summary>
@@ -618,10 +1062,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// Gets the default value indicating whether the serializer allows to resolve a full assembly name during deserialization
 		/// to a different assembly with the same name, but a different version number.
 		/// </summary>
-		public static bool IsVersionTolerantDefault
-		{
-			get { return sIsVersionTolerantDefault; }
-		}
+		public static bool IsVersionTolerantDefault => sIsVersionTolerantDefault;
 
 		/// <summary>
 		/// Gets or sets a value indicating whether the serializer allows to resolve a full assembly name during deserialization
@@ -629,8 +1070,8 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		public bool IsVersionTolerant
 		{
-			get { return mIsVersionTolerant; }
-			set { mIsVersionTolerant = value; }
+			get => mIsVersionTolerant;
+			set => mIsVersionTolerant = value;
 		}
 
 		#endregion
@@ -663,7 +1104,8 @@ namespace GriffinPlus.Lib.Serialization
 			SerializerDelegate serializer;
 
 			// a null reference?
-			if (obj == null) {
+			if (obj == null)
+			{
 				stream.WriteByte((byte)PayloadType.NullReference);
 				return;
 			}
@@ -682,27 +1124,25 @@ namespace GriffinPlus.Lib.Serialization
 					serializer(this, stream, obj, context);
 					return;
 				}
-				else
-				{
-					if (type.IsEnum)
-					{
-						// an enumeration value
-						// => create a serializer delegate that handles it
-						lock (sSync)
-						{
-							if (!sSerializers.TryGetValue(type, out serializer))
-							{
-								serializer = GetEnumSerializer(type);
-								Dictionary<Type, SerializerDelegate> copy = new Dictionary<Type,SerializerDelegate>(sSerializers);
-								copy[type] = serializer;
-								Thread.MemoryBarrier();
-								sSerializers = copy;
-							}
-						}
 
-						serializer(this, stream, obj, context);
-						return;
+				if (type.IsEnum)
+				{
+					// an enumeration value
+					// => create a serializer delegate that handles it
+					lock (sSync)
+					{
+						if (!sSerializers.TryGetValue(type, out serializer))
+						{
+							serializer = GetEnumSerializer(type);
+							Dictionary<Type, SerializerDelegate> copy = new Dictionary<Type, SerializerDelegate>(sSerializers);
+							copy[type] = serializer;
+							Thread.MemoryBarrier();
+							sSerializers = copy;
+						}
 					}
+
+					serializer(this, stream, obj, context);
+					return;
 				}
 			}
 			else
@@ -716,12 +1156,14 @@ namespace GriffinPlus.Lib.Serialization
 					SerializeObjectId(stream, id);
 					return;
 				}
-				else if (sSerializers.TryGetValue(type, out serializer))
+
+				if (sSerializers.TryGetValue(type, out serializer))
 				{
 					serializer(this, stream, obj, context);
 					return;
 				}
-				else if (type.IsArray)
+
+				if (type.IsArray)
 				{
 					Array array = obj as Array;
 					if (type.GetArrayRank() == 1 && array.GetLowerBound(0) == 0)
@@ -730,24 +1172,28 @@ namespace GriffinPlus.Lib.Serialization
 						WriteArrayOfObjects(array, stream);
 						return;
 					}
+
+					// an MDARRAY
+					if (sMultidimensionalArraySerializers.TryGetValue(type.GetElementType(), out serializer))
+					{
+						serializer(this, stream, array, context);
+					}
 					else
 					{
-						// an MDARRAY
-						if (sMultidimensionalArraySerializers.TryGetValue(type.GetElementType(), out serializer)) {
-							serializer(this, stream, array, context);
-						} else {
-							WriteMultidimensionalArrayOfObjects(array, stream);
-						}
-						return;
+						WriteMultidimensionalArrayOfObjects(array, stream);
 					}
+
+					return;
 				}
-				else if (type.IsInstanceOfType(typeof(Type)))
+
+				if (type.IsInstanceOfType(typeof(Type)))
 				{
 					SerializeTypeObject(stream, obj as Type);
 					mSerializedObjectIdTable.Add(obj, mNextSerializedObjectId++);
 					return;
 				}
-				else if (type.IsGenericType)
+
+				if (type.IsGenericType)
 				{
 					Type genericTypeDefinition = type.GetGenericTypeDefinition();
 					if (sSerializers.TryGetValue(genericTypeDefinition, out serializer))
@@ -757,11 +1203,11 @@ namespace GriffinPlus.Lib.Serialization
 
 						lock (sSync)
 						{
-							Dictionary<Type,SerializerDelegate> serDictCopy = new Dictionary<Type,SerializerDelegate>(sSerializers);
+							Dictionary<Type, SerializerDelegate> serDictCopy = new Dictionary<Type, SerializerDelegate>(sSerializers);
 							serDictCopy[type] = serializer;
 
 							// create a copy of the dictionary mapping types to serialize to external object serializers
-							Dictionary<Type, ExternalObjectSerializerInfo> eosDictCopy = new Dictionary<Type,ExternalObjectSerializerInfo>(sExternalObjectSerializersBySerializee);
+							Dictionary<Type, ExternalObjectSerializerInfo> eosDictCopy = new Dictionary<Type, ExternalObjectSerializerInfo>(sExternalObjectSerializersBySerializee);
 							eosDictCopy[type] = new ExternalObjectSerializerInfo(eosi.Serializer, eosi.Version);
 
 							Thread.MemoryBarrier();
@@ -787,7 +1233,7 @@ namespace GriffinPlus.Lib.Serialization
 					if (!sSerializers.TryGetValue(type, out serializer))
 					{
 						serializer = CreateInternalObjectSerializer(type);
-						Dictionary<Type, SerializerDelegate> copy = new Dictionary<Type,SerializerDelegate>(sSerializers);
+						Dictionary<Type, SerializerDelegate> copy = new Dictionary<Type, SerializerDelegate>(sSerializers);
 						copy[type] = serializer;
 						Thread.MemoryBarrier();
 						sSerializers = copy;
@@ -829,7 +1275,7 @@ namespace GriffinPlus.Lib.Serialization
 				// => serialize type id only.
 				mTempBuffer_Buffer[0] = (byte)PayloadType.TypeId;
 				int count = LEB128.Write(mTempBuffer_Buffer, 1, id);
-				stream.Write(mTempBuffer_Buffer, 0, 1+count);
+				stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 			}
 			else
 			{
@@ -846,7 +1292,7 @@ namespace GriffinPlus.Lib.Serialization
 				// write header
 				mTempBuffer_Buffer[0] = (byte)PayloadType.Type;
 				int count = LEB128.Write(mTempBuffer_Buffer, 1, byteCount);
-				stream.Write(mTempBuffer_Buffer, 0, 1+count);
+				stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 
 				// write assembly name
 				stream.Write(mTempBuffer_BigBuffer, 0, byteCount);
@@ -866,7 +1312,7 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			mTempBuffer_Buffer[0] = (byte)PayloadType.AlreadySerialized;
 			int count = LEB128.Write(mTempBuffer_Buffer, 1, id);
-			stream.Write(mTempBuffer_Buffer, 0, 1+count);
+			stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 		}
 
 		#endregion
@@ -880,7 +1326,10 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="context">Context object to pass to the serializer of the expected object (may be null).</param>
 		/// <returns>Deserialized object.</returns>
 		/// <exception cref="VersionNotSupportedException">The serializer version of one of the objects in the specified stream is not supported.</exception>
-		/// <exception cref="SerializationException">Deserializing the object failed (the exception object contains a message describing the reason why deserialization has failed).</exception>
+		/// <exception cref="SerializationException">
+		/// Deserializing the object failed (the exception object contains a message describing the reason why
+		/// deserialization has failed).
+		/// </exception>
 		public object Deserialize(Stream stream, object context = null)
 		{
 			ResetDeserializer();
@@ -903,7 +1352,8 @@ namespace GriffinPlus.Lib.Serialization
 
 			// try to use a deserializer
 			DeserializerDelegate deserializer;
-			if (sDeserializers.TryGetValue(objType, out deserializer)) {
+			if (sDeserializers.TryGetValue(objType, out deserializer))
+			{
 				return deserializer(this, stream, context);
 			}
 
@@ -1007,14 +1457,15 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					type = Type.GetType(typename, ResolveAssembly, null, false);
 
-					if (type == null) {
+					if (type == null)
+					{
 						throw new SerializationException("Unable to load type " + typename + ".");
 					}
 
 					// remember the determined name-to-type mapping
 					lock (sTypeTableLock)
 					{
-						Dictionary<string,Type> copy = new Dictionary<string,Type>(sTypeTable);
+						Dictionary<string, Type> copy = new Dictionary<string, Type>(sTypeTable);
 						copy[typename] = type;
 						Thread.MemoryBarrier();
 						sTypeTable = copy;
@@ -1028,7 +1479,8 @@ namespace GriffinPlus.Lib.Serialization
 			else if (objType == PayloadType.TypeId)
 			{
 				uint id = LEB128.ReadUInt32(stream);
-				if (!mDeserializedTypeIdTable.TryGetValue(id, out typeItem)) {
+				if (!mDeserializedTypeIdTable.TryGetValue(id, out typeItem))
+				{
 					throw new SerializationException("Deserialized type id that does not match a previously deserialized type.");
 				}
 			}
@@ -1057,13 +1509,14 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			object obj;
 			uint id = LEB128.ReadUInt32(stream);
-			if (mDeserializedObjectIdTable.TryGetValue(id, out obj)) {
+			if (mDeserializedObjectIdTable.TryGetValue(id, out obj))
+			{
 				return obj;
-			} else {
-				string error = "Invalid object id detected.";
-				sLog.Write(LogLevel.Error, error);
-				throw new SerializationException(error);
 			}
+
+			string error = "Invalid object id detected.";
+			sLog.Write(LogLevel.Error, error);
+			throw new SerializationException(error);
 		}
 
 		#endregion
@@ -1077,7 +1530,10 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="context">Context to pass to the serializer via the serializer archive.</param>
 		/// <returns>Deserialized object.</returns>
 		/// <exception cref="SerializationException">Stream ended unexpectedly.</exception>
-		/// <exception cref="SerializationException">Object serializer version of the object that is about to be deserialized is higher than the max. supported version of the available serializer.</exception>
+		/// <exception cref="SerializationException">
+		/// Object serializer version of the object that is about to be deserialized is higher than the max. supported
+		/// version of the available serializer.
+		/// </exception>
 		/// <exception cref="SerializationException">There is no internal/external object serializer for the object that is about to be deserialized.</exception>
 		private object ReadArchive(Stream stream, object context)
 		{
@@ -1086,10 +1542,13 @@ namespace GriffinPlus.Lib.Serialization
 			string error;
 
 			#region External Object Serializer
+
 			// try to get an external object serializer for exactly the deserialized type, fallback to a serializer for a generic type, if available...
 			ExternalObjectSerializerInfo eosi;
-			if (!sExternalObjectSerializersBySerializee.TryGetValue(mCurrentDeserializedType.Type, out eosi)) {
-				if (mCurrentDeserializedType.Type.IsGenericType) {
+			if (!sExternalObjectSerializersBySerializee.TryGetValue(mCurrentDeserializedType.Type, out eosi))
+			{
+				if (mCurrentDeserializedType.Type.IsGenericType)
+				{
 					sExternalObjectSerializersBySerializee.TryGetValue(mCurrentDeserializedType.Type.GetGenericTypeDefinition(), out eosi);
 				}
 			}
@@ -1098,7 +1557,8 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				currentVersion = eosi.Version;
 
-				if (deserializedVersion > currentVersion) {
+				if (deserializedVersion > currentVersion)
+				{
 					// version of the archive that is about to be deserialized is greater than
 					// the version the internal object serializer supports
 					error = string.Format("Deserializing type '{0}' failed due to a version conflict (got version: {1}, max. supported version: {2}).", mCurrentDeserializedType.Type.FullName, deserializedVersion, currentVersion);
@@ -1115,13 +1575,15 @@ namespace GriffinPlus.Lib.Serialization
 				ReadAndCheckPayloadType(stream, PayloadType.ArchiveEnd);
 				return obj;
 			}
+
 			#endregion
 
 			#region Internal Object Serializer
 
 			if (HasInternalObjectSerializer(mCurrentDeserializedType.Type, out currentVersion))
 			{
-				if (deserializedVersion > currentVersion) {
+				if (deserializedVersion > currentVersion)
+				{
 					// version of the archive that is about to be deserialized is greater than
 					// the version the internal object serializer supports
 					error = string.Format("Deserializing type '{0}' failed due to a version conflict (got version: {1}, max. supported version: {2}).", mCurrentDeserializedType.Type.FullName, deserializedVersion, currentVersion);
@@ -1131,7 +1593,7 @@ namespace GriffinPlus.Lib.Serialization
 
 				// version is ok, deserialize...
 				SerializerArchive archive = new SerializerArchive(this, stream, mCurrentDeserializedType.Type, deserializedVersion, context);
-				object obj = FastActivator.CreateInstance<SerializerArchive>(mCurrentDeserializedType.Type, archive);
+				object obj = FastActivator.CreateInstance(mCurrentDeserializedType.Type, archive);
 				archive.Close();
 
 				// read and check archive end
@@ -1157,9 +1619,10 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			int readbyte = stream.ReadByte();
 			if (readbyte < 0) throw new SerializationException("Stream ended unexpectedly.");
-			if (readbyte != (int)type) {
+			if (readbyte != (int)type)
+			{
 				StackTrace trace = new StackTrace();
-				string error = string.Format("Unexpected payload type during deserialization. Stack Trace:\n{0}", trace.ToString());
+				string error = string.Format("Unexpected payload type during deserialization. Stack Trace:\n{0}", trace);
 				sLog.Write(LogLevel.Error, error);
 				throw new SerializationException(error);
 			}
@@ -1186,7 +1649,8 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					throw new SerializationException(
 						"Resolving full name of assembly ({0}) failed. Resolution to assembly ({1}) exists, but the serializer is configured to be version-intolerant.",
-						assemblyName.FullName, assembly.FullName);
+						assemblyName.FullName,
+						assembly.FullName);
 				}
 
 				return assembly;
@@ -1220,14 +1684,16 @@ namespace GriffinPlus.Lib.Serialization
 					sLog.Write(
 						LogLevel.Debug,
 						"Loading assembly by its full name ({0}) failed. Trying to load assembly allowing a different version.\nException: {1}",
-						assemblyName.FullName, ex.ToString());
+						assemblyName.FullName,
+						ex.ToString());
 				}
 				else
 				{
 					sLog.Write(
 						LogLevel.Error,
 						"Loading assembly by its full name ({0}) failed.\nException: {1}",
-						assemblyName.FullName, ex.ToString());
+						assemblyName.FullName,
+						ex.ToString());
 
 					throw;
 				}
@@ -1243,7 +1709,8 @@ namespace GriffinPlus.Lib.Serialization
 			sLog.Write(
 				LogLevel.Debug,
 				"Trying to load assembly ({0}) from file ({1}).",
-				assemblyName.Name, path);
+				assemblyName.Name,
+				path);
 
 			try
 			{
@@ -1252,7 +1719,8 @@ namespace GriffinPlus.Lib.Serialization
 				sLog.Write(
 					LogLevel.Debug,
 					"Loading assembly ({0}) from file ({1}) succeeded.",
-					assemblyName.Name, path);
+					assemblyName.Name,
+					path);
 
 				KeepAssemblyResolution(assemblyName.FullName, assembly);
 				return assembly;
@@ -1266,7 +1734,9 @@ namespace GriffinPlus.Lib.Serialization
 				sLog.Write(
 					LogLevel.Error,
 					"Loading assembly ({0}) from file ({1}) failed.\nException: {2}",
-					assemblyName.Name, path, ex.ToString());
+					assemblyName.Name,
+					path,
+					ex.ToString());
 
 				throw;
 			}
@@ -1283,7 +1753,8 @@ namespace GriffinPlus.Lib.Serialization
 				sLog.Write(
 					LogLevel.Debug,
 					"Trying to load assembly ({0}) from ({1}).",
-					assemblyName.Name, path);
+					assemblyName.Name,
+					path);
 
 				try
 				{
@@ -1292,7 +1763,8 @@ namespace GriffinPlus.Lib.Serialization
 					sLog.Write(
 						LogLevel.Debug,
 						"Loading assembly ({0}) from file ({1}) succeeded.",
-						assemblyName.Name, path);
+						assemblyName.Name,
+						path);
 
 					KeepAssemblyResolution(assemblyName.FullName, assembly);
 					return assembly;
@@ -1306,7 +1778,9 @@ namespace GriffinPlus.Lib.Serialization
 					sLog.Write(
 						LogLevel.Error,
 						"Loading assembly ({0}) from file ({1}) failed.\nException: {2}",
-						assemblyName.FullName, path, ex.ToString());
+						assemblyName.FullName,
+						path,
+						ex.ToString());
 
 					throw;
 				}
@@ -1315,7 +1789,8 @@ namespace GriffinPlus.Lib.Serialization
 			sLog.Write(
 				LogLevel.Error,
 				"Resolving name of assembly ({0}) failed. File could not be found.",
-				assemblyName.FullName, path);
+				assemblyName.FullName,
+				path);
 
 			return null;
 		}
@@ -1331,7 +1806,7 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				if (!sAssemblyTable.ContainsKey(assemblyFullName))
 				{
-					Dictionary<string, Assembly> copy = new Dictionary<string,Assembly>(sAssemblyTable);
+					Dictionary<string, Assembly> copy = new Dictionary<string, Assembly>(sAssemblyTable);
 					copy.Add(assemblyFullName, assembly);
 					Thread.MemoryBarrier();
 					sAssemblyTable = copy;
@@ -1360,7 +1835,9 @@ namespace GriffinPlus.Lib.Serialization
 				sLog.Write(
 					LogLevel.Error,
 					"Resolving type name ({0}) in assembly ({1}) failed. Exception:\n{2}",
-					name, assembly.FullName, ex.ToString());
+					name,
+					assembly.FullName,
+					ex.ToString());
 
 				return null;
 			}
@@ -1387,11 +1864,13 @@ namespace GriffinPlus.Lib.Serialization
 
 			uint version;
 
-			if (HasInternalObjectSerializer(type, out version)) {
+			if (HasInternalObjectSerializer(type, out version))
+			{
 				return version;
 			}
 
-			if (HasExternalObjectSerializer(type, out version)) {
+			if (HasExternalObjectSerializer(type, out version))
+			{
 				return version;
 			}
 
@@ -1427,7 +1906,8 @@ namespace GriffinPlus.Lib.Serialization
 			Init();
 
 			// abort if the object to copy is null
-			if (obj == null) {
+			if (obj == null)
+			{
 				return null;
 			}
 
@@ -1437,31 +1917,30 @@ namespace GriffinPlus.Lib.Serialization
 				// primitive types and enums are value types and can be copied by assigning
 				return obj;
 			}
-			else if (type == typeof(string) || type == typeof(DateTime))
+
+			if (type == typeof(string) || type == typeof(DateTime))
 			{
 				// - strings are immutable and do not have to be copied
 				// - System.DateTime is a struct and does not reference other objects
 				return obj;
 			}
-			else
+
+			MemoryBlockStream mbs = new MemoryBlockStream();
+			Serializer serializer = new Serializer();
+			object copy;
+
+			try
 			{
-				MemoryBlockStream mbs = new MemoryBlockStream();
-				Serializer serializer = new Serializer();
-				object copy;
-
-				try
-				{
-					serializer.Serialize(mbs, obj, serializationContext);
-					mbs.Position = 0;
-					copy = serializer.Deserialize(mbs, deserializationContext);
-				}
-				finally
-				{
-					mbs.Dispose();
-				}
-
-				return copy;
+				serializer.Serialize(mbs, obj, serializationContext);
+				mbs.Position = 0;
+				copy = serializer.Deserialize(mbs, deserializationContext);
 			}
+			finally
+			{
+				mbs.Dispose();
+			}
+
+			return copy;
 		}
 
 		/// <summary>
@@ -1473,7 +1952,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Serializing/deserializing failed due to some reason (see exception message for further details).</exception>
 		public static T CopySerializableObject<T>(T obj)
 		{
-			return CopySerializableObject<T>(obj, null, null);
+			return CopySerializableObject(obj, null, null);
 		}
 
 		/// <summary>
@@ -1490,7 +1969,8 @@ namespace GriffinPlus.Lib.Serialization
 			Init();
 
 			// abort if the object to copy is null
-			if (obj == null) {
+			if (obj == null)
+			{
 				return default(T);
 			}
 
@@ -1502,26 +1982,24 @@ namespace GriffinPlus.Lib.Serialization
 				// - System.DateTime is a struct and does not reference other objects
 				return obj;
 			}
-			else
+
+			// other objects
+			MemoryBlockStream mbs = new MemoryBlockStream();
+			Serializer serializer = new Serializer();
+			object copy;
+
+			try
 			{
-				// other objects
-				MemoryBlockStream mbs = new MemoryBlockStream();
-				Serializer serializer = new Serializer();
-				object copy;
-
-				try
-				{
-					serializer.Serialize(mbs, obj, serializationContext);
-					mbs.Position = 0;
-					copy = serializer.Deserialize(mbs, deserializationContext);
-				}
-				finally
-				{
-					mbs.Dispose();
-				}
-
-				return (T)copy;
+				serializer.Serialize(mbs, obj, serializationContext);
+				mbs.Position = 0;
+				copy = serializer.Deserialize(mbs, deserializationContext);
 			}
+			finally
+			{
+				mbs.Dispose();
+			}
+
+			return (T)copy;
 		}
 
 		/// <summary>
@@ -1534,7 +2012,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Serializing/deserializing failed due to some reason (see exception message for further details).</exception>
 		public static T[] CopySerializableObject<T>(T obj, int count)
 		{
-			return CopySerializableObject<T>(obj, null, null, count);
+			return CopySerializableObject(obj, null, null, count);
 		}
 
 		/// <summary>
@@ -1547,16 +2025,23 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="deserializationContext">Serialization context to use.</param>
 		/// <returns>Copy of the specified object.</returns>
 		/// <exception cref="SerializationException">Serializing/deserializing failed due to some reason (see exception message for further details).</exception>
-		public static T[] CopySerializableObject<T>(T obj, object serializationContext, object deserializationContext, int count)
+		public static T[] CopySerializableObject<T>(
+			T      obj,
+			object serializationContext,
+			object deserializationContext,
+			int    count)
 		{
 			Init();
 
 			// abort if the object to copy is null or if count is zero
 			T[] copies = new T[count];
-			if (obj == null || count == 0) {
-				for (int i = 0; i < count; i++) {
+			if (obj == null || count == 0)
+			{
+				for (int i = 0; i < count; i++)
+				{
 					copies[i] = default(T);
 				}
+
 				return copies;
 			}
 
@@ -1566,32 +2051,33 @@ namespace GriffinPlus.Lib.Serialization
 				// - primitive types and enums are value types and can be copied by assigning
 				// - strings are immutable and do not have to be copied
 				// - System.DateTime is a struct and does not reference other objects
-				for (int i = 0; i < count; i++) {
+				for (int i = 0; i < count; i++)
+				{
 					copies[i] = obj;
 				}
+
 				return copies;
 			}
-			else
+
+			// other objects
+			MemoryBlockStream mbs = new MemoryBlockStream();
+			Serializer serializer = new Serializer();
+
+			try
 			{
-				// other objects
-				MemoryBlockStream mbs = new MemoryBlockStream();
-				Serializer serializer = new Serializer();
-
-				try
+				serializer.Serialize(mbs, obj, serializationContext);
+				for (int i = 0; i < count; i++)
 				{
-					serializer.Serialize(mbs, obj, serializationContext);
-					for (int i = 0; i < count; i++) {
-						mbs.Position = 0;
-						copies[i] = (T )serializer.Deserialize(mbs, deserializationContext);
-					}
+					mbs.Position = 0;
+					copies[i] = (T)serializer.Deserialize(mbs, deserializationContext);
 				}
-				finally
-				{
-					mbs.Dispose();
-				}
-
-				return copies;
 			}
+			finally
+			{
+				mbs.Dispose();
+			}
+
+			return copies;
 		}
 
 		#endregion
@@ -1608,7 +2094,8 @@ namespace GriffinPlus.Lib.Serialization
 		public static void Serialize<T>(string filename, T obj, object context = null)
 		{
 			Serializer serializer = new Serializer();
-			using (FileStream fs = new FileStream(filename, FileMode.Create, FileAccess.Write, FileShare.None)) {
+			using (FileStream fs = new FileStream(filename, FileMode.Create, FileAccess.Write, FileShare.None))
+			{
 				serializer.Serialize(fs, obj, context);
 			}
 		}
@@ -1623,7 +2110,8 @@ namespace GriffinPlus.Lib.Serialization
 		public static T Deserialize<T>(string filename, object context = null)
 		{
 			Serializer serializer = new Serializer();
-			using (FileStream fs = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+			using (FileStream fs = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read))
+			{
 				return (T)serializer.Deserialize(fs, context);
 			}
 		}
@@ -1655,7 +2143,8 @@ namespace GriffinPlus.Lib.Serialization
 			Init();
 			if (sSerializers.ContainsKey(type)) return true;
 			if (type.IsArray && IsSerializable(type.GetElementType())) return true;
-			if (type.IsGenericType) {
+			if (type.IsGenericType)
+			{
 				Type genericTypeDefinition = type.GetGenericTypeDefinition();
 				return sSerializers.ContainsKey(genericTypeDefinition);
 			}
@@ -1670,7 +2159,7 @@ namespace GriffinPlus.Lib.Serialization
 					if (!sSerializers.ContainsKey(type))
 					{
 						SerializerDelegate serializer = CreateInternalObjectSerializer(type);
-						Dictionary<Type, SerializerDelegate> copy = new Dictionary<Type,SerializerDelegate>(sSerializers);
+						Dictionary<Type, SerializerDelegate> copy = new Dictionary<Type, SerializerDelegate>(sSerializers);
 						copy[type] = serializer;
 						Thread.MemoryBarrier();
 						sSerializers = copy;
@@ -1726,14 +2215,17 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			// check whether a serializer for exactly the specified type is available
 			ExternalObjectSerializerInfo eosi;
-			if (sExternalObjectSerializersBySerializee.TryGetValue(type, out eosi)) {
+			if (sExternalObjectSerializersBySerializee.TryGetValue(type, out eosi))
+			{
 				version = eosi.Version;
 				return true;
 			}
 
 			// check, whether a serializer for the generic type definition is available
-			if (type.IsGenericType) {
-				if (sExternalObjectSerializersBySerializee.TryGetValue(type.GetGenericTypeDefinition(), out eosi)) {
+			if (type.IsGenericType)
+			{
+				if (sExternalObjectSerializersBySerializee.TryGetValue(type.GetGenericTypeDefinition(), out eosi))
+				{
 					version = eosi.Version;
 					return true;
 				}
@@ -1756,7 +2248,8 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			// check whether a serializer for exactly the specified type is available
 			ExternalObjectSerializerInfo eosi;
-			if (sExternalObjectSerializersBySerializee.TryGetValue(type, out eosi)) {
+			if (sExternalObjectSerializersBySerializee.TryGetValue(type, out eosi))
+			{
 				version = eosi.Version;
 				return eosi.Serializer;
 			}
@@ -1776,7 +2269,8 @@ namespace GriffinPlus.Lib.Serialization
 		/// </returns>
 		internal static IInternalObjectSerializer GetInternalObjectSerializer(object obj, out uint version)
 		{
-			if (sCache.HasInternalObjectSerializer(obj.GetType(), out version)) {
+			if (sCache.HasInternalObjectSerializer(obj.GetType(), out version))
+			{
 				return obj as IInternalObjectSerializer;
 			}
 
@@ -1796,7 +2290,8 @@ namespace GriffinPlus.Lib.Serialization
 		/// </returns>
 		internal static IInternalObjectSerializer GetInternalObjectSerializer(object obj, Type type, out uint version)
 		{
-			if (sCache.HasInternalObjectSerializer(type, out version)) {
+			if (sCache.HasInternalObjectSerializer(type, out version))
+			{
 				return obj as IInternalObjectSerializer;
 			}
 
@@ -1816,18 +2311,23 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>A delegate that handles the serialization of the specified type.</returns>
 		private static SerializerDelegate CreateInternalObjectSerializer(Type type)
 		{
-			return (serializer, stream, obj, context) =>
+			return (
+				serializer,
+				stream,
+				obj,
+				context) =>
 			{
 				// determine the serializer version to use
 				uint version;
-				if (!serializer.mSerializedTypeVersionTable.TryGet(type, out version)) {
+				if (!serializer.mSerializedTypeVersionTable.TryGet(type, out version))
+				{
 					sCache.HasInternalObjectSerializer(type, out version);
 				}
 
 				serializer.WriteTypeMetadata(stream, type);
 				serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.ArchiveStart;
 				int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, version);
-				stream.Write(serializer.mTempBuffer_Buffer, 0, 1+count);
+				stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				SerializerArchive archive = new SerializerArchive(serializer, stream, type, version, context);
 				IosSerializeDelegate serialize = GetInternalObjectSerializerSerializeCaller(type);
 				serialize(obj as IInternalObjectSerializer, archive, version);
@@ -1852,7 +2352,7 @@ namespace GriffinPlus.Lib.Serialization
 					if (!sIosSerializeCallers.TryGetValue(type, out serializeDelegate))
 					{
 						serializeDelegate = CreateIosSerializeCaller(type);
-						Dictionary<Type,IosSerializeDelegate> copy = new Dictionary<Type,IosSerializeDelegate>(sIosSerializeCallers);
+						Dictionary<Type, IosSerializeDelegate> copy = new Dictionary<Type, IosSerializeDelegate>(sIosSerializeCallers);
 						copy.Add(type, serializeDelegate);
 						Thread.MemoryBarrier();
 						sIosSerializeCallers = copy;
@@ -1872,7 +2372,7 @@ namespace GriffinPlus.Lib.Serialization
 		private static IosSerializeDelegate CreateIosSerializeCaller(Type type)
 		{
 			// try to get the publicly implemented 'Serialize' method...
-			MethodInfo method = type.GetMethod(nameof(IInternalObjectSerializer.Serialize), new Type[] { typeof(SerializerArchive), typeof(uint) });
+			MethodInfo method = type.GetMethod(nameof(IInternalObjectSerializer.Serialize), new[] { typeof(SerializerArchive), typeof(uint) });
 			if (method == null)
 			{
 				// the publicly implemented 'Serialize' method is not available
@@ -1881,7 +2381,7 @@ namespace GriffinPlus.Lib.Serialization
 					typeof(IInternalObjectSerializer).FullName + "." + nameof(IInternalObjectSerializer.Serialize),
 					BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly,
 					null,
-					new Type[] { typeof(SerializerArchive), typeof(uint) },
+					new[] { typeof(SerializerArchive), typeof(uint) },
 					null);
 			}
 
@@ -1891,8 +2391,9 @@ namespace GriffinPlus.Lib.Serialization
 			int method_id = Interlocked.Increment(ref sIosSerializeCallersId);
 			string name = "_ios_serialize_caller" + method_id;
 			Type[] parameterTypes = { typeof(IInternalObjectSerializer), typeof(SerializerArchive), typeof(uint) };
-			
-			ParameterExpression[] parameterExpressions = {
+
+			ParameterExpression[] parameterExpressions =
+			{
 				Expression.Parameter(typeof(IInternalObjectSerializer), "object"),
 				Expression.Parameter(typeof(SerializerArchive), "archive"),
 				Expression.Parameter(typeof(uint), "version")
@@ -1901,7 +2402,8 @@ namespace GriffinPlus.Lib.Serialization
 			Expression body = Expression.Call(
 				Expression.Convert(parameterExpressions[0], type),
 				method,
-				parameterExpressions[1], parameterExpressions[2]);
+				parameterExpressions[1],
+				parameterExpressions[2]);
 
 			LambdaExpression lambda = Expression.Lambda(typeof(IosSerializeDelegate), body, parameterExpressions);
 			return (IosSerializeDelegate)lambda.Compile();
@@ -1912,15 +2414,23 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		/// <param name="typeToSerialize">Type the delegate will handle.</param>
 		/// <param name="eos">Receives the created external object serializer.</param>
-		/// <param name="serializerVersion">Max. supported version of the serializer (as specified in the <see cref="ExternalObjectSerializerAttribute"/> attached to the external object serializer).</param>
+		/// <param name="serializerVersion">
+		/// Max. supported version of the serializer (as specified in the <see cref="ExternalObjectSerializerAttribute"/>
+		/// attached to the external object serializer).
+		/// </param>
 		/// <returns>A delegate that handles the serialization of the specified type.</returns>
 		private static SerializerDelegate CreateExternalObjectSerializer(Type typeToSerialize, IExternalObjectSerializer eos, uint serializerVersion)
 		{
-			return (serializer, stream, obj, context) =>
+			return (
+				serializer,
+				stream,
+				obj,
+				context) =>
 			{
 				// determine the serializer version to use
 				uint version;
-				if (!serializer.mSerializedTypeVersionTable.TryGet(typeToSerialize, out version)) {
+				if (!serializer.mSerializedTypeVersionTable.TryGet(typeToSerialize, out version))
+				{
 					version = serializerVersion;
 				}
 
@@ -1930,7 +2440,7 @@ namespace GriffinPlus.Lib.Serialization
 				// write serializer archive
 				serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.ArchiveStart;
 				int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, version);
-				stream.Write(serializer.mTempBuffer_Buffer, 0, 1+count);
+				stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				SerializerArchive archive = new SerializerArchive(serializer, stream, typeToSerialize, version, context);
 				eos.Serialize(archive, version, obj);
 				archive.Close();
@@ -1951,91 +2461,129 @@ namespace GriffinPlus.Lib.Serialization
 
 			if (underlyingType == typeof(sbyte))
 			{
-				return (serializer, stream, obj, context) =>
+				return (
+					serializer,
+					stream,
+					obj,
+					context) =>
 				{
 					serializer.WriteTypeMetadata(stream, type);
 					serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (int)((sbyte)obj));
-					stream.Write(serializer.mTempBuffer_Buffer, 0, 1+count);
+					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (sbyte)obj);
+					stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				};
 			}
-			else if (underlyingType == typeof(byte))
+
+			if (underlyingType == typeof(byte))
 			{
-				return (serializer, stream, obj, context) =>
+				return (
+					serializer,
+					stream,
+					obj,
+					context) =>
 				{
 					serializer.WriteTypeMetadata(stream, type);
 					serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (int)((byte)obj));
-					stream.Write(serializer.mTempBuffer_Buffer, 0, 1+count);
+					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (byte)obj);
+					stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				};
 			}
-			else if (underlyingType == typeof(short))
+
+			if (underlyingType == typeof(short))
 			{
-				return (serializer, stream, obj, context) =>
+				return (
+					serializer,
+					stream,
+					obj,
+					context) =>
 				{
 					serializer.WriteTypeMetadata(stream, type);
 					serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (int)((short)obj));
-					stream.Write(serializer.mTempBuffer_Buffer, 0, 1+count);
+					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (short)obj);
+					stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				};
 			}
-			else if (underlyingType == typeof(ushort))
+
+			if (underlyingType == typeof(ushort))
 			{
-				return (serializer, stream, obj, context) =>
+				return (
+					serializer,
+					stream,
+					obj,
+					context) =>
 				{
 					serializer.WriteTypeMetadata(stream, type);
 					serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (int)((ushort)obj));
-					stream.Write(serializer.mTempBuffer_Buffer, 0, 1+count);
+					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (ushort)obj);
+					stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				};
 			}
-			else if (underlyingType == typeof(int))
+
+			if (underlyingType == typeof(int))
 			{
-				return (serializer, stream, obj, context) =>
+				return (
+					serializer,
+					stream,
+					obj,
+					context) =>
 				{
 					serializer.WriteTypeMetadata(stream, type);
 					serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Enum;
 					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (int)obj);
-					stream.Write(serializer.mTempBuffer_Buffer, 0, 1+count);
+					stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				};
 			}
-			else if (underlyingType == typeof(uint))
+
+			if (underlyingType == typeof(uint))
 			{
-				return (serializer, stream, obj, context) =>
+				return (
+					serializer,
+					stream,
+					obj,
+					context) =>
 				{
 					serializer.WriteTypeMetadata(stream, type);
 					serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (long)((uint)obj));
-					stream.Write(serializer.mTempBuffer_Buffer, 0, 1+count);
+					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (long)(uint)obj);
+					stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				};
 			}
-			else if (underlyingType == typeof(long))
+
+			if (underlyingType == typeof(long))
 			{
-				return (serializer, stream, obj, context) =>
+				return (
+					serializer,
+					stream,
+					obj,
+					context) =>
 				{
 					serializer.WriteTypeMetadata(stream, type);
 					serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Enum;
 					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (long)obj);
-					stream.Write(serializer.mTempBuffer_Buffer, 0, 1+count);
+					stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				};
 			}
-			else if (underlyingType == typeof(ulong))
+
+			if (underlyingType == typeof(ulong))
 			{
-				return (serializer, stream, obj, context) =>
+				return (
+					serializer,
+					stream,
+					obj,
+					context) =>
 				{
 					serializer.WriteTypeMetadata(stream, type);
 					serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (long)((ulong)obj));
-					stream.Write(serializer.mTempBuffer_Buffer, 0, 1+count);
+					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (long)(ulong)obj);
+					stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				};
 			}
-			else
-			{
-				string error = string.Format("The underlying type ({0}) of enumeration ({1}) is not supported.", underlyingType.FullName, type.FullName);
-				throw new NotSupportedException(error);
-			}
+
+			string error = string.Format("The underlying type ({0}) of enumeration ({1}) is not supported.", underlyingType.FullName, type.FullName);
+			throw new NotSupportedException(error);
 		}
 
 		#endregion
 	}
+
 }

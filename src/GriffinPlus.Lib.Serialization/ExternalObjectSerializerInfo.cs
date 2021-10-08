@@ -5,10 +5,11 @@
 
 namespace GriffinPlus.Lib.Serialization
 {
+
 	/// <summary>
 	/// Stores some information about an external object serializer.
 	/// </summary>
-	internal class ExternalObjectSerializerInfo
+	class ExternalObjectSerializerInfo
 	{
 		/// <summary>
 		/// Intializes a new instance of the <see cref="ExternalObjectSerializerInfo"/> class.
@@ -30,6 +31,6 @@ namespace GriffinPlus.Lib.Serialization
 		/// Gets the version of the external serializer.
 		/// </summary>
 		public uint Version { get; }
-
 	}
+
 }

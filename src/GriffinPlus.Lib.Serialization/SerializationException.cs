@@ -9,6 +9,7 @@ using System.Security.Permissions;
 
 namespace GriffinPlus.Lib.Serialization
 {
+
 	/// <summary>
 	/// Exception that is thrown when something unexpected occurs while serializing or deserializing an object.
 	/// </summary>
@@ -22,7 +23,6 @@ namespace GriffinPlus.Lib.Serialization
 		public SerializationException(string message) :
 			base(message)
 		{
-
 		}
 
 		/// <summary>
@@ -33,7 +33,6 @@ namespace GriffinPlus.Lib.Serialization
 		public SerializationException(string format, params object[] args) :
 			base(string.Format(format, args))
 		{
-
 		}
 
 		/// <summary>
@@ -44,7 +43,6 @@ namespace GriffinPlus.Lib.Serialization
 		public SerializationException(string message, Exception innerException) :
 			base(message, innerException)
 		{
-			
 		}
 
 		/// <summary>
@@ -54,7 +52,6 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="context">The <see cref="StreamingContext"/> that contains contextual information about the source or destination.</param>
 		protected SerializationException(SerializationInfo info, StreamingContext context) : base(info, context)
 		{
-
 		}
 
 		/// <summary>
@@ -68,4 +65,5 @@ namespace GriffinPlus.Lib.Serialization
 			base.GetObjectData(info, context);
 		}
 	}
+
 }

@@ -6,68 +6,70 @@
 using System;
 using System.IO;
 using System.Reflection;
+
 using Xunit;
 
 namespace GriffinPlus.Lib.Serialization.Tests
 {
+
 	public class SerializerTests
 	{
 		#region Test Types/Data: Enumerations
 
-		enum TestEnum_S8 : sbyte
+		private enum TestEnum_S8 : sbyte
 		{
 			A = sbyte.MinValue,
 			B = 0,
-			C = sbyte.MaxValue,
+			C = sbyte.MaxValue
 		}
 
-		enum TestEnum_U8 : byte
+		private enum TestEnum_U8 : byte
 		{
 			A = byte.MinValue,
 			B = byte.MaxValue / 2,
-			C = byte.MaxValue,
+			C = byte.MaxValue
 		}
 
-		enum TestEnum_S16 : short
+		private enum TestEnum_S16 : short
 		{
 			A = short.MinValue,
 			B = 0,
-			C = short.MaxValue,
+			C = short.MaxValue
 		}
 
-		enum TestEnum_U16 : ushort
+		private enum TestEnum_U16 : ushort
 		{
 			A = ushort.MinValue,
 			B = ushort.MaxValue / 2,
-			C = ushort.MaxValue,
+			C = ushort.MaxValue
 		}
 
-		enum TestEnum_S32 : int
+		private enum TestEnum_S32
 		{
 			A = int.MinValue,
 			B = 0,
-			C = int.MaxValue,
+			C = int.MaxValue
 		}
 
-		enum TestEnum_U32 : uint
+		private enum TestEnum_U32 : uint
 		{
 			A = uint.MinValue,
 			B = uint.MaxValue / 2,
-			C = uint.MaxValue,
+			C = uint.MaxValue
 		}
 
-		enum TestEnum_S64 : long
+		private enum TestEnum_S64 : long
 		{
 			A = long.MinValue,
 			B = 0,
-			C = long.MaxValue,
+			C = long.MaxValue
 		}
 
-		enum TestEnum_U64 : ulong
+		private enum TestEnum_U64 : ulong
 		{
 			A = ulong.MinValue,
 			B = ulong.MaxValue / 2,
-			C = ulong.MaxValue,
+			C = ulong.MaxValue
 		}
 
 		#endregion
@@ -92,36 +94,36 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 			public TestClass1()
 			{
-				mSByte   = 1;
-				mByte    = 2;
-				mInt16   = 3;
-				mUInt16  = 4;
-				mInt32   = 5;
-				mUInt32  = 6;
-				mInt64   = 7;
-				mUInt64  = 8;
-				mSingle  = 9.0f;
-				mDouble  = 10.0;
+				mSByte = 1;
+				mByte = 2;
+				mInt16 = 3;
+				mUInt16 = 4;
+				mInt32 = 5;
+				mUInt32 = 6;
+				mInt64 = 7;
+				mUInt64 = 8;
+				mSingle = 9.0f;
+				mDouble = 10.0;
 				mDecimal = 11;
-				mChar    = 'X';
+				mChar = 'X';
 			}
 
 			public TestClass1(SerializerArchive archive)
 			{
 				if (archive.Version == 1)
 				{
-					mSByte   = archive.ReadSByte();
-					mByte    = archive.ReadByte();
-					mInt16   = archive.ReadInt16();
-					mUInt16  = archive.ReadUInt16();
-					mInt32   = archive.ReadInt32();
-					mUInt32  = archive.ReadUInt32();
-					mInt64   = archive.ReadInt64();
-					mUInt64  = archive.ReadUInt64();
-					mSingle  = archive.ReadSingle();
-					mDouble  = archive.ReadDouble();
+					mSByte = archive.ReadSByte();
+					mByte = archive.ReadByte();
+					mInt16 = archive.ReadInt16();
+					mUInt16 = archive.ReadUInt16();
+					mInt32 = archive.ReadInt32();
+					mUInt32 = archive.ReadUInt32();
+					mInt64 = archive.ReadInt64();
+					mUInt64 = archive.ReadUInt64();
+					mSingle = archive.ReadSingle();
+					mDouble = archive.ReadDouble();
 					mDecimal = archive.ReadDecimal();
-					mChar    = archive.ReadChar();
+					mChar = archive.ReadChar();
 				}
 				else
 				{
@@ -160,18 +162,18 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			public override bool Equals(object obj)
 			{
 				TestClass1 other = obj as TestClass1;
-				if (mSByte   != other.mSByte )  return false;
-				if (mByte    != other.mByte  )  return false;
-				if (mInt16   != other.mInt16 )  return false;
-				if (mUInt16  != other.mUInt16)  return false;
-				if (mInt32   != other.mInt32 )  return false;
-				if (mUInt32  != other.mUInt32)  return false;
-				if (mInt64   != other.mInt64 )  return false;
-				if (mUInt64  != other.mUInt64)  return false;
-				if (mSingle  != other.mSingle)  return false;
-				if (mDouble  != other.mDouble)  return false;
+				if (mSByte != other.mSByte) return false;
+				if (mByte != other.mByte) return false;
+				if (mInt16 != other.mInt16) return false;
+				if (mUInt16 != other.mUInt16) return false;
+				if (mInt32 != other.mInt32) return false;
+				if (mUInt32 != other.mUInt32) return false;
+				if (mInt64 != other.mInt64) return false;
+				if (mUInt64 != other.mUInt64) return false;
+				if (mSingle != other.mSingle) return false;
+				if (mDouble != other.mDouble) return false;
 				if (mDecimal != other.mDecimal) return false;
-				if (mChar    != other.mChar)    return false;
+				if (mChar != other.mChar) return false;
 				return true;
 			}
 		}
@@ -193,7 +195,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			{
 				if (archive.Version == 1)
 				{
-					mString   = archive.ReadString();
+					mString = archive.ReadString();
 					mDateTime = archive.ReadDateTime();
 				}
 				else
@@ -253,18 +255,18 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 			public TestClass2()
 			{
-				mSByte   = 1;
-				mByte    = 2;
-				mInt16   = 3;
-				mUInt16  = 4;
-				mInt32   = 5;
-				mUInt32  = 6;
-				mInt64   = 7;
-				mUInt64  = 8;
-				mSingle  = 9.0f;
-				mDouble  = 10.0;
+				mSByte = 1;
+				mByte = 2;
+				mInt16 = 3;
+				mUInt16 = 4;
+				mInt32 = 5;
+				mUInt32 = 6;
+				mInt64 = 7;
+				mUInt64 = 8;
+				mSingle = 9.0f;
+				mDouble = 10.0;
 				mDecimal = 11;
-				mChar    = 'X';
+				mChar = 'X';
 			}
 
 			public override int GetHashCode()
@@ -275,18 +277,18 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			public override bool Equals(object obj)
 			{
 				TestClass2 other = obj as TestClass2;
-				if (mSByte   != other.mSByte )  return false;
-				if (mByte    != other.mByte  )  return false;
-				if (mInt16   != other.mInt16 )  return false;
-				if (mUInt16  != other.mUInt16)  return false;
-				if (mInt32   != other.mInt32 )  return false;
-				if (mUInt32  != other.mUInt32)  return false;
-				if (mInt64   != other.mInt64 )  return false;
-				if (mUInt64  != other.mUInt64)  return false;
-				if (mSingle  != other.mSingle)  return false;
-				if (mDouble  != other.mDouble)  return false;
+				if (mSByte != other.mSByte) return false;
+				if (mByte != other.mByte) return false;
+				if (mInt16 != other.mInt16) return false;
+				if (mUInt16 != other.mUInt16) return false;
+				if (mInt32 != other.mInt32) return false;
+				if (mUInt32 != other.mUInt32) return false;
+				if (mInt64 != other.mInt64) return false;
+				if (mUInt64 != other.mUInt64) return false;
+				if (mSingle != other.mSingle) return false;
+				if (mDouble != other.mDouble) return false;
 				if (mDecimal != other.mDecimal) return false;
-				if (mChar    != other.mChar)    return false;
+				if (mChar != other.mChar) return false;
 				return true;
 			}
 		}
@@ -325,18 +327,18 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 				if (archive.Version == 1)
 				{
-					obj.mSByte   = archive.ReadSByte();
-					obj.mByte    = archive.ReadByte();
-					obj.mInt16   = archive.ReadInt16();
-					obj.mUInt16  = archive.ReadUInt16();
-					obj.mInt32   = archive.ReadInt32();
-					obj.mUInt32  = archive.ReadUInt32();
-					obj.mInt64   = archive.ReadInt64();
-					obj.mUInt64  = archive.ReadUInt64();
-					obj.mSingle  = archive.ReadSingle();
-					obj.mDouble  = archive.ReadDouble();
+					obj.mSByte = archive.ReadSByte();
+					obj.mByte = archive.ReadByte();
+					obj.mInt16 = archive.ReadInt16();
+					obj.mUInt16 = archive.ReadUInt16();
+					obj.mInt32 = archive.ReadInt32();
+					obj.mUInt32 = archive.ReadUInt32();
+					obj.mInt64 = archive.ReadInt64();
+					obj.mUInt64 = archive.ReadUInt64();
+					obj.mSingle = archive.ReadSingle();
+					obj.mDouble = archive.ReadDouble();
 					obj.mDecimal = archive.ReadDecimal();
-					obj.mChar    = archive.ReadChar();
+					obj.mChar = archive.ReadChar();
 				}
 				else
 				{
@@ -383,15 +385,18 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		public void Copy_Multi_Dimensional_Array_Of_Boolean()
 		{
 			// create a multi-dimensional array of boolean
-			int[] lengths = new int[] { 5, 4, 3 };
-			int[] lowerBounds = new int[] { 10, 20, 30 };
+			int[] lengths = { 5, 4, 3 };
+			int[] lowerBounds = { 10, 20, 30 };
 			Array array = Array.CreateInstance(typeof(bool), lengths, lowerBounds);
 
 			// populate array with some test data
-			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++) {
-				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++) {
-					for (int z = lowerBounds[2]; z <= array.GetUpperBound(2); z++) {
-						bool value = ((x+y+z) % 2) != 0;
+			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++)
+			{
+				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++)
+				{
+					for (int z = lowerBounds[2]; z <= array.GetUpperBound(2); z++)
+					{
+						bool value = (x + y + z) % 2 != 0;
 						array.SetValue(value, x, y, z);
 					}
 				}
@@ -489,12 +494,14 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			dynamic max = type.GetField("MaxValue").GetValue(null);
 			dynamic mid = Convert.ChangeType((max + min) / 2, type);
 
-			int[] lengths = new int[] { 5, 4, 3 };
-			int[] lowerBounds = new int[] { 10, 20, 30 };
+			int[] lengths = { 5, 4, 3 };
+			int[] lowerBounds = { 10, 20, 30 };
 			Array array = Array.CreateInstance(type, lengths, lowerBounds);
 
-			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++) {
-				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++) {
+			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++)
+			{
+				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++)
+				{
 					array.SetValue(min, x, y, lowerBounds[2] + 0);
 					array.SetValue(max, x, y, lowerBounds[2] + 1);
 					array.SetValue(mid, x, y, lowerBounds[2] + 2);
@@ -540,14 +547,18 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		public void Copy_Multi_Dimensional_Array_Of_String()
 		{
 			// create a multi-dimensional array of string
-			int[] lengths = new int[] { 5, 4, 3 };
-			int[] lowerBounds = new int[] { 10, 20, 30 };
+			int[] lengths = { 5, 4, 3 };
+			int[] lowerBounds = { 10, 20, 30 };
 			Array array = Array.CreateInstance(typeof(string), lengths, lowerBounds);
 
 			// populate array with some test data
-			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++) {
-				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++) {
-					for (int z = lowerBounds[2]; z < array.GetUpperBound(2); z++) {    // last element is a null reference
+			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++)
+			{
+				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++)
+				{
+					for (int z = lowerBounds[2]; z < array.GetUpperBound(2); z++)
+					{
+						// last element is a null reference
 						string value = string.Format("x = {0}, y = {1}, z = {2}", x, y, z);
 						array.SetValue(value, x, y, z);
 					}
@@ -595,15 +606,18 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		public void Copy_Multi_Dimensional_Array_Of_DateTime()
 		{
 			// create a multi-dimensional array of datetime
-			int[] lengths = new int[] { 5, 4, 3 };
-			int[] lowerBounds = new int[] { 10, 20, 30 };
+			int[] lengths = { 5, 4, 3 };
+			int[] lowerBounds = { 10, 20, 30 };
 			Array array = Array.CreateInstance(typeof(DateTime), lengths, lowerBounds);
 
 			// populate array with some test data
-			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++) {
-				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++) {
-					for (int z = lowerBounds[2]; z <= array.GetUpperBound(2); z++) {
-						DateTime value = DateTime.Now.AddMinutes(x+y+z);
+			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++)
+			{
+				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++)
+				{
+					for (int z = lowerBounds[2]; z <= array.GetUpperBound(2); z++)
+					{
+						DateTime value = DateTime.Now.AddMinutes(x + y + z);
 						array.SetValue(value, x, y, z);
 					}
 				}
@@ -649,15 +663,18 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		public void Copy_Multi_Dimensional_Array_Of_Type()
 		{
 			// create a multi-dimensional array of type objects
-			int[] lengths = new int[] { 5, 4, 3 };
-			int[] lowerBounds = new int[] { 10, 20, 30 };
+			int[] lengths = { 5, 4, 3 };
+			int[] lowerBounds = { 10, 20, 30 };
 			Array array = Array.CreateInstance(typeof(Type), lengths, lowerBounds);
 
 			// populate array with some test data
 			Type[] types = Assembly.GetExecutingAssembly().GetTypes();
-			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++) {
-				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++) {
-					for (int z = lowerBounds[2]; z <= array.GetUpperBound(2); z++) {
+			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++)
+			{
+				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++)
+				{
+					for (int z = lowerBounds[2]; z <= array.GetUpperBound(2); z++)
+					{
 						int index = x - lowerBounds[0] + y - lowerBounds[1] + z - lowerBounds[2];
 						Type value = types[index];
 						array.SetValue(value, x, y, z);
@@ -688,7 +705,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData(typeof(TestEnum_U64))]
 		public void Copy_Enum(Type type)
 		{
-			foreach (object obj in Enum.GetValues(type)) {
+			foreach (object obj in Enum.GetValues(type))
+			{
 				object copy = CopySerializableObject(obj);
 				Assert.Equal(obj, copy);
 			}
@@ -727,15 +745,18 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData(typeof(TestEnum_U64))]
 		public void Copy_Multi_Dimensional_Array_Of_Enum(Type type)
 		{
-			int[] lengths = new int[] { 5, 6, 7 };
-			int[] lowerBounds = new int[] { 10, 20, 30 };
+			int[] lengths = { 5, 6, 7 };
+			int[] lowerBounds = { 10, 20, 30 };
 			Array array = Array.CreateInstance(type, lengths, lowerBounds);
 
 			Array enums = Enum.GetValues(type);
-			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++) {
-				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++) {
-					for (int z = lowerBounds[2]; z <= array.GetUpperBound(2); z++) {
-						dynamic value = enums.GetValue((x+y+z) % enums.Length);
+			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++)
+			{
+				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++)
+				{
+					for (int z = lowerBounds[2]; z <= array.GetUpperBound(2); z++)
+					{
+						dynamic value = enums.GetValue((x + y + z) % enums.Length);
 						array.SetValue(value, x, y, z);
 					}
 				}
@@ -847,18 +868,18 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			for (int i = indices.Length; i > 0; i--)
 			{
-				if (indices[i-1] == array.GetUpperBound(i-1)) {
-					indices[i-1] = array.GetLowerBound(i-1);
+				if (indices[i - 1] == array.GetUpperBound(i - 1))
+				{
+					indices[i - 1] = array.GetLowerBound(i - 1);
 					continue;
 				}
 
-				indices[i-1]++;
+				indices[i - 1]++;
 				return;
 			}
 		}
 
 		#endregion
-
 	}
-}
 
+}

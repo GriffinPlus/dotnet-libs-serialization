@@ -5,6 +5,7 @@
 
 namespace GriffinPlus.Lib.Serialization
 {
+
 	/// <summary>
 	/// Interface of classes providing serialization support for existing classes without modifying these classes.
 	/// </summary>
@@ -34,4 +35,5 @@ namespace GriffinPlus.Lib.Serialization
 		/// </remarks>
 		object Deserialize(SerializerArchive archive);
 	}
+
 }

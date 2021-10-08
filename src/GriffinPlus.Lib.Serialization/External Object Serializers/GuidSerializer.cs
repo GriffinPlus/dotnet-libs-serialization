@@ -7,11 +7,12 @@ using System;
 
 namespace GriffinPlus.Lib.Serialization
 {
+
 	/// <summary>
 	/// External object serializer for GUIDs (type <see cref="System.Guid"/>).
 	/// </summary>
 	[ExternalObjectSerializer(typeof(Guid), 1)]
-	internal class GuidSerializer : IExternalObjectSerializer
+	class GuidSerializer : IExternalObjectSerializer
 	{
 		/// <summary>
 		/// Serializes a GUID to a stream.
@@ -22,10 +23,13 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
 		public void Serialize(SerializerArchive archive, uint version, object obj)
 		{
-			if (version == 1) {
+			if (version == 1)
+			{
 				Guid guid = (Guid)obj;
 				archive.Write(guid.ToUuidByteArray());
-			} else {
+			}
+			else
+			{
 				throw new VersionNotSupportedException(typeof(Guid), version);
 			}
 		}
@@ -38,13 +42,14 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
 		public object Deserialize(SerializerArchive archive)
 		{
-			if (archive.Version == 1) {
+			if (archive.Version == 1)
+			{
 				byte[] buffer = (byte[])archive.ReadObject();
 				return buffer.ToRfc4122Guid(0);
-			} else {
-				throw new VersionNotSupportedException(archive);
 			}
-		}
 
+			throw new VersionNotSupportedException(archive);
+		}
 	}
+
 }

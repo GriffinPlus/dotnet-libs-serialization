@@ -4,14 +4,16 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using System;
-using System.IO;
-using GriffinPlus.Lib.Logging;
-using System.Reflection;
 using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
 using System.Text;
+
+using GriffinPlus.Lib.Logging;
 
 namespace GriffinPlus.Lib.Serialization
 {
+
 	/// <summary>
 	/// Caches information about internal object serializers, external object serializers and
 	/// types that are used in conjunction with the serializer.
@@ -20,10 +22,10 @@ namespace GriffinPlus.Lib.Serialization
 	{
 		#region Inner Classes
 
-		[Serializable()]
+		[Serializable]
 		public class AssemblyInfo
 		{
-			private Guid mGuid;
+			private Guid   mGuid;
 			private string mPath;
 
 			public AssemblyInfo()
@@ -38,26 +40,26 @@ namespace GriffinPlus.Lib.Serialization
 
 			public Guid Guid
 			{
-				get { return mGuid; }
-				set { mGuid = value; }
+				get => mGuid;
+				set => mGuid = value;
 			}
 
 			public string Path
 			{
-				get { return mPath; }
-				set { mPath = value; }
+				get => mPath;
+				set => mPath = value;
 			}
 		}
 
 		//--------------------------------------------------------------------------------------
 
-		[Serializable()]
+		[Serializable]
 		public class InternalObjectSerializerInfo
 		{
-			private string mFullTypeName;
+			private string     mFullTypeName;
 			private List<Guid> mAssemblyGuids;
-			private uint mSerializerVersion;
-			
+			private uint       mSerializerVersion;
+
 			public InternalObjectSerializerInfo()
 			{
 				mAssemblyGuids = new List<Guid>();
@@ -72,43 +74,42 @@ namespace GriffinPlus.Lib.Serialization
 
 			public string FullTypeName
 			{
-				get { return mFullTypeName; }
-				set { mFullTypeName = value; }
+				get => mFullTypeName;
+				set => mFullTypeName = value;
 			}
 
 			public List<Guid> AssemblyGuids
 			{
-				get { return mAssemblyGuids; }
-				set { mAssemblyGuids = value; }
+				get => mAssemblyGuids;
+				set => mAssemblyGuids = value;
 			}
 
 			public uint SerializerVersion
 			{
-				get { return mSerializerVersion; }
-				set { mSerializerVersion = value; }
+				get => mSerializerVersion;
+				set => mSerializerVersion = value;
 			}
 		}
 
 		//--------------------------------------------------------------------------------------
 
-		[Serializable()]
+		[Serializable]
 		public class ExternalObjectSerializerInfo
 		{
 			private string mSerializerFullTypeName;
-			private Guid mSerializerAssemblyGuid;
+			private Guid   mSerializerAssemblyGuid;
 			private string mSerializeeFullTypeName;
-			private Guid mSerializeeAssemblyGuid;
+			private Guid   mSerializeeAssemblyGuid;
 
 			public ExternalObjectSerializerInfo()
 			{
-
 			}
 
 			public ExternalObjectSerializerInfo(
 				string serializerFullTypeName,
-				Guid serializerAssemblyGuid,
+				Guid   serializerAssemblyGuid,
 				string serializeeFullTypeName,
-				Guid serializeeAssemblyGuid)
+				Guid   serializeeAssemblyGuid)
 			{
 				mSerializerFullTypeName = serializerFullTypeName;
 				mSerializerAssemblyGuid = serializerAssemblyGuid;
@@ -118,37 +119,37 @@ namespace GriffinPlus.Lib.Serialization
 
 			public string SerializerFullTypeName
 			{
-				get { return mSerializerFullTypeName; }
-				set { mSerializerFullTypeName = value; }
+				get => mSerializerFullTypeName;
+				set => mSerializerFullTypeName = value;
 			}
 
 			public string SerializeeFullTypeName
 			{
-				get { return mSerializeeFullTypeName; }
-				set { mSerializeeFullTypeName = value; }
+				get => mSerializeeFullTypeName;
+				set => mSerializeeFullTypeName = value;
 			}
 
 			public Guid SerializerAssemblyGuid
 			{
-				get { return mSerializerAssemblyGuid; }
-				set { mSerializerAssemblyGuid = value; }
+				get => mSerializerAssemblyGuid;
+				set => mSerializerAssemblyGuid = value;
 			}
 
 			public Guid SerializeeAssemblyGuid
 			{
-				get { return mSerializeeAssemblyGuid; }
-				set { mSerializeeAssemblyGuid = value; }
+				get => mSerializeeAssemblyGuid;
+				set => mSerializeeAssemblyGuid = value;
 			}
 		}
 
 		//--------------------------------------------------------------------------------------
 
-		[Serializable()]
+		[Serializable]
 		public class EnumerationInfo
 		{
-			private string mFullTypeName;
+			private string     mFullTypeName;
 			private List<Guid> mAssemblyGuids;
-			
+
 			public EnumerationInfo()
 			{
 				mAssemblyGuids = new List<Guid>();
@@ -162,14 +163,14 @@ namespace GriffinPlus.Lib.Serialization
 
 			public string FullTypeName
 			{
-				get { return mFullTypeName; }
-				set { mFullTypeName = value; }
+				get => mFullTypeName;
+				set => mFullTypeName = value;
 			}
 
 			public List<Guid> AssemblyGuids
 			{
-				get { return mAssemblyGuids; }
-				set { mAssemblyGuids = value; }
+				get => mAssemblyGuids;
+				set => mAssemblyGuids = value;
 			}
 		}
 
@@ -177,20 +178,20 @@ namespace GriffinPlus.Lib.Serialization
 
 		#region Class Variables
 
-		private static LogWriter sLog = Log.GetWriter(typeof(SerializerCache));
-		private static Type[] sConstructorArgumentTypes   = new Type[] { typeof(SerializerArchive) };
-		private static object sSync = new object();
-		private static volatile SerializerCache sInstance = null;
-		
+		private static readonly LogWriter       sLog                      = Log.GetWriter(typeof(SerializerCache));
+		private static readonly Type[]          sConstructorArgumentTypes = { typeof(SerializerArchive) };
+		private static readonly object          sSync                     = new object();
+		private static volatile SerializerCache sInstance                 = null;
+
 		#endregion
 
 		#region Member Variables
 
-		private Dictionary<Guid, AssemblyInfo> mAssemblyGuidToAssemblyInfo;
-		private Dictionary<string, AssemblyInfo> mAssemblyPathToAssemblyInfo;
-		private Dictionary<Type, List<ExternalObjectSerializerInfo>> mTypeToExternalObjectSerializerInfo;
-		private Dictionary<Type, InternalObjectSerializerInfo> mTypeToInternalObjectSerializerInfo;
-		private Dictionary<Type, EnumerationInfo> mEnumTypeToAssemblyInfo;
+		private readonly Dictionary<Guid, AssemblyInfo>                       mAssemblyGuidToAssemblyInfo;
+		private readonly Dictionary<string, AssemblyInfo>                     mAssemblyPathToAssemblyInfo;
+		private readonly Dictionary<Type, List<ExternalObjectSerializerInfo>> mTypeToExternalObjectSerializerInfo;
+		private readonly Dictionary<Type, InternalObjectSerializerInfo>       mTypeToInternalObjectSerializerInfo;
+		private readonly Dictionary<Type, EnumerationInfo>                    mEnumTypeToAssemblyInfo;
 
 		#endregion
 
@@ -201,11 +202,11 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		private SerializerCache()
 		{
-			mAssemblyGuidToAssemblyInfo = new Dictionary<Guid,AssemblyInfo>();
-			mAssemblyPathToAssemblyInfo = new Dictionary<string,AssemblyInfo>();
-			mTypeToExternalObjectSerializerInfo = new Dictionary<Type,List<ExternalObjectSerializerInfo>>();
-			mTypeToInternalObjectSerializerInfo = new Dictionary<Type,InternalObjectSerializerInfo>();
-			mEnumTypeToAssemblyInfo = new Dictionary<Type,EnumerationInfo>();
+			mAssemblyGuidToAssemblyInfo = new Dictionary<Guid, AssemblyInfo>();
+			mAssemblyPathToAssemblyInfo = new Dictionary<string, AssemblyInfo>();
+			mTypeToExternalObjectSerializerInfo = new Dictionary<Type, List<ExternalObjectSerializerInfo>>();
+			mTypeToInternalObjectSerializerInfo = new Dictionary<Type, InternalObjectSerializerInfo>();
+			mEnumTypeToAssemblyInfo = new Dictionary<Type, EnumerationInfo>();
 
 			// initialize the cache
 			Initialize();
@@ -223,9 +224,12 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			get
 			{
-				if (sInstance == null) {
-					lock (sSync) {
-						if (sInstance == null) {
+				if (sInstance == null)
+				{
+					lock (sSync)
+					{
+						if (sInstance == null)
+						{
 							sInstance = new SerializerCache();
 						}
 					}
@@ -260,7 +264,8 @@ namespace GriffinPlus.Lib.Serialization
 		public Assembly LoadAssemblyByFullName(string name)
 		{
 			Assembly assembly = Assembly.Load(name);
-			if (assembly != null) {
+			if (assembly != null)
+			{
 				return assembly;
 			}
 
@@ -353,9 +358,12 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				if (!mAssemblyPathToAssemblyInfo.ContainsKey(filename))
 				{
-					try {
+					try
+					{
 						ScanAssembly(filename);
-					} catch (Exception) {
+					}
+					catch (Exception)
+					{
 					}
 				}
 			}
@@ -365,9 +373,12 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				if (!mAssemblyPathToAssemblyInfo.ContainsKey(filename))
 				{
-					try {
+					try
+					{
 						ScanAssembly(filename);
-					} catch (Exception) {
+					}
+					catch (Exception)
+					{
 					}
 				}
 			}
@@ -393,9 +404,12 @@ namespace GriffinPlus.Lib.Serialization
 		private void AddExternalObjectSerializers(Assembly assembly)
 		{
 			Type[] types;
-			try {
+			try
+			{
 				types = assembly.GetTypes();
-			} catch (ReflectionTypeLoadException ex) {
+			}
+			catch (ReflectionTypeLoadException ex)
+			{
 				types = ex.Types;
 			}
 
@@ -403,7 +417,7 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				if (type == null)
 					continue;
-				
+
 				if (type.IsClass)
 				{
 					// a class
@@ -414,7 +428,8 @@ namespace GriffinPlus.Lib.Serialization
 					if (attributeOk && interfaceOk)
 					{
 						// class is annotated with the external object serializer attribute and implements the appropriate interface
-						foreach (ExternalObjectSerializerAttribute attribute in attributes) {
+						foreach (ExternalObjectSerializerAttribute attribute in attributes)
+						{
 							SetExternalObjectSerializer(type);
 						}
 					}
@@ -445,9 +460,12 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			// get types in the assembly
 			Type[] types;
-			try {
+			try
+			{
 				types = assembly.GetTypes();
-			} catch (ReflectionTypeLoadException ex) {
+			}
+			catch (ReflectionTypeLoadException ex)
+			{
 				types = ex.Types;
 			}
 
@@ -457,22 +475,22 @@ namespace GriffinPlus.Lib.Serialization
 				if (type == null)
 					continue;
 
-				if (type.IsClass || (type.IsValueType && !type.IsPrimitive)) // class or struct
+				if (type.IsClass || type.IsValueType && !type.IsPrimitive) // class or struct
 				{
 					// a class
 					object[] iosAttributes = type.GetCustomAttributes(typeof(InternalObjectSerializerAttribute), false);
 					bool iosAttributeOk = iosAttributes.Length > 0;
 					bool interfaceOk = typeof(IInternalObjectSerializer).IsAssignableFrom(type);
 					bool constructorOk = type.GetConstructor(BindingFlags.ExactBinding | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, Type.DefaultBinder, sConstructorArgumentTypes, null) != null;
-					MethodInfo serializeMethodInfo = type.GetMethod("Serialize", new Type[] { typeof(SerializerArchive), typeof(uint) });
-					bool virtualSerializeMethod = serializeMethodInfo != null && (serializeMethodInfo.IsVirtual && !serializeMethodInfo.IsFinal);
+					MethodInfo serializeMethodInfo = type.GetMethod("Serialize", new[] { typeof(SerializerArchive), typeof(uint) });
+					bool virtualSerializeMethod = serializeMethodInfo != null && serializeMethodInfo.IsVirtual && !serializeMethodInfo.IsFinal;
 
 					if (iosAttributeOk && interfaceOk && constructorOk && !virtualSerializeMethod)
 					{
 						// class is annotated with the internal object serializer attribute and implements the appropriate interface
 						SetInternalObjectSerializer(type);
 					}
-					else if ((iosAttributeOk || interfaceOk)) // || constructorOk <-- do not check this, since this will create false alarms for classes taking a SerializerArchive in the constructor
+					else if (iosAttributeOk || interfaceOk) // || constructorOk <-- do not check this, since this will create false alarms for classes taking a SerializerArchive in the constructor
 					{
 						if (!iosAttributeOk)
 						{
@@ -495,7 +513,10 @@ namespace GriffinPlus.Lib.Serialization
 						if (virtualSerializeMethod)
 						{
 							// 'Serialize' method is virtual
-							sLog.Write(LogLevel.Error, "Class '{0}' seems to be an internal serializer class, but its 'Serialize' method is virtual which will cause problems when serializing nested classes. You should overwrite the 'Serialize' method in derived classes instead.", type.FullName);
+							sLog.Write(
+								LogLevel.Error,
+								"Class '{0}' seems to be an internal serializer class, but its 'Serialize' method is virtual which will cause problems when serializing nested classes. You should overwrite the 'Serialize' method in derived classes instead.",
+								type.FullName);
 						}
 					}
 				}
@@ -510,9 +531,12 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			// get types in the assembly
 			Type[] types;
-			try {
+			try
+			{
 				types = assembly.GetTypes();
-			} catch (ReflectionTypeLoadException ex) {
+			}
+			catch (ReflectionTypeLoadException ex)
+			{
 				types = ex.Types;
 			}
 
@@ -522,7 +546,8 @@ namespace GriffinPlus.Lib.Serialization
 				if (type == null)
 					continue;
 
-				if (type.IsEnum) {
+				if (type.IsEnum)
+				{
 					SetEnumeration(type);
 				}
 			}
@@ -549,12 +574,13 @@ namespace GriffinPlus.Lib.Serialization
 						builder.AppendFormat("-> {0}", kvp.Key.FullName);
 						builder.AppendLine();
 
-						for (int i = 0; i < kvp.Value.AssemblyGuids.Count; i++) {
+						for (int i = 0; i < kvp.Value.AssemblyGuids.Count; i++)
+						{
 							AssemblyInfo ai = mAssemblyGuidToAssemblyInfo[kvp.Value.AssemblyGuids[i]];
 							builder.AppendFormat("   -> {0}", ai.Path);
 							builder.AppendLine();
 						}
-						
+
 						sLog.Write(level, builder.ToString());
 					}
 					else
@@ -573,8 +599,10 @@ namespace GriffinPlus.Lib.Serialization
 			if (mTypeToExternalObjectSerializerInfo.Count > 0)
 			{
 				sLog.Write(level, "Known External Object Serializers:");
-				foreach (KeyValuePair<Type, List<ExternalObjectSerializerInfo>> kvp in mTypeToExternalObjectSerializerInfo) {
-					foreach (ExternalObjectSerializerInfo eosi in kvp.Value) {
+				foreach (KeyValuePair<Type, List<ExternalObjectSerializerInfo>> kvp in mTypeToExternalObjectSerializerInfo)
+				{
+					foreach (ExternalObjectSerializerInfo eosi in kvp.Value)
+					{
 						AssemblyInfo ai1 = mAssemblyGuidToAssemblyInfo[eosi.SerializerAssemblyGuid];
 						AssemblyInfo ai2 = mAssemblyGuidToAssemblyInfo[eosi.SerializeeAssemblyGuid];
 						sLog.Write(level, "-> {0} ({1}) for type {2} ({3})", eosi.SerializerFullTypeName, ai1.Path, eosi.SerializeeFullTypeName, ai2.Path);
@@ -600,7 +628,8 @@ namespace GriffinPlus.Lib.Serialization
 		public bool HasInternalObjectSerializer(Type type, out uint version)
 		{
 			InternalObjectSerializerInfo info;
-			if (mTypeToInternalObjectSerializerInfo.TryGetValue(type, out info)) {
+			if (mTypeToInternalObjectSerializerInfo.TryGetValue(type, out info))
+			{
 				version = info.SerializerVersion;
 				return true;
 			}
@@ -608,7 +637,8 @@ namespace GriffinPlus.Lib.Serialization
 			if (type.IsGenericType)
 			{
 				Type genericTypeDefinition = type.GetGenericTypeDefinition();
-				if (mTypeToInternalObjectSerializerInfo.TryGetValue(genericTypeDefinition, out info)) {
+				if (mTypeToInternalObjectSerializerInfo.TryGetValue(genericTypeDefinition, out info))
+				{
 					version = info.SerializerVersion;
 					return true;
 				}
@@ -654,7 +684,8 @@ namespace GriffinPlus.Lib.Serialization
 				mTypeToInternalObjectSerializerInfo.Add(type, infos);
 			}
 
-			if (infos.AssemblyGuids.Find((Guid other) => { return other == assemblyInfo.Guid; }) == default(Guid)) {
+			if (infos.AssemblyGuids.Find(other => { return other == assemblyInfo.Guid; }) == default(Guid))
+			{
 				infos.AssemblyGuids.Add(assemblyInfo.Guid);
 			}
 		}
@@ -744,14 +775,16 @@ namespace GriffinPlus.Lib.Serialization
 
 			// store information about the enumeration type
 			// -----------------------------------------------------------------------------------------------------------
-			
+
 			EnumerationInfo infos;
-			if (!mEnumTypeToAssemblyInfo.TryGetValue(type, out infos)) {
+			if (!mEnumTypeToAssemblyInfo.TryGetValue(type, out infos))
+			{
 				infos = new EnumerationInfo(type.FullName, new List<Guid>());
 				mEnumTypeToAssemblyInfo.Add(type, infos);
 			}
 
-			if (infos.AssemblyGuids.Find((Guid other) => { return other == assemblyInfo.Guid; }) == default(Guid)) {
+			if (infos.AssemblyGuids.Find(other => { return other == assemblyInfo.Guid; }) == default(Guid))
+			{
 				infos.AssemblyGuids.Add(assemblyInfo.Guid);
 			}
 		}
@@ -794,4 +827,5 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 	}
+
 }

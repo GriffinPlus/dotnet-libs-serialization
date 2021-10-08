@@ -8,19 +8,20 @@ using System.Collections.Generic;
 
 namespace GriffinPlus.Lib.Serialization
 {
+
 	/// <summary>
 	/// Represents a table containing a mapping between types and the serializer version to use for them.
 	/// </summary>
 	public class SerializerVersionTable
 	{
-		private Dictionary<Type, uint> mTable;
+		private readonly Dictionary<Type, uint> mTable;
 
 		/// <summary>
 		/// Initializes a new instance of the SerializerVersionTable class.
 		/// </summary>
 		public SerializerVersionTable()
 		{
-			mTable = new Dictionary<Type,uint>();
+			mTable = new Dictionary<Type, uint>();
 		}
 
 		/// <summary>
@@ -44,4 +45,5 @@ namespace GriffinPlus.Lib.Serialization
 			return mTable.TryGetValue(type, out version);
 		}
 	}
+
 }

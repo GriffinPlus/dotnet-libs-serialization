@@ -9,6 +9,7 @@ using System.Text;
 
 namespace GriffinPlus.Lib.Serialization
 {
+
 	partial class Serializer
 	{
 		#region Temporary Buffers
@@ -19,7 +20,7 @@ namespace GriffinPlus.Lib.Serialization
 		internal ulong[]   mTempBuffer_UInt64    = new ulong[1];
 		internal sbyte[]   mTempBuffer_Int8      = new sbyte[1];
 		internal short[]   mTempBuffer_Int16     = new short[1];
-		internal int[]     mTempBuffer_Int32     = new int[4];   // intermediate buffer for decimal conversion as well
+		internal int[]     mTempBuffer_Int32     = new int[4]; // intermediate buffer for decimal conversion as well
 		internal long[]    mTempBuffer_Int64     = new long[1];
 		internal char[]    mTempBuffer_Char      = new char[1];
 		internal float[]   mTempBuffer_Single    = new float[1];
@@ -68,7 +69,7 @@ namespace GriffinPlus.Lib.Serialization
 			int count = LEB128.Write(mTempBuffer_Buffer, 1, (uint)value);
 			stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 		}
-		
+
 		/// <summary>
 		/// Reads a <see cref="System.Char"/> value.
 		/// </summary>
@@ -91,7 +92,7 @@ namespace GriffinPlus.Lib.Serialization
 		internal void WritePrimitive_Decimal(decimal value, Stream stream)
 		{
 			stream.WriteByte((byte)PayloadType.Decimal);
-			int[] bits = Decimal.GetBits(value);
+			int[] bits = decimal.GetBits(value);
 			Buffer.BlockCopy(bits, 0, mTempBuffer_Buffer, 0, 16);
 			stream.Write(mTempBuffer_Buffer, 0, 16);
 		}
@@ -105,7 +106,7 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			stream.Read(mTempBuffer_Buffer, 0, 16);
 			Buffer.BlockCopy(mTempBuffer_Buffer, 0, mTempBuffer_Int32, 0, 16);
-			return new Decimal(mTempBuffer_Int32);
+			return new decimal(mTempBuffer_Int32);
 		}
 
 		#endregion
@@ -474,4 +475,5 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 	}
+
 }

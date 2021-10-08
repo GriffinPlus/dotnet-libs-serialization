@@ -7,6 +7,7 @@ using System.IO;
 
 namespace GriffinPlus.Lib.Serialization
 {
+
 	/// <summary>
 	/// Helper methods for encoding/decoding integers using the SLEB128/ULEB128 encoding.
 	/// </summary>
@@ -31,14 +32,12 @@ namespace GriffinPlus.Lib.Serialization
 					if (value >= (int)0xF8000000) return 4;
 					return 5;
 				}
-				else
-				{
-					if (value <= (int)0x0000003F) return 1;
-					if (value <= (int)0x00001FFF) return 2;
-					if (value <= (int)0x000FFFFF) return 3;
-					if (value <= (int)0x07FFFFFF) return 4;
-					return 5;
-				}
+
+				if (value <= 0x0000003F) return 1;
+				if (value <= 0x00001FFF) return 2;
+				if (value <= 0x000FFFFF) return 3;
+				if (value <= 0x07FFFFFF) return 4;
+				return 5;
 			}
 		}
 
@@ -53,19 +52,23 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			bool more = true;
 			int count = 0;
-			bool negative = (value < 0);
+			bool negative = value < 0;
 
 			while (more)
 			{
 				int data = value & 0x7F;
 				value >>= 7;
-				if (negative) {
-					value |= -(1 << (32-7)); // sign extend
+				if (negative)
+				{
+					value |= -(1 << (32 - 7)); // sign extend
 				}
 
-				if ((value == 0 && ((data & 0x40) == 0)) || (value == -1 && ((data & 0x40) == 0x40))) {
+				if (value == 0 && (data & 0x40) == 0 || value == -1 && (data & 0x40) == 0x40)
+				{
 					more = false;
-				} else {
+				}
+				else
+				{
 					data |= 0x80;
 				}
 
@@ -88,7 +91,11 @@ namespace GriffinPlus.Lib.Serialization
 		/// The SLEB128 encoded integer is incomplete -or-
 		/// the encoded integer did not stop after five bytes (the maximum for SLEB128 encoded 32-bit signed integers).
 		/// </exception>
-		public static int ReadInt32(byte[] array, int offset, int count, out int size)
+		public static int ReadInt32(
+			byte[]  array,
+			int     offset,
+			int     count,
+			out int size)
 		{
 			int result = 0;
 			int shift = 0;
@@ -100,13 +107,14 @@ namespace GriffinPlus.Lib.Serialization
 				if (count-- == 0) throw new SerializationException("Incomplete SLEB128 encoded integer.");
 				size++;
 				data = array[offset++];
-				result |= ((data & 0x7F) << shift);
+				result |= (data & 0x7F) << shift;
 				shift += 7;
 				if ((data & 0x80) == 0)
 				{
 					// sign extend, if the integer is negative
-					if ((shift < 32) && ((data & 0x40) != 0)) {
-						result |= - (1 << shift);
+					if (shift < 32 && (data & 0x40) != 0)
+					{
+						result |= -(1 << shift);
 					}
 
 					return result;
@@ -126,19 +134,23 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			bool more = true;
 			int count = 0;
-			bool negative = (value < 0);
+			bool negative = value < 0;
 
 			while (more)
 			{
 				int data = value & 0x7F;
 				value >>= 7;
-				if (negative) {
-					value |= -(1 << (32-7)); // sign extend
+				if (negative)
+				{
+					value |= -(1 << (32 - 7)); // sign extend
 				}
 
-				if ((value == 0 && ((data & 0x40) == 0)) || (value == -1 && ((data & 0x40) == 0x40))) {
+				if (value == 0 && (data & 0x40) == 0 || value == -1 && (data & 0x40) == 0x40)
+				{
 					more = false;
-				} else {
+				}
+				else
+				{
 					data |= 0x80;
 				}
 
@@ -168,13 +180,14 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				data = stream.ReadByte();
 				if (data < 0) throw new SerializationException("Incomplete SLEB128 encoded integer.");
-				result |= ((data & 0x7F) << shift);
+				result |= (data & 0x7F) << shift;
 				shift += 7;
 				if ((data & 0x80) == 0)
 				{
 					// sign extend, if the integer is negative
-					if ((shift < 32) && ((data & 0x40) != 0)) {
-						result |= - (1 << shift);
+					if (shift < 32 && (data & 0x40) != 0)
+					{
+						result |= -(1 << shift);
 					}
 
 					return result;
@@ -195,10 +208,10 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>Number of bytes needed to encode the specified integer.</returns>
 		public static int GetByteCount(uint value)
 		{
-			if (value < 0x00000080) return 1;   // 7 bits
-			if (value < 0x00004000) return 2;   // 14 bits
-			if (value < 0x00200000) return 3;   // 21 bits
-			if (value < 0x10000000) return 4;   // 28 bits
+			if (value < 0x00000080) return 1; // 7 bits
+			if (value < 0x00004000) return 2; // 14 bits
+			if (value < 0x00200000) return 3; // 21 bits
+			if (value < 0x10000000) return 4; // 28 bits
 			return 5;
 		}
 
@@ -213,19 +226,24 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			int count = 0;
 
-			do {
+			do
+			{
 				byte byteToWrite = (byte)(value & 0x7F);
-				if (value > 0x7F) {
+				if (value > 0x7F)
+				{
 					array[offset] = (byte)(byteToWrite | 0x80);
-				} else {
+				}
+				else
+				{
 					array[offset] = byteToWrite;
 				}
+
 				value = value >> 7;
 				offset++;
 				count++;
 			} while (value != 0);
 
-			return count; 
+			return count;
 		}
 
 		/// <summary>
@@ -240,7 +258,11 @@ namespace GriffinPlus.Lib.Serialization
 		/// The ULEB128 encoded integer is incomplete -or-
 		/// the encoded integer did not stop after five bytes (the maximum for ULEB128 encoded unsigned 32-bit integers).
 		/// </exception>
-		public static uint ReadUInt32(byte[] array, int offset, int count, out int size)
+		public static uint ReadUInt32(
+			byte[]  array,
+			int     offset,
+			int     count,
+			out int size)
 		{
 			uint value = 0;
 			size = 0;
@@ -250,7 +272,7 @@ namespace GriffinPlus.Lib.Serialization
 				if (count-- == 0) throw new SerializationException("Incomplete ULEB128 encoded integer.");
 				size++;
 				uint readByte = array[offset++];
-				value = value | (((uint)readByte & 0x7F) << (7 * i));
+				value = value | ((readByte & 0x7F) << (7 * i));
 				if ((readByte & 0x80) == 0) return value;
 			}
 
@@ -267,13 +289,18 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			int count = 0;
 
-			do {
+			do
+			{
 				byte byteToWrite = (byte)(value & 0x7F);
-				if (value > 0x7F) {
+				if (value > 0x7F)
+				{
 					stream.WriteByte((byte)(byteToWrite | 0x80));
-				} else {
+				}
+				else
+				{
 					stream.WriteByte(byteToWrite);
 				}
+
 				value = value >> 7;
 				count++;
 			} while (value != 0);
@@ -330,19 +357,17 @@ namespace GriffinPlus.Lib.Serialization
 					if (value >= (long)0xC000000000000000) return 9;
 					return 10;
 				}
-				else
-				{
-					if (value <= (long)0x000000000000003F) return 1;
-					if (value <= (long)0x0000000000001FFF) return 2;
-					if (value <= (long)0x00000000000FFFFF) return 3;
-					if (value <= (long)0x0000000007FFFFFF) return 4;
-					if (value <= (long)0x00000003FFFFFFFF) return 5;
-					if (value <= (long)0x000001FFFFFFFFFF) return 6;
-					if (value <= (long)0x0000FFFFFFFFFFFF) return 7;
-					if (value <= (long)0x007FFFFFFFFFFFFF) return 8;
-					if (value <= (long)0x3FFFFFFFFFFFFFFF) return 9;
-					return 10;
-				}
+
+				if (value <= 0x000000000000003F) return 1;
+				if (value <= 0x0000000000001FFF) return 2;
+				if (value <= 0x00000000000FFFFF) return 3;
+				if (value <= 0x0000000007FFFFFF) return 4;
+				if (value <= 0x00000003FFFFFFFF) return 5;
+				if (value <= 0x000001FFFFFFFFFF) return 6;
+				if (value <= 0x0000FFFFFFFFFFFF) return 7;
+				if (value <= 0x007FFFFFFFFFFFFF) return 8;
+				if (value <= 0x3FFFFFFFFFFFFFFF) return 9;
+				return 10;
 			}
 		}
 
@@ -356,20 +381,24 @@ namespace GriffinPlus.Lib.Serialization
 		public static int Write(byte[] array, int offset, long value)
 		{
 			bool more = true;
-			bool negative = (value < 0);
+			bool negative = value < 0;
 			int count = 0;
 
 			while (more)
 			{
-				long data = value & (long)0x7F;
+				long data = value & 0x7F;
 				value >>= 7;
-				if (negative) {
-					value |= - ((long)1 << (64-7)); // sign extend
+				if (negative)
+				{
+					value |= -((long)1 << (64 - 7)); // sign extend
 				}
 
-				if ((value == 0 && ((data & 0x40) == 0)) || (value == -1 && ((data & 0x40) == 0x40))) {
+				if (value == 0 && (data & 0x40) == 0 || value == -1 && (data & 0x40) == 0x40)
+				{
 					more = false;
-				} else {
+				}
+				else
+				{
 					data |= 0x80;
 				}
 
@@ -392,7 +421,11 @@ namespace GriffinPlus.Lib.Serialization
 		/// The ULEB128 encoded integer is incomplete -or-
 		/// the encoded integer did not stop after ten bytes (the maximum for ULEB128 encoded 64-bit signed integers).
 		/// </exception>
-		public static long ReadInt64(byte[] array, int offset, int count, out int size)
+		public static long ReadInt64(
+			byte[]  array,
+			int     offset,
+			int     count,
+			out int size)
 		{
 			long result = 0;
 			int shift = 0;
@@ -404,13 +437,14 @@ namespace GriffinPlus.Lib.Serialization
 				if (count-- == 0) throw new SerializationException("Incomplete SLEB128 encoded integer.");
 				size++;
 				data = array[offset++];
-				result |= ((data & 0x7F) << shift);
+				result |= (data & 0x7F) << shift;
 				shift += 7;
 				if ((data & 0x80) == 0)
 				{
 					// sign extend, if the integer is negative
-					if ((shift < 64) && ((data & 0x40) != 0)) {
-						result |= - ((long)1 << shift);
+					if (shift < 64 && (data & 0x40) != 0)
+					{
+						result |= -((long)1 << shift);
 					}
 
 					return result;
@@ -429,20 +463,24 @@ namespace GriffinPlus.Lib.Serialization
 		public static int Write(Stream stream, long value)
 		{
 			bool more = true;
-			bool negative = (value < 0);
+			bool negative = value < 0;
 			int count = 0;
 
 			while (more)
 			{
-				long data = value & (long)0x7F;
+				long data = value & 0x7F;
 				value >>= 7;
-				if (negative) {
-					value |= - ((long)1 << (64-7)); // sign extend
+				if (negative)
+				{
+					value |= -((long)1 << (64 - 7)); // sign extend
 				}
 
-				if ((value == 0 && ((data & 0x40) == 0)) || (value == -1 && ((data & 0x40) == 0x40))) {
+				if (value == 0 && (data & 0x40) == 0 || value == -1 && (data & 0x40) == 0x40)
+				{
 					more = false;
-				} else {
+				}
+				else
+				{
 					data |= 0x80;
 				}
 
@@ -472,13 +510,14 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				data = stream.ReadByte();
 				if (data < 0) throw new SerializationException("Incomplete SLEB128 encoded integer.");
-				result |= ((data & 0x7F) << shift);
+				result |= (data & 0x7F) << shift;
 				shift += 7;
 				if ((data & 0x80) == 0)
 				{
 					// sign extend, if the integer is negative
-					if ((shift < 32) && ((data & 0x40) != 0)) {
-						result |= - ((long)1 << shift);
+					if (shift < 32 && (data & 0x40) != 0)
+					{
+						result |= -((long)1 << shift);
 					}
 
 					return result;
@@ -499,15 +538,15 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>Number of bytes needed to encode the specified integer.</returns>
 		public static int GetByteCount(ulong value)
 		{
-			if (value < 0x0000000000000080) return 1;   // 7 bits
-			if (value < 0x0000000000004000) return 2;   // 14 bits
-			if (value < 0x0000000000200000) return 3;   // 21 bits
-			if (value < 0x0000000010000000) return 4;   // 28 bits
-			if (value < 0x0000000800000000) return 5;   // 35 bits
-			if (value < 0x0000040000000000) return 6;   // 42 bits
-			if (value < 0x0002000000000000) return 7;   // 49 bits
-			if (value < 0x0100000000000000) return 8;   // 56 bits
-			if (value < 0x8000000000000000) return 9;   // 63 bits
+			if (value < 0x0000000000000080) return 1; // 7 bits
+			if (value < 0x0000000000004000) return 2; // 14 bits
+			if (value < 0x0000000000200000) return 3; // 21 bits
+			if (value < 0x0000000010000000) return 4; // 28 bits
+			if (value < 0x0000000800000000) return 5; // 35 bits
+			if (value < 0x0000040000000000) return 6; // 42 bits
+			if (value < 0x0002000000000000) return 7; // 49 bits
+			if (value < 0x0100000000000000) return 8; // 56 bits
+			if (value < 0x8000000000000000) return 9; // 63 bits
 			return 10;
 		}
 
@@ -522,13 +561,18 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			int count = 0;
 
-			do {
+			do
+			{
 				byte byteToWrite = (byte)(value & 0x7F);
-				if (value > 0x7F) {
+				if (value > 0x7F)
+				{
 					array[offset] = (byte)(byteToWrite | 0x80);
-				} else {
+				}
+				else
+				{
 					array[offset] = byteToWrite;
 				}
+
 				value = value >> 7;
 				offset++;
 				count++;
@@ -549,7 +593,11 @@ namespace GriffinPlus.Lib.Serialization
 		/// The ULEB128 encoded integer is incomplete -or-
 		/// the encoded integer did not stop after ten bytes (the maximum for ULEB128 encoded 64-bit unsigned integers).
 		/// </exception>
-		public static ulong ReadUInt64(byte[] array, int offset, int count, out int size)
+		public static ulong ReadUInt64(
+			byte[]  array,
+			int     offset,
+			int     count,
+			out int size)
 		{
 			ulong value = 0;
 			size = 0;
@@ -579,11 +627,15 @@ namespace GriffinPlus.Lib.Serialization
 			do
 			{
 				byte byteToWrite = (byte)(value & 0x7F);
-				if (value > 0x7F) {
+				if (value > 0x7F)
+				{
 					stream.WriteByte((byte)(byteToWrite | 0x80));
-				} else {
+				}
+				else
+				{
 					stream.WriteByte(byteToWrite);
 				}
+
 				value = value >> 7;
 				count++;
 			} while (value != 0);
@@ -616,4 +668,5 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 	}
+
 }

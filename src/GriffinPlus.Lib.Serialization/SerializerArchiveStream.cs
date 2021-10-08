@@ -4,21 +4,22 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using System;
-using System.IO;
 using System.Diagnostics;
+using System.IO;
 
 namespace GriffinPlus.Lib.Serialization
 {
+
 	/// <summary>
 	/// A stream that enables a serializer archive to get access to a byte buffer in the archive using a stream.
 	/// </summary>
-	internal class SerializerArchiveStream : Stream
+	class SerializerArchiveStream : Stream
 	{
 		private readonly Stream mStream;
-		private readonly long mOriginalPosition = -1;
-		private long mPosition;
-		private long mLength;
-		private bool mClosed;
+		private readonly long   mOriginalPosition = -1;
+		private          long   mPosition;
+		private readonly long   mLength;
+		private          bool   mClosed;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="SerializerArchiveStream"/> class restricting the specified stream
@@ -30,7 +31,8 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			mStream = stream;
 			mLength = length;
-			if (mStream.CanSeek) {
+			if (mStream.CanSeek)
+			{
 				mOriginalPosition = mStream.Position;
 				mLength = Math.Min(mLength, mStream.Length - mOriginalPosition);
 			}
@@ -49,34 +51,22 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Gets a value indicating whether the stream supports reading.
 		/// </summary>
-		public override bool CanRead
-		{
-			get { return mStream.CanRead; }
-		}
+		public override bool CanRead => mStream.CanRead;
 
 		/// <summary>
 		/// Gets a value indicating whether the stream supports writing.
 		/// </summary>
-		public override bool CanWrite
-		{
-			get { return false; }
-		}
+		public override bool CanWrite => false;
 
 		/// <summary>
 		/// Gets a value indicating whether the stream supports seeking.
 		/// </summary>
-		public override bool CanSeek
-		{
-			get { return mStream.CanSeek; }
-		}
+		public override bool CanSeek => mStream.CanSeek;
 
 		/// <summary>
 		/// Gets the length of the current stream.
 		/// </summary>
-		public override long Length
-		{
-			get { return mLength; }
-		}
+		public override long Length => mLength;
 
 		/// <summary>
 		/// Gets or sets the current position within the stream.
@@ -84,13 +74,15 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="NotSupportedException">The stream does not support seeking.</exception>
 		public override long Position
 		{
-			get {
+			get
+			{
 				if (mClosed) throw new InvalidOperationException("The stream is closed.");
 				if (!mStream.CanSeek) throw new NotSupportedException("Seeking is not supported.");
 				return mPosition;
 			}
 
-			set {
+			set
+			{
 				if (mClosed) throw new InvalidOperationException("The stream is closed.");
 				if (!mStream.CanSeek) throw new NotSupportedException("Seeking is not supported.");
 				if (mPosition < 0 || mPosition > mLength) throw new ArgumentException("The position is not within the stream.");
@@ -121,7 +113,8 @@ namespace GriffinPlus.Lib.Serialization
 				mPosition = offset;
 				return mPosition;
 			}
-			else if (origin == SeekOrigin.Current)
+
+			if (origin == SeekOrigin.Current)
 			{
 				if (offset < 0 && -offset > mPosition) throw new ArgumentException("The target position is before the start of the stream.");
 				if (offset > 0 && offset > mLength - mPosition) throw new ArgumentException("The target position is after the end of the stream.");
@@ -131,7 +124,8 @@ namespace GriffinPlus.Lib.Serialization
 				mPosition = mPosition + offset;
 				return mPosition;
 			}
-			else if (origin == SeekOrigin.End)
+
+			if (origin == SeekOrigin.End)
 			{
 				if (offset > 0) throw new ArgumentException("Position must be negative when seeking from the end of the stream.");
 				if (offset < mLength) throw new ArgumentException("Position exceeds the start of the stream.");
@@ -141,10 +135,8 @@ namespace GriffinPlus.Lib.Serialization
 				mPosition = mLength - offset;
 				return mPosition;
 			}
-			else
-			{
-				throw new ArgumentException("The specified seek origin is invalid.");
-			}
+
+			throw new ArgumentException("The specified seek origin is invalid.");
 		}
 
 		/// <summary>
@@ -209,4 +201,5 @@ namespace GriffinPlus.Lib.Serialization
 			throw new NotSupportedException("Setting the length of the stream is not supported.");
 		}
 	}
+
 }

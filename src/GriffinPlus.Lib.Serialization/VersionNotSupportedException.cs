@@ -9,6 +9,7 @@ using System.Security.Permissions;
 
 namespace GriffinPlus.Lib.Serialization
 {
+
 	/// <summary>
 	/// Exception that is thrown when a serializer fails serializing an object due to an unsupported
 	/// serializer version.
@@ -82,4 +83,5 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		public uint MaxVersion { get; }
 	}
+
 }

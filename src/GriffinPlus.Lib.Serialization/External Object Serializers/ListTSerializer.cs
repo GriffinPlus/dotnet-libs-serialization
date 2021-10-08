@@ -8,11 +8,12 @@ using System.Collections.Generic;
 
 namespace GriffinPlus.Lib.Serialization
 {
+
 	/// <summary>
 	/// External object serializer for generic lists (type <see cref="System.Collections.Generic.List{T}"/>).
 	/// </summary>
 	[ExternalObjectSerializer(typeof(List<>), 1)]
-	internal class ListTSerializer : IExternalObjectSerializer
+	class ListTSerializer : IExternalObjectSerializer
 	{
 		/// <summary>
 		/// Serializes a generic list to a stream.
@@ -28,7 +29,8 @@ namespace GriffinPlus.Lib.Serialization
 				IList list = (IList)obj;
 				int count = list.Count;
 				archive.Write(count);
-				for (int i = 0; i < count; i++) {
+				for (int i = 0; i < count; i++)
+				{
 					archive.Write(list[i], archive.Context);
 				}
 			}
@@ -54,17 +56,17 @@ namespace GriffinPlus.Lib.Serialization
 
 				// read elements from the archive and put them into the list
 				IList collection = (IList)FastActivator.CreateInstance(archive.Type, count);
-				for (int i = 0; i < count; i++) {
+				for (int i = 0; i < count; i++)
+				{
 					object obj = archive.ReadObject(archive.Context);
 					collection.Add(obj);
 				}
 
 				return collection;
 			}
-			else
-			{
-				throw new VersionNotSupportedException(archive);
-			}
+
+			throw new VersionNotSupportedException(archive);
 		}
 	}
+
 }

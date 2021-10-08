@@ -5,6 +5,7 @@
 
 namespace GriffinPlus.Lib.Serialization
 {
+
 	/// <summary>
 	/// Interface for classes that can serialize themselves using the <see cref="Serializer"/> class.
 	/// </summary>
@@ -27,4 +28,5 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="version">Requested version of the current object to serialize.</param>
 		void Serialize(SerializerArchive archive, uint version);
 	}
+
 }

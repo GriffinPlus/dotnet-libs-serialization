@@ -5,6 +5,7 @@
 
 namespace GriffinPlus.Lib.Serialization
 {
+
 	enum PayloadType
 	{
 		// null reference
@@ -17,21 +18,47 @@ namespace GriffinPlus.Lib.Serialization
 		TypeId,
 
 		// serializer archive
-		ArchiveStart, ArchiveEnd,
+		ArchiveStart,
+		ArchiveEnd,
 		BaseArchiveStart, // archives containing base class data do not have an end tag
 
 		// buffer
 		Buffer,
 
 		// primitive Types
-		Boolean, Byte, Char, Decimal, Single, Double, Int16, Int32,
-		Int64, SByte, UInt16, UInt32, UInt64, DateTime, String,
+		Boolean,
+		Byte,
+		Char,
+		Decimal,
+		Single,
+		Double,
+		Int16,
+		Int32,
+		Int64,
+		SByte,
+		UInt16,
+		UInt32,
+		UInt64,
+		DateTime,
+		String,
 
 		// onedimensional arrays of primitive values
-		ArrayOfBoolean, ArrayOfByte, ArrayOfChar, ArrayOfDecimal, ArrayOfSingle,
-		ArrayOfDouble, ArrayOfInt16, ArrayOfInt32, ArrayOfInt64, ArrayOfSByte,
-		ArrayOfUInt16, ArrayOfUInt32, ArrayOfUInt64, ArrayOfDateTime, ArrayOfString,
-		
+		ArrayOfBoolean,
+		ArrayOfByte,
+		ArrayOfChar,
+		ArrayOfDecimal,
+		ArrayOfSingle,
+		ArrayOfDouble,
+		ArrayOfInt16,
+		ArrayOfInt32,
+		ArrayOfInt64,
+		ArrayOfSByte,
+		ArrayOfUInt16,
+		ArrayOfUInt32,
+		ArrayOfUInt64,
+		ArrayOfDateTime,
+		ArrayOfString,
+
 		// array of objects
 		ArrayOfObjects,
 
@@ -45,9 +72,21 @@ namespace GriffinPlus.Lib.Serialization
 		GenericArchiveStart,
 
 		// multidimensional arrays of primitive values
-		MultidimensionalArrayOfBoolean, MultidimensionalArrayOfByte, MultidimensionalArrayOfChar, MultidimensionalArrayOfDecimal, MultidimensionalArrayOfSingle,
-		MultidimensionalArrayOfDouble, MultidimensionalArrayOfInt16, MultidimensionalArrayOfInt32, MultidimensionalArrayOfInt64, MultidimensionalArrayOfSByte,
-		MultidimensionalArrayOfUInt16, MultidimensionalArrayOfUInt32, MultidimensionalArrayOfUInt64, MultidimensionalArrayOfDateTime, MultidimensionalArrayOfString,
+		MultidimensionalArrayOfBoolean,
+		MultidimensionalArrayOfByte,
+		MultidimensionalArrayOfChar,
+		MultidimensionalArrayOfDecimal,
+		MultidimensionalArrayOfSingle,
+		MultidimensionalArrayOfDouble,
+		MultidimensionalArrayOfInt16,
+		MultidimensionalArrayOfInt32,
+		MultidimensionalArrayOfInt64,
+		MultidimensionalArrayOfSByte,
+		MultidimensionalArrayOfUInt16,
+		MultidimensionalArrayOfUInt32,
+		MultidimensionalArrayOfUInt64,
+		MultidimensionalArrayOfDateTime,
+		MultidimensionalArrayOfString,
 
 		// array of objects
 		MultidimensionalArrayOfObjects,
@@ -58,4 +97,5 @@ namespace GriffinPlus.Lib.Serialization
 		// a System.Object object
 		Object
 	}
+
 }

@@ -7,11 +7,12 @@ using System;
 
 namespace GriffinPlus.Lib.Serialization
 {
+
 	/// <summary>
 	/// Attribute that must be attached to a struct/class that is able to serialize/deserialize itself by implementing an
 	/// internal object serializer.
 	/// </summary>
-	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple=false)]
+	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
 	public class InternalObjectSerializerAttribute : Attribute
 	{
 		/// <summary>
@@ -27,6 +28,6 @@ namespace GriffinPlus.Lib.Serialization
 		/// Gets the current version of the internal object serializer.
 		/// </summary>
 		public uint Version { get; }
-
 	}
+
 }
