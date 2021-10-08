@@ -1,19 +1,37 @@
 <?xml version="1.0"?>
+
 <package>
-  <metadata minClientVersion="3.3">
-    <id>GriffinPlus.Lib.Serialization</id>
-    <version>$version$</version>
-    <authors>Sascha Falk</authors>
-    <copyright>Copyright (c) 2019 Sascha Falk</copyright>
-    <requireLicenseAcceptance>true</requireLicenseAcceptance>
-    <description>Flexible serialization of .NET objects with versioning support.</description>
-    <licenseUrl>https://github.com/GriffinPlus/dotnet-libs-serialization/blob/master/LICENSE</licenseUrl>
-    <projectUrl>https://github.com/GriffinPlus/dotnet-libs-serialization</projectUrl>
-    <iconUrl>https://griffin.plus/img/nuget_icon.png</iconUrl>
-    <tags>serialization serializer</tags>
-  </metadata>
-  <files>
-    <file src="..\..\..\_build\Serialization.AnyCPU.Release\net461\GriffinPlus.Lib.Serialization.dll" target="lib\net461"/>
-    <file src="..\..\..\_build\Serialization.AnyCPU.Release\net461\GriffinPlus.Lib.Serialization.xml" target="lib\net461"/>
-  </files>
+	<metadata minClientVersion="3.3">
+		<id>GriffinPlus.Lib.Serialization</id>
+		<version>$version$</version>
+		<authors>Sascha Falk</authors>
+		<copyright>Copyright (c) 2021 Sascha Falk and Contributors</copyright>
+		<requireLicenseAcceptance>false</requireLicenseAcceptance>
+		<description>Flexible serialization of .NET objects with versioning support.</description>
+		<license type="expression">MIT</license>
+		<projectUrl>https://github.com/GriffinPlus/dotnet-libs-serialization</projectUrl>
+		<icon>images/nuget-icon.png</icon>
+		<tags>serialization</tags>
+		<dependencies>
+			<group targetFramework="net461">
+				<dependency id="GriffinPlus.Lib.Common" version="[1.3.1,2)" include="all" />
+				<dependency id="GriffinPlus.Lib.FastActivator" version="[1.0.11,2)" include="all" />
+				<dependency id="GriffinPlus.Lib.Logging" version="[4.0.5,5)" include="all" />
+			</group>
+			<group targetFramework="netstandard2.0">
+				<dependency id="GriffinPlus.Lib.Common" version="[1.3.1,2)" include="all" />
+				<dependency id="GriffinPlus.Lib.FastActivator" version="[1.0.11,2)" include="all" />
+				<dependency id="GriffinPlus.Lib.Logging" version="[4.0.5,5)" include="all" />
+			</group>
+		</dependencies>
+	</metadata>
+	<files>
+		<file src="..\..\..\res\nuget-icon.png" target="images\" />
+		<file src="..\..\..\_build\.out\GriffinPlus.Lib.Serialization\AnyCPU.Release\netstandard2.0\GriffinPlus.Lib.Serialization.dll" target="lib\netstandard2.0" />
+		<file src="..\..\..\_build\.out\GriffinPlus.Lib.Serialization\AnyCPU.Release\netstandard2.0\GriffinPlus.Lib.Serialization.pdb" target="lib\netstandard2.0" />
+		<file src="..\..\..\_build\.out\GriffinPlus.Lib.Serialization\AnyCPU.Release\netstandard2.0\GriffinPlus.Lib.Serialization.xml" target="lib\netstandard2.0" />
+		<file src="..\..\..\_build\.out\GriffinPlus.Lib.Serialization\AnyCPU.Release\net461\GriffinPlus.Lib.Serialization.dll" target="lib\net461" />
+		<file src="..\..\..\_build\.out\GriffinPlus.Lib.Serialization\AnyCPU.Release\net461\GriffinPlus.Lib.Serialization.pdb" target="lib\net461" />
+		<file src="..\..\..\_build\.out\GriffinPlus.Lib.Serialization\AnyCPU.Release\net461\GriffinPlus.Lib.Serialization.xml" target="lib\net461" />
+	</files>
 </package>
