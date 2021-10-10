@@ -1883,10 +1883,13 @@ namespace GriffinPlus.Lib.Serialization
 		#region Convenience: Copying Serializable Objects
 
 		/// <summary>
-		/// Copies a serializable object once.
+		/// Copies a serializable object once (considers immutability).
 		/// </summary>
 		/// <param name="obj">Object to copy.</param>
-		/// <returns>Copy of the specified object.</returns>
+		/// <returns>
+		/// Copy of the specified object;
+		/// <paramref name="obj"/> if the object is considered immutable by the <see cref="Immutability"/> class.
+		/// </returns>
 		/// <exception cref="SerializationException">Serializing/deserializing failed due to some reason (see exception message for further details).</exception>
 		public static object CopySerializableObject(object obj)
 		{
@@ -1894,34 +1897,26 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Copies a serializable object once.
+		/// Copies a serializable object once (considers immutability).
 		/// </summary>
 		/// <param name="obj">Object to copy.</param>
 		/// <param name="serializationContext">Serialization context to use.</param>
 		/// <param name="deserializationContext">Serialization context to use.</param>
-		/// <returns>Copy of the specified object.</returns>
+		/// <returns>
+		/// Copy of the specified object;
+		/// <paramref name="obj"/> if the object is considered immutable by the <see cref="Immutability"/> class.
+		/// </returns>
 		/// <exception cref="SerializationException">Serializing/deserializing failed due to some reason (see exception message for further details).</exception>
 		public static object CopySerializableObject(object obj, object serializationContext, object deserializationContext)
 		{
 			Init();
 
 			// abort if the object to copy is null
-			if (obj == null)
-			{
-				return null;
-			}
+			if (obj == null) return null;
 
-			Type type = obj.GetType();
-			if (type.IsPrimitive || type.IsEnum)
+			if (Immutability.IsImmutable(obj.GetType()))
 			{
-				// primitive types and enums are value types and can be copied by assigning
-				return obj;
-			}
-
-			if (type == typeof(string) || type == typeof(DateTime))
-			{
-				// - strings are immutable and do not have to be copied
-				// - System.DateTime is a struct and does not reference other objects
+				// the object is immutable and can be 'copied' by assigning
 				return obj;
 			}
 
@@ -1944,11 +1939,16 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Copies a serializable object once.
+		/// Copies a serializable object once (considers immutability).
 		/// </summary>
-		/// <typeparam name="T">Type of the value to copy.</typeparam>
+		/// <typeparam name="T">
+		/// Type of the value to copy (the actual object passed via <paramref name="obj"/> may be derived from it).
+		/// </typeparam>
 		/// <param name="obj">Object to copy.</param>
-		/// <returns>Copy of the specified object.</returns>
+		/// <returns>
+		/// Copy of the specified object;
+		/// <paramref name="obj"/> if the object is considered immutable by the <see cref="Immutability"/> class.
+		/// </returns>
 		/// <exception cref="SerializationException">Serializing/deserializing failed due to some reason (see exception message for further details).</exception>
 		public static T CopySerializableObject<T>(T obj)
 		{
@@ -1956,30 +1956,29 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Copies a serializable object once.
+		/// Copies a serializable object once (considers immutability).
 		/// </summary>
-		/// <typeparam name="T">Type of the value to copy.</typeparam>
+		/// <typeparam name="T">
+		/// Type of the value to copy (the actual object passed via <paramref name="obj"/> may be derived from it).
+		/// </typeparam>
 		/// <param name="obj">Object to copy.</param>
 		/// <param name="serializationContext">Serialization context to use.</param>
 		/// <param name="deserializationContext">Serialization context to use.</param>
-		/// <returns>Copy of the specified object.</returns>
+		/// <returns>
+		/// Copy of the specified object;
+		/// <paramref name="obj"/> if the object is considered immutable by the <see cref="Immutability"/> class.
+		/// </returns>
 		/// <exception cref="SerializationException">Serializing/deserializing failed due to some reason (see exception message for further details).</exception>
 		public static T CopySerializableObject<T>(T obj, object serializationContext, object deserializationContext)
 		{
 			Init();
 
 			// abort if the object to copy is null
-			if (obj == null)
-			{
-				return default(T);
-			}
+			if (obj == null) return default;
 
-			Type type = typeof(T);
-			if (type.IsPrimitive || type.IsEnum || type == typeof(string) || type == typeof(DateTime))
+			if (Immutability.IsImmutable(obj.GetType())) // do not use typeof(T) as obj might be of a derived type that is not immutable
 			{
-				// - primitive types and enums are value types and can be copied by assigning
-				// - strings are immutable and do not have to be copied
-				// - System.DateTime is a struct and does not reference other objects
+				// the object is immutable and can be 'copied' by assigning
 				return obj;
 			}
 
@@ -2003,12 +2002,17 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Copies a serializable object multiple times.
+		/// Copies a serializable object multiple times (considers immutability).
 		/// </summary>
-		/// <typeparam name="T">Type of the value to copy.</typeparam>
+		/// <typeparam name="T">
+		/// Type of the value to copy (the actual object passed via <paramref name="obj"/> may be derived from it).
+		/// </typeparam>
 		/// <param name="obj">Object to copy.</param>
 		/// <param name="count">Number of copies to make.</param>
-		/// <returns>Copies of the specified object.</returns>
+		/// <returns>
+		/// An array of copies of the specified object;
+		/// an array of <paramref name="obj"/> if the object is considered immutable by the <see cref="Immutability"/> class.
+		/// </returns>
 		/// <exception cref="SerializationException">Serializing/deserializing failed due to some reason (see exception message for further details).</exception>
 		public static T[] CopySerializableObject<T>(T obj, int count)
 		{
@@ -2016,14 +2020,19 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Copies a serializable object multiple times.
+		/// Copies a serializable object multiple times (considers immutability).
 		/// </summary>
-		/// <typeparam name="T">Type of the value to copy.</typeparam>
+		/// <typeparam name="T">
+		/// Type of the value to copy (the actual object passed via <paramref name="obj"/> may be derived from it).
+		/// </typeparam>
 		/// <param name="obj">Object to copy.</param>
 		/// <param name="count">Number of copies to make.</param>
 		/// <param name="serializationContext">Serialization context to use.</param>
 		/// <param name="deserializationContext">Serialization context to use.</param>
-		/// <returns>Copy of the specified object.</returns>
+		/// <returns>
+		/// An array of copies of the specified object;
+		/// an array of <paramref name="obj"/> if the object is considered immutable by the <see cref="Immutability"/> class.
+		/// </returns>
 		/// <exception cref="SerializationException">Serializing/deserializing failed due to some reason (see exception message for further details).</exception>
 		public static T[] CopySerializableObject<T>(
 			T      obj,
@@ -2039,18 +2048,15 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				for (int i = 0; i < count; i++)
 				{
-					copies[i] = default(T);
+					copies[i] = default;
 				}
 
 				return copies;
 			}
 
-			Type type = typeof(T);
-			if (type.IsPrimitive || type.IsEnum || type == typeof(string) || type == typeof(DateTime))
+			if (Immutability.IsImmutable(obj.GetType())) // do not use typeof(T) as obj might be of a derived type that is not immutable
 			{
-				// - primitive types and enums are value types and can be copied by assigning
-				// - strings are immutable and do not have to be copied
-				// - System.DateTime is a struct and does not reference other objects
+				// the object is immutable and can be 'copied' by assigning
 				for (int i = 0; i < count; i++)
 				{
 					copies[i] = obj;
