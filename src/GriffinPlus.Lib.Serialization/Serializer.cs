@@ -4,6 +4,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Buffers;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -1920,19 +1922,22 @@ namespace GriffinPlus.Lib.Serialization
 				return obj;
 			}
 
-			MemoryBlockStream mbs = new MemoryBlockStream();
-			Serializer serializer = new Serializer();
+			MemoryBlockStream stream = null;
+			Serializer serializer = null;
 			object copy;
 
 			try
 			{
-				serializer.Serialize(mbs, obj, serializationContext);
-				mbs.Position = 0;
-				copy = serializer.Deserialize(mbs, deserializationContext);
+				stream = GetPooledMemoryBlockStream();
+				serializer = GetPooledSerializer();
+				serializer.Serialize(stream, obj, serializationContext);
+				stream.Position = 0;
+				copy = serializer.Deserialize(stream, deserializationContext);
 			}
 			finally
 			{
-				mbs.Dispose();
+				ReturnSerializerToPool(serializer);
+				ReturnMemoryBlockStreamToPool(stream);
 			}
 
 			return copy;
@@ -1982,20 +1987,22 @@ namespace GriffinPlus.Lib.Serialization
 				return obj;
 			}
 
-			// other objects
-			MemoryBlockStream mbs = new MemoryBlockStream();
-			Serializer serializer = new Serializer();
+			MemoryBlockStream stream = null;
+			Serializer serializer = null;
 			object copy;
 
 			try
 			{
-				serializer.Serialize(mbs, obj, serializationContext);
-				mbs.Position = 0;
-				copy = serializer.Deserialize(mbs, deserializationContext);
+				stream = GetPooledMemoryBlockStream();
+				serializer = GetPooledSerializer();
+				serializer.Serialize(stream, obj, serializationContext);
+				stream.Position = 0;
+				copy = serializer.Deserialize(stream, deserializationContext);
 			}
 			finally
 			{
-				mbs.Dispose();
+				ReturnSerializerToPool(serializer);
+				ReturnMemoryBlockStreamToPool(stream);
 			}
 
 			return (T)copy;
@@ -2066,21 +2073,24 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			// other objects
-			MemoryBlockStream mbs = new MemoryBlockStream();
-			Serializer serializer = new Serializer();
+			MemoryBlockStream stream = null;
+			Serializer serializer = null;
 
 			try
 			{
-				serializer.Serialize(mbs, obj, serializationContext);
+				stream = GetPooledMemoryBlockStream();
+				serializer = GetPooledSerializer();
+				serializer.Serialize(stream, obj, serializationContext);
 				for (int i = 0; i < count; i++)
 				{
-					mbs.Position = 0;
-					copies[i] = (T)serializer.Deserialize(mbs, deserializationContext);
+					stream.Position = 0;
+					copies[i] = (T)serializer.Deserialize(stream, deserializationContext);
 				}
 			}
 			finally
 			{
-				mbs.Dispose();
+				ReturnSerializerToPool(serializer);
+				ReturnMemoryBlockStreamToPool(stream);
 			}
 
 			return copies;
@@ -2587,6 +2597,64 @@ namespace GriffinPlus.Lib.Serialization
 
 			string error = string.Format("The underlying type ({0}) of enumeration ({1}) is not supported.", underlyingType.FullName, type.FullName);
 			throw new NotSupportedException(error);
+		}
+
+		#endregion
+
+		#region Serializer Pool
+
+		private static readonly ConcurrentBag<Serializer> sSerializerPool = new ConcurrentBag<Serializer>();
+
+		/// <summary>
+		/// Gets a serializer from the pool.
+		/// </summary>
+		/// <returns>A serializer.</returns>
+		private static Serializer GetPooledSerializer()
+		{
+			if (sSerializerPool.TryTake(out var serializer))
+				return serializer;
+
+			return new Serializer();
+		}
+
+		/// <summary>
+		/// Returns a serializer to the pool.
+		/// </summary>
+		/// <param name="serializer">Serializer to return.</param>
+		private static void ReturnSerializerToPool(Serializer serializer)
+		{
+			if (serializer == null) return;
+			serializer.Reset();
+			sSerializerPool.Add(serializer);
+		}
+
+		#endregion
+
+		#region MemoryBlockStream Pool
+
+		private static readonly ConcurrentBag<MemoryBlockStream> sMemoryBlockStreamPool = new ConcurrentBag<MemoryBlockStream>();
+
+		/// <summary>
+		/// Gets a <see cref="MemoryBlockStream"/> from the pool.
+		/// </summary>
+		/// <returns>A <see cref="MemoryBlockStream"/>.</returns>
+		private static MemoryBlockStream GetPooledMemoryBlockStream()
+		{
+			if (sMemoryBlockStreamPool.TryTake(out var stream))
+				return stream;
+
+			return new MemoryBlockStream(ArrayPool<byte>.Shared);
+		}
+
+		/// <summary>
+		/// Returns a <see cref="MemoryBlockStream"/> to the pool.
+		/// </summary>
+		/// <param name="stream"><see cref="MemoryBlockStream"/> to return.</param>
+		private static void ReturnMemoryBlockStreamToPool(MemoryBlockStream stream)
+		{
+			if (stream == null) return;
+			stream.SetLength(0);
+			sMemoryBlockStreamPool.Add(stream);
 		}
 
 		#endregion
