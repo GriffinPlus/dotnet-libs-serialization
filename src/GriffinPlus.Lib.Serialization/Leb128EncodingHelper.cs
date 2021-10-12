@@ -11,12 +11,12 @@ namespace GriffinPlus.Lib.Serialization
 	/// <summary>
 	/// Helper methods for encoding/decoding integers using the SLEB128/ULEB128 encoding.
 	/// </summary>
-	public static class LEB128
+	static class Leb128EncodingHelper
 	{
 		#region 32-Bit Signed Integer
 
 		/// <summary>
-		/// Determines how many bytes are needed to encode a the specified signed integer using the SLEB128 encoding.
+		/// Determines how many bytes are needed to encode the specified signed integer using the SLEB128 encoding.
 		/// </summary>
 		/// <param name="value">Integer to encode.</param>
 		/// <returns>Number of bytes needed to encode the specified integer.</returns>
@@ -80,7 +80,7 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Reads a signed integer from the specified stream (max. 32 bit).
+		/// Reads a SLEB128 encoded signed integer from the specified byte array (max. 32 bit).
 		/// </summary>
 		/// <param name="array">Array containing a SLEB128 encoded integer.</param>
 		/// <param name="offset">Offset in the array to start reading at.</param>
@@ -99,23 +99,20 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			int result = 0;
 			int shift = 0;
-			int data = 0;
 			size = 0;
 
 			for (int i = 0; i < 5; i++)
 			{
 				if (count-- == 0) throw new SerializationException("Incomplete SLEB128 encoded integer.");
 				size++;
-				data = array[offset++];
+				int data = array[offset++];
 				result |= (data & 0x7F) << shift;
 				shift += 7;
 				if ((data & 0x80) == 0)
 				{
 					// sign extend, if the integer is negative
 					if (shift < 32 && (data & 0x40) != 0)
-					{
 						result |= -(1 << shift);
-					}
 
 					return result;
 				}
@@ -125,7 +122,7 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Writes a signed integer into the specified stream using the SLEB128 encoding.
+		/// Writes a signed integer to the specified stream using the SLEB128 encoding.
 		/// </summary>
 		/// <param name="stream">Stream to write to.</param>
 		/// <param name="value">Integer to write to the stream.</param>
@@ -140,10 +137,7 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				int data = value & 0x7F;
 				value >>= 7;
-				if (negative)
-				{
-					value |= -(1 << (32 - 7)); // sign extend
-				}
+				if (negative) value |= -(1 << (32 - 7)); // sign extend
 
 				if (value == 0 && (data & 0x40) == 0 || value == -1 && (data & 0x40) == 0x40)
 				{
@@ -162,23 +156,22 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Reads a signed integer from the specified stream (max. 32 bit).
+		/// Reads a SLEB128 encoded signed integer from the specified stream (max. 32 bit).
 		/// </summary>
 		/// <param name="stream">Stream to read from.</param>
 		/// <returns>The read integer.</returns>
 		/// <exception cref="SerializationException">
 		/// The SLEB128 encoded integer is incomplete -or-
-		/// the encoded integer did not stop after five bytes (the maximum for SLEB128 encoded signed 32-bit integers).
+		/// the encoded integer did not stop after five bytes (the maximum for SLEB128 encoded 32-bit signed integers).
 		/// </exception>
 		public static int ReadInt32(Stream stream)
 		{
 			int result = 0;
 			int shift = 0;
-			int data = 0;
 
 			for (int i = 0; i < 5; i++)
 			{
-				data = stream.ReadByte();
+				int data = stream.ReadByte();
 				if (data < 0) throw new SerializationException("Incomplete SLEB128 encoded integer.");
 				result |= (data & 0x7F) << shift;
 				shift += 7;
@@ -186,9 +179,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					// sign extend, if the integer is negative
 					if (shift < 32 && (data & 0x40) != 0)
-					{
 						result |= -(1 << shift);
-					}
 
 					return result;
 				}
@@ -247,7 +238,7 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Reads an unsigned integer from the specified stream (max. 32 bit).
+		/// Reads an ULEB128 encoded unsigned integer from the specified byte array (max. 32 bit).
 		/// </summary>
 		/// <param name="array">Array containing an ULEB128 encoded integer.</param>
 		/// <param name="offset">Offset in the array to start reading at.</param>
@@ -256,7 +247,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read integer.</returns>
 		/// <exception cref="SerializationException">
 		/// The ULEB128 encoded integer is incomplete -or-
-		/// the encoded integer did not stop after five bytes (the maximum for ULEB128 encoded unsigned 32-bit integers).
+		/// the encoded integer did not stop after five bytes (the maximum for ULEB128 encoded 32-bit unsigned integers).
 		/// </exception>
 		public static uint ReadUInt32(
 			byte[]  array,
@@ -280,7 +271,7 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Writes an unsigned integer into the specified stream using the ULEB128 encoding.
+		/// Writes an unsigned integer to the specified stream using the ULEB128 encoding.
 		/// </summary>
 		/// <param name="stream">Stream to write to.</param>
 		/// <param name="value">Integer to write to the stream.</param>
@@ -309,7 +300,7 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Reads an unsigned integer from the specified stream (max. 32 bit).
+		/// Reads an ULEB128 encoded unsigned integer from the specified stream (max. 32 bit).
 		/// </summary>
 		/// <param name="stream">Stream to read from.</param>
 		/// <returns>The read integer.</returns>
@@ -372,12 +363,12 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Writes a variable length integer into an array.
+		/// Writes a signed integer into the specified byte array using the SLEB128 encoding.
 		/// </summary>
-		/// <param name="array">Array to write the variable length integer into.</param>
+		/// <param name="array">Array to write the integer to.</param>
 		/// <param name="offset">Offset in the array to start writing at.</param>
-		/// <param name="value">Integer value to write.</param>
-		/// <returns>Number of written bytes.</returns>
+		/// <param name="value">Integer to write.</param>
+		/// <returns>Number of bytes written.</returns>
 		public static int Write(byte[] array, int offset, long value)
 		{
 			bool more = true;
@@ -388,10 +379,7 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				long data = value & 0x7F;
 				value >>= 7;
-				if (negative)
-				{
-					value |= -((long)1 << (64 - 7)); // sign extend
-				}
+				if (negative) value |= -((long)1 << (64 - 7)); // sign extend
 
 				if (value == 0 && (data & 0x40) == 0 || value == -1 && (data & 0x40) == 0x40)
 				{
@@ -410,7 +398,7 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Reads a signed integer from the specified stream (max. 64 bit).
+		/// Reads a SLEB128 encoded signed integer from the specified byte array (max. 64 bit).
 		/// </summary>
 		/// <param name="array">Array containing a SLEB128 encoded integer.</param>
 		/// <param name="offset">Offset in the array to start reading at.</param>
@@ -418,8 +406,8 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="size">Receives the number of bytes read from the array.</param>
 		/// <returns>The read integer.</returns>
 		/// <exception cref="SerializationException">
-		/// The ULEB128 encoded integer is incomplete -or-
-		/// the encoded integer did not stop after ten bytes (the maximum for ULEB128 encoded 64-bit signed integers).
+		/// The SLEB128 encoded integer is incomplete -or-
+		/// the encoded integer did not stop after ten bytes (the maximum for SLEB128 encoded 64-bit signed integers).
 		/// </exception>
 		public static long ReadInt64(
 			byte[]  array,
@@ -429,23 +417,20 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			long result = 0;
 			int shift = 0;
-			long data = 0;
 			size = 0;
 
 			for (int i = 0; i < 10; i++)
 			{
 				if (count-- == 0) throw new SerializationException("Incomplete SLEB128 encoded integer.");
 				size++;
-				data = array[offset++];
+				long data = array[offset++];
 				result |= (data & 0x7F) << shift;
 				shift += 7;
 				if ((data & 0x80) == 0)
 				{
 					// sign extend, if the integer is negative
 					if (shift < 64 && (data & 0x40) != 0)
-					{
 						result |= -((long)1 << shift);
-					}
 
 					return result;
 				}
@@ -455,7 +440,7 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Writes a signed integer into the specified stream using the SLEB128 encoding.
+		/// Writes a signed integer to the specified stream using the SLEB128 encoding.
 		/// </summary>
 		/// <param name="stream">Stream to write to.</param>
 		/// <param name="value">Integer to write to the stream.</param>
@@ -470,10 +455,7 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				long data = value & 0x7F;
 				value >>= 7;
-				if (negative)
-				{
-					value |= -((long)1 << (64 - 7)); // sign extend
-				}
+				if (negative) value |= -((long)1 << (64 - 7)); // sign extend
 
 				if (value == 0 && (data & 0x40) == 0 || value == -1 && (data & 0x40) == 0x40)
 				{
@@ -492,7 +474,7 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Reads a signed integer from the specified stream (max. 64 bit).
+		/// Reads a SLEB128 encoded signed integer from the specified stream (max. 64 bit).
 		/// </summary>
 		/// <param name="stream">Stream to read from.</param>
 		/// <returns>The read integer.</returns>
@@ -504,11 +486,10 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			long result = 0;
 			int shift = 0;
-			long data = 0;
 
 			for (int i = 0; i < 10; i++)
 			{
-				data = stream.ReadByte();
+				long data = stream.ReadByte();
 				if (data < 0) throw new SerializationException("Incomplete SLEB128 encoded integer.");
 				result |= (data & 0x7F) << shift;
 				shift += 7;
@@ -516,9 +497,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					// sign extend, if the integer is negative
 					if (shift < 32 && (data & 0x40) != 0)
-					{
 						result |= -((long)1 << shift);
-					}
 
 					return result;
 				}
@@ -532,7 +511,7 @@ namespace GriffinPlus.Lib.Serialization
 		#region 64-Bit Unsigned Integer
 
 		/// <summary>
-		/// Determines how many bytes are needed to encode a the specified unsigned integer using the SLEB128 encoding.
+		/// Determines how many bytes are needed to encode a the specified unsigned integer using the ULEB128 encoding.
 		/// </summary>
 		/// <param name="value">Integer to encode.</param>
 		/// <returns>Number of bytes needed to encode the specified integer.</returns>
@@ -551,12 +530,12 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Writes a variable length integer into an array.
+		/// Writes an unsigned integer into the specified byte array using the ULEB128 encoding.
 		/// </summary>
-		/// <param name="array">Array to write the variable length integer into.</param>
+		/// <param name="array">Array to write the integer to.</param>
 		/// <param name="offset">Offset in the array to start writing at.</param>
-		/// <param name="value">Integer value to write.</param>
-		/// <returns>Number of written bytes.</returns>
+		/// <param name="value">Integer to write.</param>
+		/// <returns>Number of bytes written.</returns>
 		public static int Write(byte[] array, int offset, ulong value)
 		{
 			int count = 0;
@@ -582,7 +561,7 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Reads an unsigned integer from the specified stream (max. 64 bit).
+		/// Reads a ULEB128 encoded unsigned integer from the specified byte array (max. 64 bit).
 		/// </summary>
 		/// <param name="array">Array containing an ULEB128 encoded integer.</param>
 		/// <param name="offset">Offset in the array to start reading at.</param>
@@ -615,11 +594,11 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Writes a variable length integer to a stream.
+		/// Writes an unsigned integer to the specified stream using the ULEB128 encoding.
 		/// </summary>
 		/// <param name="stream">Stream to write to.</param>
-		/// <param name="value">Value to write to the stream.</param>
-		/// <returns>Number of written bytes.</returns>
+		/// <param name="value">Integer to write to the stream.</param>
+		/// <returns>Number of bytes written.</returns>
 		public static int Write(Stream stream, ulong value)
 		{
 			int count = 0;
@@ -643,11 +622,12 @@ namespace GriffinPlus.Lib.Serialization
 			return count;
 		}
 
+
 		/// <summary>
-		/// Reads a variable length integer (max. 64 bit) from a stream.
+		/// Reads a ULEB128 encoded unsigned integer from the specified stream (max. 64 bit).
 		/// </summary>
 		/// <param name="stream">Stream to read from.</param>
-		/// <returns>The read unsigned integer (64 bit).</returns>
+		/// <returns>The read integer.</returns>
 		/// <exception cref="SerializationException">
 		/// The ULEB128 encoded integer is incomplete -or-
 		/// the encoded integer did not stop after ten bytes (the maximum for ULEB128 encoded 64-bit unsigned integers).

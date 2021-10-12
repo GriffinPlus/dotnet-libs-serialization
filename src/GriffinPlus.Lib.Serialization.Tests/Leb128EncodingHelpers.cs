@@ -9,9 +9,9 @@ namespace GriffinPlus.Lib.Serialization.Tests
 {
 
 	/// <summary>
-	/// Tests for the <see cref="LEB128"/> utility class.
+	/// Tests for the <see cref="Leb128EncodingHelper"/> utility class.
 	/// </summary>
-	public class LEB128Tests
+	public class Leb128EncodingHelpers
 	{
 		private readonly byte[] mBuffer = new byte[20];
 
@@ -35,9 +35,9 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		public void LEB128_Int32(int value, int byteCount)
 		{
 			int size;
-			int count1 = LEB128.GetByteCount(value);
-			int count2 = LEB128.Write(mBuffer, 0, value);
-			int reverse = LEB128.ReadInt32(mBuffer, 0, count2, out size);
+			int count1 = Leb128EncodingHelper.GetByteCount(value);
+			int count2 = Leb128EncodingHelper.Write(mBuffer, 0, value);
+			int reverse = Leb128EncodingHelper.ReadInt32(mBuffer, 0, count2, out size);
 
 			Assert.Equal(byteCount, count1);
 			Assert.Equal(byteCount, count2);
@@ -57,9 +57,9 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		public void LEB128_UInt32(uint value, int byteCount)
 		{
 			int size;
-			int count1 = LEB128.GetByteCount(value);
-			int count2 = LEB128.Write(mBuffer, 0, value);
-			uint reverse = LEB128.ReadUInt32(mBuffer, 0, count2, out size);
+			int count1 = Leb128EncodingHelper.GetByteCount(value);
+			int count2 = Leb128EncodingHelper.Write(mBuffer, 0, value);
+			uint reverse = Leb128EncodingHelper.ReadUInt32(mBuffer, 0, count2, out size);
 
 			Assert.Equal(byteCount, count1);
 			Assert.Equal(byteCount, count2);
@@ -107,9 +107,9 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		public void LEB128_Int64(long value, int byteCount)
 		{
 			int size;
-			int count1 = LEB128.GetByteCount(value);
-			int count2 = LEB128.Write(mBuffer, 0, value);
-			long reverse = LEB128.ReadInt64(mBuffer, 0, count2, out size);
+			int count1 = Leb128EncodingHelper.GetByteCount(value);
+			int count2 = Leb128EncodingHelper.Write(mBuffer, 0, value);
+			long reverse = Leb128EncodingHelper.ReadInt64(mBuffer, 0, count2, out size);
 
 			Assert.Equal(byteCount, count1);
 			Assert.Equal(byteCount, count2);
@@ -139,9 +139,9 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		public void LEB128_UInt64(ulong value, int byteCount)
 		{
 			int size;
-			int count1 = LEB128.GetByteCount(value);
-			int count2 = LEB128.Write(mBuffer, 0, value);
-			ulong reverse = LEB128.ReadUInt64(mBuffer, 0, count2, out size);
+			int count1 = Leb128EncodingHelper.GetByteCount(value);
+			int count2 = Leb128EncodingHelper.Write(mBuffer, 0, value);
+			ulong reverse = Leb128EncodingHelper.ReadUInt64(mBuffer, 0, count2, out size);
 
 			Assert.Equal(byteCount, count1);
 			Assert.Equal(byteCount, count2);

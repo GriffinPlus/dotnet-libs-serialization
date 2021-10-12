@@ -887,7 +887,7 @@ namespace GriffinPlus.Lib.Serialization
 
 				// write header
 				mTempBuffer_Buffer[0] = (byte)PayloadType.Type;
-				int count = LEB128.Write(mTempBuffer_Buffer, 1, byteCount);
+				int count = Leb128EncodingHelper.Write(mTempBuffer_Buffer, 1, byteCount);
 				stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 
 				// write type name
@@ -905,7 +905,7 @@ namespace GriffinPlus.Lib.Serialization
 		private void WriteTypeId(Stream stream, uint id)
 		{
 			mTempBuffer_Buffer[0] = (byte)PayloadType.TypeId;
-			int count = LEB128.Write(mTempBuffer_Buffer, 1, id);
+			int count = Leb128EncodingHelper.Write(mTempBuffer_Buffer, 1, id);
 			stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 		}
 
@@ -918,7 +918,7 @@ namespace GriffinPlus.Lib.Serialization
 		private void ReadTypeMetadata(Stream stream)
 		{
 			// read number of characters in the following string
-			int length = LEB128.ReadInt32(stream);
+			int length = Leb128EncodingHelper.ReadInt32(stream);
 
 			// read type full name
 			byte[] array = new byte[length];
@@ -980,7 +980,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Deserialized type id does not match a previously deserialized type.</exception>
 		private void ReadTypeId(Stream stream)
 		{
-			uint id = LEB128.ReadUInt32(stream);
+			uint id = Leb128EncodingHelper.ReadUInt32(stream);
 
 			TypeItem item;
 			if (mDeserializedTypeIdTable.TryGetValue(id, out item))
@@ -1276,7 +1276,7 @@ namespace GriffinPlus.Lib.Serialization
 				// the type was already serialized
 				// => serialize type id only.
 				mTempBuffer_Buffer[0] = (byte)PayloadType.TypeId;
-				int count = LEB128.Write(mTempBuffer_Buffer, 1, id);
+				int count = Leb128EncodingHelper.Write(mTempBuffer_Buffer, 1, id);
 				stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 			}
 			else
@@ -1293,7 +1293,7 @@ namespace GriffinPlus.Lib.Serialization
 
 				// write header
 				mTempBuffer_Buffer[0] = (byte)PayloadType.Type;
-				int count = LEB128.Write(mTempBuffer_Buffer, 1, byteCount);
+				int count = Leb128EncodingHelper.Write(mTempBuffer_Buffer, 1, byteCount);
 				stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 
 				// write assembly name
@@ -1313,7 +1313,7 @@ namespace GriffinPlus.Lib.Serialization
 		private void SerializeObjectId(Stream stream, uint id)
 		{
 			mTempBuffer_Buffer[0] = (byte)PayloadType.AlreadySerialized;
-			int count = LEB128.Write(mTempBuffer_Buffer, 1, id);
+			int count = Leb128EncodingHelper.Write(mTempBuffer_Buffer, 1, id);
 			stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 		}
 
@@ -1394,7 +1394,7 @@ namespace GriffinPlus.Lib.Serialization
 				}
 			}
 
-			long value = LEB128.ReadInt64(stream);
+			long value = Leb128EncodingHelper.ReadInt64(stream);
 			return caster(value);
 		}
 
@@ -1439,7 +1439,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (objType == PayloadType.Type)
 			{
 				// read number of characters in the following string
-				int length = LEB128.ReadInt32(stream);
+				int length = Leb128EncodingHelper.ReadInt32(stream);
 
 				// read type full name
 				byte[] array = new byte[length];
@@ -1480,7 +1480,7 @@ namespace GriffinPlus.Lib.Serialization
 			}
 			else if (objType == PayloadType.TypeId)
 			{
-				uint id = LEB128.ReadUInt32(stream);
+				uint id = Leb128EncodingHelper.ReadUInt32(stream);
 				if (!mDeserializedTypeIdTable.TryGetValue(id, out typeItem))
 				{
 					throw new SerializationException("Deserialized type id that does not match a previously deserialized type.");
@@ -1510,7 +1510,7 @@ namespace GriffinPlus.Lib.Serialization
 		private object ReadAlreadySerializedObject(Stream stream)
 		{
 			object obj;
-			uint id = LEB128.ReadUInt32(stream);
+			uint id = Leb128EncodingHelper.ReadUInt32(stream);
 			if (mDeserializedObjectIdTable.TryGetValue(id, out obj))
 			{
 				return obj;
@@ -1539,7 +1539,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">There is no internal/external object serializer for the object that is about to be deserialized.</exception>
 		private object ReadArchive(Stream stream, object context)
 		{
-			uint deserializedVersion = LEB128.ReadUInt32(stream);
+			uint deserializedVersion = Leb128EncodingHelper.ReadUInt32(stream);
 			uint currentVersion;
 			string error;
 
@@ -2342,7 +2342,7 @@ namespace GriffinPlus.Lib.Serialization
 
 				serializer.WriteTypeMetadata(stream, type);
 				serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.ArchiveStart;
-				int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, version);
+				int count = Leb128EncodingHelper.Write(serializer.mTempBuffer_Buffer, 1, version);
 				stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				SerializerArchive archive = new SerializerArchive(serializer, stream, type, version, context);
 				IosSerializeDelegate serialize = GetInternalObjectSerializerSerializeCaller(type);
@@ -2455,7 +2455,7 @@ namespace GriffinPlus.Lib.Serialization
 
 				// write serializer archive
 				serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.ArchiveStart;
-				int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, version);
+				int count = Leb128EncodingHelper.Write(serializer.mTempBuffer_Buffer, 1, version);
 				stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				SerializerArchive archive = new SerializerArchive(serializer, stream, typeToSerialize, version, context);
 				eos.Serialize(archive, version, obj);
@@ -2485,7 +2485,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteTypeMetadata(stream, type);
 					serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (sbyte)obj);
+					int count = Leb128EncodingHelper.Write(serializer.mTempBuffer_Buffer, 1, (sbyte)obj);
 					stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				};
 			}
@@ -2500,7 +2500,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteTypeMetadata(stream, type);
 					serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (byte)obj);
+					int count = Leb128EncodingHelper.Write(serializer.mTempBuffer_Buffer, 1, (byte)obj);
 					stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				};
 			}
@@ -2515,7 +2515,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteTypeMetadata(stream, type);
 					serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (short)obj);
+					int count = Leb128EncodingHelper.Write(serializer.mTempBuffer_Buffer, 1, (short)obj);
 					stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				};
 			}
@@ -2530,7 +2530,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteTypeMetadata(stream, type);
 					serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (ushort)obj);
+					int count = Leb128EncodingHelper.Write(serializer.mTempBuffer_Buffer, 1, (ushort)obj);
 					stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				};
 			}
@@ -2545,7 +2545,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteTypeMetadata(stream, type);
 					serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (int)obj);
+					int count = Leb128EncodingHelper.Write(serializer.mTempBuffer_Buffer, 1, (int)obj);
 					stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				};
 			}
@@ -2560,7 +2560,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteTypeMetadata(stream, type);
 					serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (long)(uint)obj);
+					int count = Leb128EncodingHelper.Write(serializer.mTempBuffer_Buffer, 1, (long)(uint)obj);
 					stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				};
 			}
@@ -2575,7 +2575,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteTypeMetadata(stream, type);
 					serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (long)obj);
+					int count = Leb128EncodingHelper.Write(serializer.mTempBuffer_Buffer, 1, (long)obj);
 					stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				};
 			}
@@ -2590,7 +2590,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteTypeMetadata(stream, type);
 					serializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = LEB128.Write(serializer.mTempBuffer_Buffer, 1, (long)(ulong)obj);
+					int count = Leb128EncodingHelper.Write(serializer.mTempBuffer_Buffer, 1, (long)(ulong)obj);
 					stream.Write(serializer.mTempBuffer_Buffer, 0, 1 + count);
 				};
 			}

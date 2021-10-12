@@ -622,7 +622,7 @@ namespace GriffinPlus.Lib.Serialization
 			ReadAndCheckPayloadType(PayloadType.BaseArchiveStart);
 
 			// read version number
-			uint deserializedVersion = LEB128.ReadUInt32(mStream);
+			uint deserializedVersion = Leb128EncodingHelper.ReadUInt32(mStream);
 
 			// check maximum supported version number
 			uint currentVersion = Serializer.GetSerializerVersion(type); // throws ArgumentException if type is not serializable
@@ -671,7 +671,7 @@ namespace GriffinPlus.Lib.Serialization
 				// write base archive header
 				byte[] buffer = mSerializer.mTempBuffer_Buffer;
 				buffer[0] = (byte)PayloadType.BaseArchiveStart;
-				int count = LEB128.Write(buffer, 1, version);
+				int count = Leb128EncodingHelper.Write(buffer, 1, version);
 				mStream.Write(buffer, 0, 1 + count);
 
 				// serialize object
@@ -695,7 +695,7 @@ namespace GriffinPlus.Lib.Serialization
 				// write base archive header
 				byte[] buffer = mSerializer.mTempBuffer_Buffer;
 				buffer[0] = (byte)PayloadType.BaseArchiveStart;
-				int count = LEB128.Write(buffer, 1, version);
+				int count = Leb128EncodingHelper.Write(buffer, 1, version);
 				mStream.Write(buffer, 0, 1 + count);
 
 				// call the Serialize() method of the base class
@@ -726,7 +726,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// write payload type and size of the following buffer
 			mSerializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Buffer;
-			int writtenBytes = LEB128.Write(mSerializer.mTempBuffer_Buffer, 1, count);
+			int writtenBytes = Leb128EncodingHelper.Write(mSerializer.mTempBuffer_Buffer, 1, count);
 			mStream.Write(mSerializer.mTempBuffer_Buffer, 0, writtenBytes + 1);
 
 			if (mStream is MemoryBlockStream)
@@ -768,7 +768,7 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			// read payload type and size of the following buffer
 			ReadAndCheckPayloadType(PayloadType.Buffer);
-			long length = LEB128.ReadInt64(mStream);
+			long length = Leb128EncodingHelper.ReadInt64(mStream);
 
 			// now we know how much bytes will be returned...
 			long bytesReturned = Math.Min(length, count);
@@ -882,7 +882,7 @@ namespace GriffinPlus.Lib.Serialization
 			// write payload type and size of the following buffer
 			long count = stream.Length;
 			mSerializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Buffer;
-			int writtenBytes = LEB128.Write(mSerializer.mTempBuffer_Buffer, 1, count);
+			int writtenBytes = Leb128EncodingHelper.Write(mSerializer.mTempBuffer_Buffer, 1, count);
 			mStream.Write(mSerializer.mTempBuffer_Buffer, 0, writtenBytes + 1);
 
 			if (mStream is MemoryBlockStream)
@@ -914,7 +914,7 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			// read payload type and size of the following buffer
 			ReadAndCheckPayloadType(PayloadType.Buffer);
-			long length = LEB128.ReadInt64(mStream);
+			long length = Leb128EncodingHelper.ReadInt64(mStream);
 
 			mArchiveStream = new SerializerArchiveStream(mStream, length);
 			return mArchiveStream;

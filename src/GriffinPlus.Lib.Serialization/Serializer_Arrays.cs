@@ -21,7 +21,7 @@ namespace GriffinPlus.Lib.Serialization
 		private void WriteArrayOfByte(byte[] array, Stream stream)
 		{
 			mTempBuffer_Buffer[0] = (byte)PayloadType.ArrayOfByte;
-			int count = LEB128.Write(mTempBuffer_Buffer, 1, array.Length);
+			int count = Leb128EncodingHelper.Write(mTempBuffer_Buffer, 1, array.Length);
 			stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 			stream.Write(array, 0, array.Length);
 			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
@@ -41,11 +41,11 @@ namespace GriffinPlus.Lib.Serialization
 			Stream      stream)
 		{
 			int length = array.Length;
-			int sizeByteCount = LEB128.GetByteCount(length);
+			int sizeByteCount = Leb128EncodingHelper.GetByteCount(length);
 			int size = 1 + sizeByteCount + length * elementSize;
 			if (mTempBuffer_BigBuffer.Length < size) mTempBuffer_BigBuffer = new byte[size];
 			mTempBuffer_BigBuffer[0] = (byte)type;
-			LEB128.Write(mTempBuffer_BigBuffer, 1, length);
+			Leb128EncodingHelper.Write(mTempBuffer_BigBuffer, 1, length);
 			int index = 1 + sizeByteCount;
 			Buffer.BlockCopy(array, 0, mTempBuffer_BigBuffer, index, length * elementSize);
 			stream.Write(mTempBuffer_BigBuffer, 0, size);
@@ -60,11 +60,11 @@ namespace GriffinPlus.Lib.Serialization
 		private void WriteArrayOfDecimal(decimal[] array, Stream stream)
 		{
 			int length = array.Length;
-			int sizeByteCount = LEB128.GetByteCount(length);
+			int sizeByteCount = Leb128EncodingHelper.GetByteCount(length);
 			int size = 1 + sizeByteCount + length * 16;
 			if (mTempBuffer_BigBuffer.Length < size) mTempBuffer_BigBuffer = new byte[size];
 			mTempBuffer_BigBuffer[0] = (byte)PayloadType.ArrayOfDecimal;
-			int index = LEB128.Write(mTempBuffer_BigBuffer, 1, length) + 1;
+			int index = Leb128EncodingHelper.Write(mTempBuffer_BigBuffer, 1, length) + 1;
 			for (int i = 0; i < length; i++)
 			{
 				int[] bits = decimal.GetBits(array[i]);
@@ -85,7 +85,7 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			// write type and array length
 			mTempBuffer_Buffer[0] = (byte)PayloadType.ArrayOfString;
-			int count = LEB128.Write(mTempBuffer_Buffer, 1, array.Length);
+			int count = Leb128EncodingHelper.Write(mTempBuffer_Buffer, 1, array.Length);
 			stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 
 			// write array data
@@ -142,7 +142,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// write type and array length
 			mTempBuffer_Buffer[0] = (byte)PayloadType.ArrayOfObjects;
-			int count = LEB128.Write(mTempBuffer_Buffer, 1, array.Length);
+			int count = Leb128EncodingHelper.Write(mTempBuffer_Buffer, 1, array.Length);
 			stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 
 			// write array data
@@ -166,7 +166,7 @@ namespace GriffinPlus.Lib.Serialization
 		private byte[] ReadArrayOfByte(Stream stream)
 		{
 			// read array length
-			int length = LEB128.ReadInt32(stream);
+			int length = Leb128EncodingHelper.ReadInt32(stream);
 
 			// read array data
 			byte[] array = new byte[length];
@@ -185,7 +185,7 @@ namespace GriffinPlus.Lib.Serialization
 		private Array ReadArrayOfPrimitives(Stream stream, Type type, int elementSize)
 		{
 			// read array length
-			int length = LEB128.ReadInt32(stream);
+			int length = Leb128EncodingHelper.ReadInt32(stream);
 			int size = length * elementSize;
 
 			// read array data
@@ -206,7 +206,7 @@ namespace GriffinPlus.Lib.Serialization
 		private decimal[] ReadArrayOfDecimal(Stream stream)
 		{
 			// read array length
-			int length = LEB128.ReadInt32(stream);
+			int length = Leb128EncodingHelper.ReadInt32(stream);
 			int size = 16 * length;
 
 			// read data from stream
@@ -235,7 +235,7 @@ namespace GriffinPlus.Lib.Serialization
 		private string[] ReadStringArray(Stream stream)
 		{
 			// read array length
-			int length = LEB128.ReadInt32(stream);
+			int length = Leb128EncodingHelper.ReadInt32(stream);
 
 			// read array data
 			string[] array = new string[length];
@@ -257,7 +257,7 @@ namespace GriffinPlus.Lib.Serialization
 		private DateTime[] ReadDateTimeArray(Stream stream)
 		{
 			// read array length
-			int length = LEB128.ReadInt32(stream);
+			int length = Leb128EncodingHelper.ReadInt32(stream);
 			int size = 8 * length;
 
 			// read array data
@@ -284,7 +284,7 @@ namespace GriffinPlus.Lib.Serialization
 			Type t = mCurrentDeserializedType.Type;
 
 			// read array length
-			int length = LEB128.ReadInt32(stream);
+			int length = Leb128EncodingHelper.ReadInt32(stream);
 
 			// read array elements
 			Array array = FastActivator.CreateArray(t, length);
@@ -315,14 +315,14 @@ namespace GriffinPlus.Lib.Serialization
 			Stream      stream)
 		{
 			int totalCount = 1;
-			stream.WriteByte((byte)type);     // payload type
-			LEB128.Write(stream, array.Rank); // number of dimensions
+			stream.WriteByte((byte)type);                   // payload type
+			Leb128EncodingHelper.Write(stream, array.Rank); // number of dimensions
 			for (int i = 0; i < array.Rank; i++)
 			{
 				// ...dimension information...
-				LEB128.Write(stream, array.GetLowerBound(i)); // lower bound of the dimension
+				Leb128EncodingHelper.Write(stream, array.GetLowerBound(i)); // lower bound of the dimension
 				int count = array.GetLength(i);
-				LEB128.Write(stream, count); // number of elements in the dimension
+				Leb128EncodingHelper.Write(stream, count); // number of elements in the dimension
 				totalCount *= count;
 			}
 
@@ -343,15 +343,15 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			//int totalCount = 1;
 			stream.WriteByte((byte)PayloadType.MultidimensionalArrayOfDecimal); // payload type
-			LEB128.Write(stream, array.Rank);                                   // number of dimensions
+			Leb128EncodingHelper.Write(stream, array.Rank);                     // number of dimensions
 			int[] indices = new int[array.Rank];
 			for (int i = 0; i < array.Rank; i++)
 			{
 				// ...dimension information...
 				indices[i] = array.GetLowerBound(i);
-				LEB128.Write(stream, indices[i]); // lower bound of the dimension
+				Leb128EncodingHelper.Write(stream, indices[i]); // lower bound of the dimension
 				int count = array.GetLength(i);
-				LEB128.Write(stream, count); // number of elements in the dimension
+				Leb128EncodingHelper.Write(stream, count); // number of elements in the dimension
 				//totalCount *= count;
 			}
 
@@ -377,13 +377,13 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			int totalCount = 1;
 			stream.WriteByte((byte)PayloadType.MultidimensionalArrayOfString); // payload type
-			LEB128.Write(stream, array.Rank);                                  // number of dimensions
+			Leb128EncodingHelper.Write(stream, array.Rank);                    // number of dimensions
 			for (int i = 0; i < array.Rank; i++)
 			{
 				// ...dimension information...
-				LEB128.Write(stream, array.GetLowerBound(i)); // lower bound of the dimension
+				Leb128EncodingHelper.Write(stream, array.GetLowerBound(i)); // lower bound of the dimension
 				int count = array.GetLength(i);
-				LEB128.Write(stream, count); // number of elements in the dimension
+				Leb128EncodingHelper.Write(stream, count); // number of elements in the dimension
 				totalCount *= count;
 			}
 
@@ -431,13 +431,13 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			int totalCount = 1;
 			stream.WriteByte((byte)PayloadType.MultidimensionalArrayOfDateTime); // payload type
-			LEB128.Write(stream, array.Rank);                                    // number of dimensions
+			Leb128EncodingHelper.Write(stream, array.Rank);                      // number of dimensions
 			for (int i = 0; i < array.Rank; i++)
 			{
 				// ...dimension information...
-				LEB128.Write(stream, array.GetLowerBound(i)); // lower bound of the dimension
+				Leb128EncodingHelper.Write(stream, array.GetLowerBound(i)); // lower bound of the dimension
 				int count = array.GetLength(i);
-				LEB128.Write(stream, count); // number of elements in the dimension
+				Leb128EncodingHelper.Write(stream, count); // number of elements in the dimension
 				totalCount *= count;
 			}
 
@@ -479,13 +479,13 @@ namespace GriffinPlus.Lib.Serialization
 			// write header
 			int totalCount = 1;
 			stream.WriteByte((byte)PayloadType.MultidimensionalArrayOfObjects); // payload type
-			LEB128.Write(stream, array.Rank);                                   // number of dimensions
+			Leb128EncodingHelper.Write(stream, array.Rank);                     // number of dimensions
 			for (int i = 0; i < array.Rank; i++)
 			{
 				// ...dimension information...
-				LEB128.Write(stream, array.GetLowerBound(i)); // lower bound of the dimension
+				Leb128EncodingHelper.Write(stream, array.GetLowerBound(i)); // lower bound of the dimension
 				int count = array.GetLength(i);
-				LEB128.Write(stream, count); // number of elements in the dimension
+				Leb128EncodingHelper.Write(stream, count); // number of elements in the dimension
 				totalCount *= count;
 			}
 
@@ -520,13 +520,13 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			// read header
 			int totalCount = 1;
-			int ranks = LEB128.ReadInt32(stream);
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
 			int[] lowerBounds = new int[ranks];
 			int[] lengths = new int[ranks];
 			for (int i = 0; i < ranks; i++)
 			{
-				lowerBounds[i] = LEB128.ReadInt32(stream);
-				lengths[i] = LEB128.ReadInt32(stream);
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
 				totalCount *= lengths[i];
 			}
 
@@ -554,13 +554,13 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			// read header
 			int totalCount = 1;
-			int ranks = LEB128.ReadInt32(stream);
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
 			int[] lowerBounds = new int[ranks];
 			int[] lengths = new int[ranks];
 			for (int i = 0; i < ranks; i++)
 			{
-				lowerBounds[i] = LEB128.ReadInt32(stream);
-				lengths[i] = LEB128.ReadInt32(stream);
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
 				totalCount *= lengths[i];
 			}
 
@@ -586,14 +586,14 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			// read header
 			int totalCount = 1;
-			int ranks = LEB128.ReadInt32(stream);
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
 			int[] lowerBounds = new int[ranks];
 			int[] lengths = new int[ranks];
 			int[] indices = new int[ranks];
 			for (int i = 0; i < ranks; i++)
 			{
-				lowerBounds[i] = LEB128.ReadInt32(stream);
-				lengths[i] = LEB128.ReadInt32(stream);
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
 				indices[i] = lowerBounds[i];
 				totalCount *= lengths[i];
 			}
@@ -622,14 +622,14 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			// read header
 			int totalCount = 1;
-			int ranks = LEB128.ReadInt32(stream);
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
 			int[] lowerBounds = new int[ranks];
 			int[] lengths = new int[ranks];
 			int[] indices = new int[ranks];
 			for (int i = 0; i < ranks; i++)
 			{
-				lowerBounds[i] = LEB128.ReadInt32(stream);
-				lengths[i] = LEB128.ReadInt32(stream);
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
 				indices[i] = lowerBounds[i];
 				totalCount *= lengths[i];
 			}
@@ -660,14 +660,14 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			// read header
 			int totalCount = 1;
-			int ranks = LEB128.ReadInt32(stream);
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
 			int[] lowerBounds = new int[ranks];
 			int[] lengths = new int[ranks];
 			int[] indices = new int[ranks];
 			for (int i = 0; i < ranks; i++)
 			{
-				lowerBounds[i] = LEB128.ReadInt32(stream);
-				lengths[i] = LEB128.ReadInt32(stream);
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
 				indices[i] = lowerBounds[i];
 				totalCount *= lengths[i];
 			}
@@ -702,14 +702,14 @@ namespace GriffinPlus.Lib.Serialization
 
 			// read header
 			int totalCount = 1;
-			int ranks = LEB128.ReadInt32(stream);
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
 			int[] lowerBounds = new int[ranks];
 			int[] lengths = new int[ranks];
 			int[] indices = new int[ranks];
 			for (int i = 0; i < ranks; i++)
 			{
-				lowerBounds[i] = LEB128.ReadInt32(stream);
-				lengths[i] = LEB128.ReadInt32(stream);
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
 				indices[i] = lowerBounds[i];
 				totalCount *= lengths[i];
 			}
@@ -748,7 +748,7 @@ namespace GriffinPlus.Lib.Serialization
 			int         elementSize,
 			out int     size)
 		{
-			int sizeByteCount = LEB128.GetByteCount(length);
+			int sizeByteCount = Leb128EncodingHelper.GetByteCount(length);
 			size = 1 + sizeByteCount + length * elementSize;
 			if (mTempBuffer_BigBuffer.Length < size)
 			{
@@ -756,7 +756,7 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			mTempBuffer_BigBuffer[0] = (byte)type;
-			LEB128.Write(mTempBuffer_BigBuffer, 1, length);
+			Leb128EncodingHelper.Write(mTempBuffer_BigBuffer, 1, length);
 			return 1 + sizeByteCount;
 		}
 

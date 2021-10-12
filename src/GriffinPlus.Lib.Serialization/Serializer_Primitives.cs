@@ -66,7 +66,7 @@ namespace GriffinPlus.Lib.Serialization
 		internal void WritePrimitive_Char(char value, Stream stream)
 		{
 			mTempBuffer_Buffer[0] = (byte)PayloadType.Char;
-			int count = LEB128.Write(mTempBuffer_Buffer, 1, (uint)value);
+			int count = Leb128EncodingHelper.Write(mTempBuffer_Buffer, 1, (uint)value);
 			stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 		}
 
@@ -77,7 +77,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read value.</returns>
 		internal char ReadPrimitive_Char(Stream stream)
 		{
-			return (char)LEB128.ReadUInt32(stream);
+			return (char)Leb128EncodingHelper.ReadUInt32(stream);
 		}
 
 		#endregion
@@ -203,7 +203,7 @@ namespace GriffinPlus.Lib.Serialization
 		internal void WritePrimitive_Int16(short value, Stream stream)
 		{
 			mTempBuffer_Buffer[0] = (byte)PayloadType.Int16;
-			int count = LEB128.Write(mTempBuffer_Buffer, 1, value);
+			int count = Leb128EncodingHelper.Write(mTempBuffer_Buffer, 1, value);
 			stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 		}
 
@@ -214,7 +214,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read value.</returns>
 		internal short ReadPrimitive_Int16(Stream stream)
 		{
-			return (short)LEB128.ReadInt32(stream);
+			return (short)Leb128EncodingHelper.ReadInt32(stream);
 		}
 
 		#endregion
@@ -229,7 +229,7 @@ namespace GriffinPlus.Lib.Serialization
 		internal void WritePrimitive_Int32(int value, Stream stream)
 		{
 			mTempBuffer_Buffer[0] = (byte)PayloadType.Int32;
-			int count = LEB128.Write(mTempBuffer_Buffer, 1, value);
+			int count = Leb128EncodingHelper.Write(mTempBuffer_Buffer, 1, value);
 			stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 		}
 
@@ -240,7 +240,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read value.</returns>
 		internal int ReadPrimitive_Int32(Stream stream)
 		{
-			return LEB128.ReadInt32(stream);
+			return Leb128EncodingHelper.ReadInt32(stream);
 		}
 
 		#endregion
@@ -255,7 +255,7 @@ namespace GriffinPlus.Lib.Serialization
 		internal void WritePrimitive_Int64(long value, Stream stream)
 		{
 			mTempBuffer_Buffer[0] = (byte)PayloadType.Int64;
-			int count = LEB128.Write(mTempBuffer_Buffer, 1, value);
+			int count = Leb128EncodingHelper.Write(mTempBuffer_Buffer, 1, value);
 			stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 		}
 
@@ -266,7 +266,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read value.</returns>
 		internal long ReadPrimitive_Int64(Stream stream)
 		{
-			return LEB128.ReadInt64(stream);
+			return Leb128EncodingHelper.ReadInt64(stream);
 		}
 
 		#endregion
@@ -307,7 +307,7 @@ namespace GriffinPlus.Lib.Serialization
 		internal void WritePrimitive_UInt16(ushort value, Stream stream)
 		{
 			mTempBuffer_Buffer[0] = (byte)PayloadType.UInt16;
-			int count = LEB128.Write(mTempBuffer_Buffer, 1, (uint)value);
+			int count = Leb128EncodingHelper.Write(mTempBuffer_Buffer, 1, (uint)value);
 			stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 		}
 
@@ -318,7 +318,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read value.</returns>
 		internal ushort ReadPrimitive_UInt16(Stream stream)
 		{
-			return (ushort)LEB128.ReadUInt32(stream);
+			return (ushort)Leb128EncodingHelper.ReadUInt32(stream);
 		}
 
 		#endregion
@@ -333,7 +333,7 @@ namespace GriffinPlus.Lib.Serialization
 		internal void WritePrimitive_UInt32(uint value, Stream stream)
 		{
 			mTempBuffer_Buffer[0] = (byte)PayloadType.UInt32;
-			int count = LEB128.Write(mTempBuffer_Buffer, 1, value);
+			int count = Leb128EncodingHelper.Write(mTempBuffer_Buffer, 1, value);
 			stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 		}
 
@@ -344,7 +344,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read value.</returns>
 		internal uint ReadPrimitive_UInt32(Stream stream)
 		{
-			return LEB128.ReadUInt32(stream);
+			return Leb128EncodingHelper.ReadUInt32(stream);
 		}
 
 		#endregion
@@ -359,7 +359,7 @@ namespace GriffinPlus.Lib.Serialization
 		internal void WritePrimitive_UInt64(ulong value, Stream stream)
 		{
 			mTempBuffer_Buffer[0] = (byte)PayloadType.UInt64;
-			int count = LEB128.Write(mTempBuffer_Buffer, 1, value);
+			int count = Leb128EncodingHelper.Write(mTempBuffer_Buffer, 1, value);
 			stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 		}
 
@@ -370,7 +370,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read value.</returns>
 		internal ulong ReadPrimitive_UInt64(Stream stream)
 		{
-			return LEB128.ReadUInt64(stream);
+			return Leb128EncodingHelper.ReadUInt64(stream);
 		}
 
 		#endregion
@@ -420,7 +420,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// write header
 			mTempBuffer_Buffer[0] = (byte)PayloadType.String;
-			int count = LEB128.Write(mTempBuffer_Buffer, 1, valueByteCount);
+			int count = Leb128EncodingHelper.Write(mTempBuffer_Buffer, 1, valueByteCount);
 			stream.Write(mTempBuffer_Buffer, 0, 1 + count);
 
 			// write string
@@ -435,7 +435,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read string.</returns>
 		internal string ReadPrimitive_String(Stream stream)
 		{
-			int size = LEB128.ReadInt32(stream);
+			int size = Leb128EncodingHelper.ReadInt32(stream);
 
 			// read encoded string
 			if (mTempBuffer_BigBuffer.Length < size) mTempBuffer_BigBuffer = new byte[size];
