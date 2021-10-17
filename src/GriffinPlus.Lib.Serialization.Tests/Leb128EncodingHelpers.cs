@@ -34,10 +34,9 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData(0x08000000, 5)]
 		public void LEB128_Int32(int value, int byteCount)
 		{
-			int size;
 			int count1 = Leb128EncodingHelper.GetByteCount(value);
 			int count2 = Leb128EncodingHelper.Write(mBuffer, 0, value);
-			int reverse = Leb128EncodingHelper.ReadInt32(mBuffer, 0, count2, out size);
+			int reverse = Leb128EncodingHelper.ReadInt32(mBuffer, 0, count2, out int size);
 
 			Assert.Equal(byteCount, count1);
 			Assert.Equal(byteCount, count2);
@@ -56,10 +55,9 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData((uint)0x10000000, 5)]
 		public void LEB128_UInt32(uint value, int byteCount)
 		{
-			int size;
 			int count1 = Leb128EncodingHelper.GetByteCount(value);
 			int count2 = Leb128EncodingHelper.Write(mBuffer, 0, value);
-			uint reverse = Leb128EncodingHelper.ReadUInt32(mBuffer, 0, count2, out size);
+			uint reverse = Leb128EncodingHelper.ReadUInt32(mBuffer, 0, count2, out int size);
 
 			Assert.Equal(byteCount, count1);
 			Assert.Equal(byteCount, count2);
@@ -106,10 +104,9 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData(0x4000000000000000, 10)]
 		public void LEB128_Int64(long value, int byteCount)
 		{
-			int size;
 			int count1 = Leb128EncodingHelper.GetByteCount(value);
 			int count2 = Leb128EncodingHelper.Write(mBuffer, 0, value);
-			long reverse = Leb128EncodingHelper.ReadInt64(mBuffer, 0, count2, out size);
+			long reverse = Leb128EncodingHelper.ReadInt64(mBuffer, 0, count2, out int size);
 
 			Assert.Equal(byteCount, count1);
 			Assert.Equal(byteCount, count2);
@@ -138,10 +135,9 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData(0x8000000000000000, 10)]
 		public void LEB128_UInt64(ulong value, int byteCount)
 		{
-			int size;
 			int count1 = Leb128EncodingHelper.GetByteCount(value);
 			int count2 = Leb128EncodingHelper.Write(mBuffer, 0, value);
-			ulong reverse = Leb128EncodingHelper.ReadUInt64(mBuffer, 0, count2, out size);
+			ulong reverse = Leb128EncodingHelper.ReadUInt64(mBuffer, 0, count2, out int size);
 
 			Assert.Equal(byteCount, count1);
 			Assert.Equal(byteCount, count2);
