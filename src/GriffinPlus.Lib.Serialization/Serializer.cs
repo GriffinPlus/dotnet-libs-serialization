@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 
@@ -74,6 +75,8 @@ namespace GriffinPlus.Lib.Serialization
 		private static readonly object                                         sAssemblyTableLock                     = new object();
 		private static          Dictionary<string, Type>                       sTypeTable                             = new Dictionary<string, Type>();
 		private static readonly object                                         sTypeTableLock                         = new object();
+		private static          Dictionary<Type, byte[]>                       sSerializedTypeSnippetsByType          = new Dictionary<Type, byte[]>();
+		private static readonly object                                         sSerializedTypeSnippetsByTypeLock      = new object();
 		private static          Dictionary<Type, SerializerDelegate>           sSerializers                           = new Dictionary<Type, SerializerDelegate>();
 		private static readonly Dictionary<Type, SerializerDelegate>           sMultidimensionalArraySerializers      = new Dictionary<Type, SerializerDelegate>();
 		private static readonly Dictionary<PayloadType, DeserializerDelegate>  sDeserializers                         = new Dictionary<PayloadType, DeserializerDelegate>();
@@ -896,26 +899,55 @@ namespace GriffinPlus.Lib.Serialization
 				// assign a type id to the type to allow referencing it later on
 				mSerializedTypeIdTable.Add(decomposedType.Type, mNextSerializedTypeId++);
 
-				// convert type name
-				string name = decomposedType.Type.AssemblyQualifiedName;
-				Debug.Assert(name != null, nameof(name) + " != null");
-				int size = Encoding.UTF8.GetMaxByteCount(name.Length);
-				if (mTempBuffer_BigBuffer.Length < size) mTempBuffer_BigBuffer = new byte[size];
-				int byteCount = Encoding.UTF8.GetBytes(name, 0, name.Length, mTempBuffer_BigBuffer, 0);
+				// try to get a pre-serialized type snippet, add it, if necessary
+				if (!sSerializedTypeSnippetsByType.TryGetValue(decomposedType.Type, out byte[] serializedTypeName))
+					serializedTypeName = AddSerializedTypeSnippet(decomposedType.Type);
 
-				// write header
-				mTempBuffer_Buffer[0] = (byte)PayloadType.Type;
-				int count = Leb128EncodingHelper.Write(mTempBuffer_Buffer, 1, byteCount);
-				stream.Write(mTempBuffer_Buffer, 0, 1 + count);
-
-				// write type name
-				stream.Write(mTempBuffer_BigBuffer, 0, byteCount);
+				// write pre-serialized type snippet
+				stream.Write(serializedTypeName, 0, serializedTypeName.Length);
 			}
 
 			// serialize generic type arguments separately, if the type is a generic type definition
 			for (int i = 0; i < decomposedType.GenericTypeArguments.Count; i++)
 			{
 				WriteDecomposedType(stream, decomposedType.GenericTypeArguments[i]);
+			}
+		}
+
+		/// <summary>
+		/// Adds a pre-serialized type snippet to the cache.
+		/// </summary>
+		/// <param name="type">Type to add a pre-serialized type snippet for.</param>
+		/// <returns>The pre-serialized type snippet.</returns>
+		[MethodImpl(MethodImplOptions.NoInlining)] // the method is rarely used, so do not inline it to keep the calling method short
+		private static byte[] AddSerializedTypeSnippet(Type type)
+		{
+			lock (sSerializedTypeSnippetsByTypeLock)
+			{
+				if (!sSerializedTypeSnippetsByType.TryGetValue(type, out byte[] serializedTypeName))
+				{
+					// the type snippet is not cached, yet
+					// => build a new type snippet...
+					string name = type.AssemblyQualifiedName;
+					Debug.Assert(name != null, nameof(name) + " != null");
+					int utf8NameLength = Encoding.UTF8.GetByteCount(name);
+					int leb128Length = Leb128EncodingHelper.GetByteCount(utf8NameLength);
+					serializedTypeName = new byte[1 + leb128Length + utf8NameLength];
+					serializedTypeName[0] = (byte)PayloadType.Type;
+					Leb128EncodingHelper.Write(serializedTypeName, 1, utf8NameLength);
+					Encoding.UTF8.GetBytes(name, 0, name.Length, serializedTypeName, 1 + leb128Length);
+
+					// create a copy of the current dictionary and add the new snippet
+					var newSnippets = new Dictionary<Type, byte[]>(sSerializedTypeSnippetsByType) { [type] = serializedTypeName };
+
+					// ensure that dictionary contents are committed to memory before publishing the reference of the new dictionary
+					Thread.MemoryBarrier();
+
+					// exchange dictionary with pre-serialized type snippets
+					sSerializedTypeSnippetsByType = newSnippets;
+				}
+
+				return serializedTypeName;
 			}
 		}
 
