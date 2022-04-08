@@ -36,7 +36,6 @@ RestoreNuGet `
 	-PauseOnError
 
 # patch templates and assembly infos with current version number
-# check consistency of NuGet packages
 PreBuildWizard `
 	-SolutionPath "$SolutionPath" `
 	-SkipNuGetConsistencyCheck `
