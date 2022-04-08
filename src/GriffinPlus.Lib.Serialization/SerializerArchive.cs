@@ -21,7 +21,7 @@ namespace GriffinPlus.Lib.Serialization
 	{
 		#region Class Variables
 
-		private static readonly LogWriter sLog = Log.GetWriter(typeof(SerializerArchive));
+		private static readonly LogWriter sLog = LogWriter.Get(typeof(SerializerArchive));
 
 		#endregion
 

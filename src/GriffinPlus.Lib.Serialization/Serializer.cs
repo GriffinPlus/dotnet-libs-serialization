@@ -62,7 +62,7 @@ namespace GriffinPlus.Lib.Serialization
 		#region Class Variables
 
 		// logging
-		private static readonly LogWriter sLog = Log.GetWriter<Serializer>();
+		private static readonly LogWriter sLog = LogWriter.Get<Serializer>();
 
 		// initialization
 		private static          bool   sInitializing       = false;

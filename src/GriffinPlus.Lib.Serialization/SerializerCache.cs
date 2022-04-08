@@ -178,7 +178,7 @@ namespace GriffinPlus.Lib.Serialization
 
 		#region Class Variables
 
-		private static readonly LogWriter       sLog                      = Log.GetWriter(typeof(SerializerCache));
+		private static readonly LogWriter       sLog                      = LogWriter.Get<SerializerCache>();
 		private static readonly Type[]          sConstructorArgumentTypes = { typeof(SerializerArchive) };
 		private static readonly object          sSync                     = new object();
 		private static volatile SerializerCache sInstance                 = null;

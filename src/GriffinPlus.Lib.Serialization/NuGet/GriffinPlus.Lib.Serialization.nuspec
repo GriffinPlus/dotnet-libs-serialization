@@ -5,7 +5,7 @@
 		<id>GriffinPlus.Lib.Serialization</id>
 		<version>$version$</version>
 		<authors>Sascha Falk</authors>
-		<copyright>Copyright (c) 2021 Sascha Falk and Contributors</copyright>
+		<copyright>Copyright (c) 2022 Sascha Falk and Contributors</copyright>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
 		<description>Flexible serialization of .NET objects with versioning support.</description>
 		<license type="expression">MIT</license>
@@ -16,12 +16,12 @@
 			<group targetFramework="net461">
 				<dependency id="GriffinPlus.Lib.Common" version="[2.0.2,3)" include="all" />
 				<dependency id="GriffinPlus.Lib.FastActivator" version="[1.0.13,2)" include="all" />
-				<dependency id="GriffinPlus.Lib.Logging" version="[4.0.5,5)" include="all" />
+				<dependency id="GriffinPlus.Lib.Logging.Interface" version="[1.1.0,2)" include="all" />
 			</group>
 			<group targetFramework="netstandard2.0">
 				<dependency id="GriffinPlus.Lib.Common" version="[2.0.2,3)" include="all" />
 				<dependency id="GriffinPlus.Lib.FastActivator" version="[1.0.13,2)" include="all" />
-				<dependency id="GriffinPlus.Lib.Logging" version="[4.0.5,5)" include="all" />
+				<dependency id="GriffinPlus.Lib.Logging.Interface" version="[1.1.0,2)" include="all" />
 			</group>
 		</dependencies>
 	</metadata>
