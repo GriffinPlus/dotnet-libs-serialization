@@ -26,7 +26,7 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			if (version == 1)
 			{
-				IList list = (IList)obj;
+				var list = (IList)obj;
 				int count = list.Count;
 				archive.Write(count);
 				for (int i = 0; i < count; i++)
@@ -55,7 +55,7 @@ namespace GriffinPlus.Lib.Serialization
 				int count = archive.ReadInt32();
 
 				// read elements from the archive and put them into the list
-				IList collection = (IList)FastActivator.CreateInstance(archive.Type, count);
+				var collection = (IList)FastActivator.CreateInstance(archive.Type, count);
 				for (int i = 0; i < count; i++)
 				{
 					object obj = archive.ReadObject(archive.Context);

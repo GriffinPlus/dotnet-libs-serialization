@@ -41,7 +41,10 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Disposes the stream causing any attempt to use it any further to fail.
 		/// </summary>
-		/// <param name="disposing"></param>
+		/// <param name="disposing">
+		/// <c>true</c> if the stream is disposed explicitly;
+		/// <c>false</c> if the stream is finalized.
+		/// </param>
 		protected override void Dispose(bool disposing)
 		{
 			base.Dispose(disposing);
@@ -121,7 +124,7 @@ namespace GriffinPlus.Lib.Serialization
 				long position = mOriginalPosition + mPosition + offset;
 				long positionAfterSeek = mStream.Seek(position, SeekOrigin.Begin);
 				Debug.Assert(positionAfterSeek == position);
-				mPosition = mPosition + offset;
+				mPosition += offset;
 				return mPosition;
 			}
 
@@ -159,9 +162,9 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			if (mClosed) throw new InvalidOperationException("The stream is closed.");
 			if (count == 0) return 0;
-			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (offset < 0) throw new ArgumentException("Offset must be greater than or equal to 0.");
-			if (count < 0) throw new ArgumentException("Count must be greater than or equal to 0.");
+			if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+			if (offset < 0) throw new ArgumentException("Offset must be greater than or equal to 0.", nameof(offset));
+			if (count < 0) throw new ArgumentException("Count must be greater than or equal to 0.", nameof(count));
 			if (offset + count > buffer.Length) throw new ArgumentException("The buffer's length is less than offset + count.");
 
 			int bytesToRead = (int)Math.Min(mLength - mPosition, count);

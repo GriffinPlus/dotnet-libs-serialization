@@ -12,7 +12,7 @@ namespace GriffinPlus.Lib.Serialization
 	/// Attribute that must be attached to a struct/class that is able to serialize/deserialize itself by implementing an
 	/// internal object serializer.
 	/// </summary>
-	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
+	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
 	public class InternalObjectSerializerAttribute : Attribute
 	{
 		/// <summary>

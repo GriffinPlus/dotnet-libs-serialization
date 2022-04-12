@@ -220,16 +220,8 @@ namespace GriffinPlus.Lib.Serialization
 			do
 			{
 				byte byteToWrite = (byte)(value & 0x7F);
-				if (value > 0x7F)
-				{
-					array[offset] = (byte)(byteToWrite | 0x80);
-				}
-				else
-				{
-					array[offset] = byteToWrite;
-				}
-
-				value = value >> 7;
+				array[offset] = value > 0x7F ? (byte)(byteToWrite | 0x80) : byteToWrite;
+				value >>= 7;
 				offset++;
 				count++;
 			} while (value != 0);
@@ -263,7 +255,7 @@ namespace GriffinPlus.Lib.Serialization
 				if (count-- == 0) throw new SerializationException("Incomplete ULEB128 encoded integer.");
 				size++;
 				uint readByte = array[offset++];
-				value = value | ((readByte & 0x7F) << (7 * i));
+				value |= (readByte & 0x7F) << (7 * i);
 				if ((readByte & 0x80) == 0) return value;
 			}
 
@@ -283,16 +275,8 @@ namespace GriffinPlus.Lib.Serialization
 			do
 			{
 				byte byteToWrite = (byte)(value & 0x7F);
-				if (value > 0x7F)
-				{
-					stream.WriteByte((byte)(byteToWrite | 0x80));
-				}
-				else
-				{
-					stream.WriteByte(byteToWrite);
-				}
-
-				value = value >> 7;
+				stream.WriteByte(value > 0x7F ? (byte)(byteToWrite | 0x80) : byteToWrite);
+				value >>= 7;
 				count++;
 			} while (value != 0);
 
@@ -315,7 +299,7 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				int readByte = stream.ReadByte();
 				if (readByte < 0) throw new SerializationException("Unexpected end of stream.");
-				value = value | (((uint)readByte & 0x7F) << (7 * i));
+				value |= ((uint)readByte & 0x7F) << (7 * i);
 				if ((readByte & 0x80) == 0) return value;
 			}
 
@@ -543,16 +527,8 @@ namespace GriffinPlus.Lib.Serialization
 			do
 			{
 				byte byteToWrite = (byte)(value & 0x7F);
-				if (value > 0x7F)
-				{
-					array[offset] = (byte)(byteToWrite | 0x80);
-				}
-				else
-				{
-					array[offset] = byteToWrite;
-				}
-
-				value = value >> 7;
+				array[offset] = value > 0x7F ? (byte)(byteToWrite | 0x80) : byteToWrite;
+				value >>= 7;
 				offset++;
 				count++;
 			} while (value != 0);
@@ -586,7 +562,7 @@ namespace GriffinPlus.Lib.Serialization
 				if (count-- == 0) throw new SerializationException("Incomplete ULEB128 encoded integer.");
 				size++;
 				uint readByte = array[offset++];
-				value = value | (((ulong)readByte & 0x7F) << (7 * i));
+				value |= ((ulong)readByte & 0x7F) << (7 * i);
 				if ((readByte & 0x80) == 0) return value;
 			}
 
@@ -606,16 +582,8 @@ namespace GriffinPlus.Lib.Serialization
 			do
 			{
 				byte byteToWrite = (byte)(value & 0x7F);
-				if (value > 0x7F)
-				{
-					stream.WriteByte((byte)(byteToWrite | 0x80));
-				}
-				else
-				{
-					stream.WriteByte(byteToWrite);
-				}
-
-				value = value >> 7;
+				stream.WriteByte(value > 0x7F ? (byte)(byteToWrite | 0x80) : byteToWrite);
+				value >>= 7;
 				count++;
 			} while (value != 0);
 
@@ -639,7 +607,7 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				int readByte = stream.ReadByte();
 				if (readByte < 0) throw new SerializationException("Unexpected end of stream.");
-				value = value | (((ulong)readByte & 0x7F) << (7 * i));
+				value |= ((ulong)readByte & 0x7F) << (7 * i);
 				if ((readByte & 0x80) == 0) return value;
 			}
 

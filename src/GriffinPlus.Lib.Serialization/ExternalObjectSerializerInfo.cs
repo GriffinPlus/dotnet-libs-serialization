@@ -12,7 +12,7 @@ namespace GriffinPlus.Lib.Serialization
 	class ExternalObjectSerializerInfo
 	{
 		/// <summary>
-		/// Intializes a new instance of the <see cref="ExternalObjectSerializerInfo"/> class.
+		/// Initializes a new instance of the <see cref="ExternalObjectSerializerInfo"/> class.
 		/// </summary>
 		/// <param name="serializer">External object serializer.</param>
 		/// <param name="version">Version of the external object serializer.</param>

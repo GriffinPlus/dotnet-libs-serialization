@@ -15,7 +15,7 @@ namespace GriffinPlus.Lib.Serialization
 	/// serializer version.
 	/// </summary>
 	[Serializable]
-	public class VersionNotSupportedException : SerializationException, ISerializable
+	public class VersionNotSupportedException : SerializationException
 	{
 		/// <summary>
 		/// Initializes a new instance of the <see cref="VersionNotSupportedException"/> class.
@@ -23,7 +23,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="type">Type that was tried to serialize (must be serializable).</param>
 		/// <param name="version">Requested serializer version.</param>
 		public VersionNotSupportedException(Type type, uint version) :
-			base(string.Format("Specified serializer version ({0}) is not supported for type '{1}'.", version, type.FullName))
+			base($"Specified serializer version ({version}) is not supported for type '{type.FullName}'.")
 		{
 			Type = type;
 			RequestedVersion = version;
@@ -35,7 +35,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		/// <param name="archive">Serializer archive passed in during deserialization.</param>
 		public VersionNotSupportedException(SerializerArchive archive) :
-			base(string.Format("Specified serializer version ({0}) is not supported for type '{1}'.", archive.Version, archive.Type.FullName))
+			base($"Specified serializer version ({archive.Version}) is not supported for type '{archive.Type.FullName}'.")
 		{
 			Type = archive.Type;
 			RequestedVersion = archive.Version;
@@ -47,7 +47,8 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		/// <param name="info">The <see cref="SerializationInfo"/> that receives the serialized object data about the object.</param>
 		/// <param name="context">The <see cref="StreamingContext"/> that contains contextual information about the source or destination.</param>
-		protected VersionNotSupportedException(SerializationInfo info, StreamingContext context) : base(info, context)
+		protected VersionNotSupportedException(SerializationInfo info, StreamingContext context) :
+			base(info, context)
 		{
 			Type = (Type)info.GetValue("Type", typeof(Type));
 			RequestedVersion = info.GetUInt32("RequestedVersion");
@@ -79,7 +80,7 @@ namespace GriffinPlus.Lib.Serialization
 		public uint RequestedVersion { get; }
 
 		/// <summary>
-		/// Gets the maximum serializer version that is supported for the type specified in the 'Type' property.
+		/// Gets the maximum serializer version that is supported for the type specified in the <see cref="Type"/> property.
 		/// </summary>
 		public uint MaxVersion { get; }
 	}

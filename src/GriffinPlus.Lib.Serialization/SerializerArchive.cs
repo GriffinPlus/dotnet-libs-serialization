@@ -19,9 +19,19 @@ namespace GriffinPlus.Lib.Serialization
 	/// </summary>
 	public class SerializerArchive
 	{
+		#region Constants
+
+		/// <summary>
+		/// Maximum buffer size when resizing <see cref="Serializer.TempBuffer_BigBuffer"/> for reading/writing
+		/// streams and unmanaged buffers.
+		/// </summary>
+		internal const int TempBufferMaxSize = 256 * 1024;
+
+		#endregion
+
 		#region Class Variables
 
-		private static readonly LogWriter sLog = LogWriter.Get(typeof(SerializerArchive));
+		private static readonly LogWriter sLog = LogWriter.Get<SerializerArchive>();
 
 		#endregion
 
@@ -29,9 +39,6 @@ namespace GriffinPlus.Lib.Serialization
 
 		private readonly Serializer              mSerializer;
 		private readonly Stream                  mStream;
-		private readonly Type                    mType;
-		private readonly uint                    mVersion;
-		private readonly object                  mContext;
 		private          SerializerArchiveStream mArchiveStream;
 
 		#endregion
@@ -55,9 +62,9 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			mSerializer = serializer;
 			mStream = stream;
-			mType = type;
-			mVersion = version;
-			mContext = context;
+			DataType = type;
+			Version = version;
+			Context = context;
 		}
 
 		#endregion
@@ -67,21 +74,21 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Gets the version of the data in the archive.
 		/// </summary>
-		public uint Version => mVersion;
+		public uint Version { get; }
 
 		/// <summary>
 		/// Gets the type of the struct/class the archive contains data from.
 		/// </summary>
-		public Type DataType => mType;
+		public Type DataType { get; }
 
 		/// <summary>
 		/// User-defined context object.
 		/// </summary>
 		/// <remarks>
-		/// If you do use the context object, you must consider the case that the context object may be null, even if you are sure
+		/// If you use the context object, you must consider the case that the context object may be <c>null</c>, even if you are sure
 		/// that you always specify a valid context object. This is necessary to enable the serializer to skip unknown types properly.
 		/// </remarks>
-		public object Context => mContext;
+		public object Context { get; }
 
 		#endregion
 
@@ -90,7 +97,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Gets the type the current archive contains data from.
 		/// </summary>
-		internal Type Type => mType;
+		internal Type Type => DataType;
 
 		#endregion
 
@@ -318,8 +325,8 @@ namespace GriffinPlus.Lib.Serialization
 
 			if (!obj.GetType().IsEnum)
 			{
-				StackTrace trace = new StackTrace();
-				string error = string.Format("Unexpected payload type during deserialization. Stack Trace:\n{0}", trace);
+				var trace = new StackTrace();
+				string error = $"Unexpected payload type during deserialization. Stack Trace:\n{trace}";
 				sLog.Write(LogLevel.Error, error);
 				throw new SerializationException(error);
 			}
@@ -333,15 +340,15 @@ namespace GriffinPlus.Lib.Serialization
 		/// <typeparam name="T">Enumeration type to read.</typeparam>
 		/// <returns>The read value.</returns>
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
-		public T ReadEnum<T>()
+		public T ReadEnum<T>() where T : Enum
 		{
 			CloseArchiveStream();
 			object obj = mSerializer.InnerDeserialize(mStream, null);
 
 			if (obj == null || obj.GetType() != typeof(T))
 			{
-				StackTrace trace = new StackTrace();
-				string error = string.Format("Unexpected payload type during deserialization. Stack Trace:\n{0}", trace);
+				var trace = new StackTrace();
+				string error = $"Unexpected payload type during deserialization. Stack Trace:\n{trace}";
 				sLog.Write(LogLevel.Error, error);
 				throw new SerializationException(error);
 			}
@@ -605,7 +612,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Archive does not contain an archive for the specified class.</exception>
 		public SerializerArchive PrepareBaseArchive(Type type)
 		{
-			return PrepareBaseArchive(type, mContext);
+			return PrepareBaseArchive(type, Context);
 		}
 
 		/// <summary>
@@ -630,7 +637,7 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				// version of the archive that is about to be deserialized is greater than
 				// the version the internal object serializer supports
-				string error = string.Format("Deserializing type '{0}' failed due to a version conflict (got version: {1}, max. supported version: {2}).", type.FullName, deserializedVersion, currentVersion);
+				string error = $"Deserializing type '{type.FullName}' failed due to a version conflict (got version: {deserializedVersion}, max. supported version: {currentVersion}).";
 				sLog.Write(LogLevel.Error, error);
 				throw new SerializationException(error);
 			}
@@ -640,7 +647,7 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Openes a base archive and calls the serializer of the specified type (for base class serialization).
+		/// Opens a base archive and calls the serializer of the specified type (for base class serialization).
 		/// </summary>
 		/// <param name="obj">Object to serialize.</param>
 		/// <param name="type">Type of the base class to serialize.</param>
@@ -652,63 +659,53 @@ namespace GriffinPlus.Lib.Serialization
 
 			// ensure the specified type is the type of the specified object or the type of one of its base classes
 			if (obj.GetType().IsAssignableFrom(type))
-			{
-				throw new ArgumentException("Specified type is neither the type of the specified object nor the type of one of its base classes.", "obj,type");
-			}
+				throw new ArgumentException("Specified type is neither the type of the specified object nor the type of one of its base classes.");
 
 			// try external object serializer
-			uint version;
-			IExternalObjectSerializer eos = Serializer.GetExternalObjectSerializer(type, out version);
+			var eos = Serializer.GetExternalObjectSerializer(type, out uint version);
 			if (eos != null)
 			{
 				// consider serializer version overrides...
-				uint versionOverride;
-				if (mSerializer.GetSerializerVersionOverride(type, out versionOverride))
-				{
+				if (mSerializer.GetSerializerVersionOverride(type, out uint versionOverride))
 					version = versionOverride;
-				}
 
 				// write base archive header
-				byte[] buffer = mSerializer.mTempBuffer_Buffer;
+				byte[] buffer = mSerializer.TempBuffer_Buffer;
 				buffer[0] = (byte)PayloadType.BaseArchiveStart;
 				int count = Leb128EncodingHelper.Write(buffer, 1, version);
 				mStream.Write(buffer, 0, 1 + count);
 
 				// serialize object
-				SerializerArchive archive = new SerializerArchive(mSerializer, mStream, type, version, context);
+				var archive = new SerializerArchive(mSerializer, mStream, type, version, context);
 				eos.Serialize(archive, version, obj);
 				archive.Close();
 				return;
 			}
 
 			// try internal object serializer
-			IInternalObjectSerializer ios = Serializer.GetInternalObjectSerializer(obj, type, out version);
+			var ios = Serializer.GetInternalObjectSerializer(obj, type, out version);
 			if (ios != null)
 			{
 				// consider serializer version overrides...
-				uint versionOverride;
-				if (mSerializer.GetSerializerVersionOverride(type, out versionOverride))
-				{
+				if (mSerializer.GetSerializerVersionOverride(type, out uint versionOverride))
 					version = versionOverride;
-				}
 
 				// write base archive header
-				byte[] buffer = mSerializer.mTempBuffer_Buffer;
+				byte[] buffer = mSerializer.TempBuffer_Buffer;
 				buffer[0] = (byte)PayloadType.BaseArchiveStart;
 				int count = Leb128EncodingHelper.Write(buffer, 1, version);
 				mStream.Write(buffer, 0, 1 + count);
 
 				// call the Serialize() method of the base class
-				SerializerArchive archive = new SerializerArchive(mSerializer, mStream, type, version, context);
-				Serializer.IosSerializeDelegate serializeDelegate = Serializer.GetInternalObjectSerializerSerializeCaller(type);
+				var archive = new SerializerArchive(mSerializer, mStream, type, version, context);
+				var serializeDelegate = Serializer.GetInternalObjectSerializerSerializeCaller(type);
 				serializeDelegate(ios, archive, version);
 				archive.Close();
 				return;
 			}
 
 			// specified type is not serializable...
-			string error = string.Format("Specified type ({0}) is not serializable.", type.FullName);
-			throw new ArgumentException(error, nameof(type));
+			throw new ArgumentException($"Specified type ({type.FullName}) is not serializable.", nameof(type));
 		}
 
 		#endregion
@@ -725,14 +722,13 @@ namespace GriffinPlus.Lib.Serialization
 			CloseArchiveStream();
 
 			// write payload type and size of the following buffer
-			mSerializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Buffer;
-			int writtenBytes = Leb128EncodingHelper.Write(mSerializer.mTempBuffer_Buffer, 1, count);
-			mStream.Write(mSerializer.mTempBuffer_Buffer, 0, writtenBytes + 1);
+			mSerializer.TempBuffer_Buffer[0] = (byte)PayloadType.Buffer;
+			int writtenBytes = Leb128EncodingHelper.Write(mSerializer.TempBuffer_Buffer, 1, count);
+			mStream.Write(mSerializer.TempBuffer_Buffer, 0, writtenBytes + 1);
 
-			if (mStream is MemoryBlockStream)
+			if (mStream is MemoryBlockStream mbs)
 			{
-				// the MemoryBlockStream provides a direct way to write to the underlying buffer more effiently
-				MemoryBlockStream mbs = mStream as MemoryBlockStream;
+				// the MemoryBlockStream provides a direct way to write to the underlying buffer more efficiently
 				while (count > 0)
 				{
 					int bytesToCopy = (int)Math.Min(count, int.MaxValue);
@@ -745,12 +741,14 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				// some other stream
 				// => copying data to a temporary buffer is needed before passing it to the stream
-				if (mSerializer.mTempBuffer_BigBuffer.Length < 256 * 1024) mSerializer.mTempBuffer_BigBuffer = new byte[256 * 1024];
+				if (mSerializer.TempBuffer_BigBuffer.Length < TempBufferMaxSize)
+					mSerializer.TempBuffer_BigBuffer = new byte[TempBufferMaxSize];
+
 				while (count > 0)
 				{
-					int bytesToCopy = (int)Math.Min(count, mSerializer.mTempBuffer_BigBuffer.Length);
-					Marshal.Copy(p, mSerializer.mTempBuffer_BigBuffer, 0, bytesToCopy);
-					mStream.Write(mSerializer.mTempBuffer_BigBuffer, 0, bytesToCopy);
+					int bytesToCopy = (int)Math.Min(count, mSerializer.TempBuffer_BigBuffer.Length);
+					Marshal.Copy(p, mSerializer.TempBuffer_BigBuffer, 0, bytesToCopy);
+					mStream.Write(mSerializer.TempBuffer_BigBuffer, 0, bytesToCopy);
 					count -= bytesToCopy;
 					p += bytesToCopy;
 				}
@@ -773,11 +771,10 @@ namespace GriffinPlus.Lib.Serialization
 			// now we know how much bytes will be returned...
 			long bytesReturned = Math.Min(length, count);
 
-			if (mStream is MemoryBlockStream)
+			if (mStream is MemoryBlockStream mbs)
 			{
-				// the MemoryBlockStream provides a direct way to read from the underlying buffer more effiently
+				// the MemoryBlockStream provides a direct way to read from the underlying buffer more efficiently
 				// => let the stream directly copy data into the specified buffer
-				MemoryBlockStream mbs = mStream as MemoryBlockStream;
 				while (count > 0 && length > 0)
 				{
 					int bytesToRead = (int)Math.Min(Math.Min(count, length), int.MaxValue);
@@ -792,16 +789,14 @@ namespace GriffinPlus.Lib.Serialization
 				// some other stream
 				// => copying data to a temporary buffer is needed before passing it to the stream
 
-				if (mSerializer.mTempBuffer_BigBuffer.Length < 256 * 1024)
-				{
-					mSerializer.mTempBuffer_BigBuffer = new byte[256 * 1024];
-				}
+				if (mSerializer.TempBuffer_BigBuffer.Length < TempBufferMaxSize)
+					mSerializer.TempBuffer_BigBuffer = new byte[TempBufferMaxSize];
 
 				while (count > 0 && length > 0)
 				{
-					int bytesToRead = (int)Math.Min(count, mSerializer.mTempBuffer_BigBuffer.Length);
-					if (mStream.Read(mSerializer.mTempBuffer_BigBuffer, 0, bytesToRead) != bytesToRead) throw new SerializationException("Stream ended unexpectedly.");
-					Marshal.Copy(mSerializer.mTempBuffer_BigBuffer, 0, p, bytesToRead);
+					int bytesToRead = (int)Math.Min(count, mSerializer.TempBuffer_BigBuffer.Length);
+					if (mStream.Read(mSerializer.TempBuffer_BigBuffer, 0, bytesToRead) != bytesToRead) throw new SerializationException("Stream ended unexpectedly.");
+					Marshal.Copy(mSerializer.TempBuffer_BigBuffer, 0, p, bytesToRead);
 					length -= bytesToRead;
 					count -= bytesToRead;
 					p += bytesToRead;
@@ -819,11 +814,13 @@ namespace GriffinPlus.Lib.Serialization
 				}
 				else
 				{
-					if (mSerializer.mTempBuffer_BigBuffer.Length < 256 * 1024) mSerializer.mTempBuffer_BigBuffer = new byte[256 * 1024];
+					if (mSerializer.TempBuffer_BigBuffer.Length < TempBufferMaxSize)
+						mSerializer.TempBuffer_BigBuffer = new byte[TempBufferMaxSize];
+
 					while (length > 0)
 					{
-						int bytesToRead = (int)Math.Min(length, mSerializer.mTempBuffer_BigBuffer.Length);
-						if (mStream.Read(mSerializer.mTempBuffer_BigBuffer, 0, bytesToRead) != bytesToRead) throw new SerializationException("Stream ended unexpectedly.");
+						int bytesToRead = (int)Math.Min(length, mSerializer.TempBuffer_BigBuffer.Length);
+						if (mStream.Read(mSerializer.TempBuffer_BigBuffer, 0, bytesToRead) != bytesToRead) throw new SerializationException("Stream ended unexpectedly.");
 						length -= bytesToRead;
 					}
 				}
@@ -854,15 +851,17 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				// stream cannot seek
 				// => read data into memory to make it seekable
-				using (MemoryBlockStream bufferStream = new MemoryBlockStream())
+				using (var bufferStream = new MemoryBlockStream())
 				{
 					// read stream into temporary buffer
-					if (mSerializer.mTempBuffer_BigBuffer.Length < 256 * 1024) mSerializer.mTempBuffer_BigBuffer = new byte[256 * 1024];
+					if (mSerializer.TempBuffer_BigBuffer.Length < TempBufferMaxSize)
+						mSerializer.TempBuffer_BigBuffer = new byte[TempBufferMaxSize];
+
 					while (true)
 					{
-						int bytesRead = s.Read(mSerializer.mTempBuffer_BigBuffer, 0, mSerializer.mTempBuffer_BigBuffer.Length);
+						int bytesRead = s.Read(mSerializer.TempBuffer_BigBuffer, 0, mSerializer.TempBuffer_BigBuffer.Length);
 						if (bytesRead == 0) break;
-						bufferStream.Write(mSerializer.mTempBuffer_BigBuffer, 0, bytesRead);
+						bufferStream.Write(mSerializer.TempBuffer_BigBuffer, 0, bytesRead);
 					}
 
 					bufferStream.Position = 0;
@@ -881,26 +880,27 @@ namespace GriffinPlus.Lib.Serialization
 
 			// write payload type and size of the following buffer
 			long count = stream.Length;
-			mSerializer.mTempBuffer_Buffer[0] = (byte)PayloadType.Buffer;
-			int writtenBytes = Leb128EncodingHelper.Write(mSerializer.mTempBuffer_Buffer, 1, count);
-			mStream.Write(mSerializer.mTempBuffer_Buffer, 0, writtenBytes + 1);
+			mSerializer.TempBuffer_Buffer[0] = (byte)PayloadType.Buffer;
+			int writtenBytes = Leb128EncodingHelper.Write(mSerializer.TempBuffer_Buffer, 1, count);
+			mStream.Write(mSerializer.TempBuffer_Buffer, 0, writtenBytes + 1);
 
-			if (mStream is MemoryBlockStream)
+			if (mStream is MemoryBlockStream mbs)
 			{
-				// the MemoryBlockStream provides a direct way to write to the underlying buffer more effiently
-				MemoryBlockStream mbs = mStream as MemoryBlockStream;
+				// the MemoryBlockStream provides a direct way to write to the underlying buffer more efficiently
 				mbs.Write(stream);
 			}
 			else
 			{
 				// some other stream
 				// => copying data to a temporary buffer is needed before passing it to the stream
-				if (mSerializer.mTempBuffer_BigBuffer.Length < 256 * 1024) mSerializer.mTempBuffer_BigBuffer = new byte[256 * 1024];
+				if (mSerializer.TempBuffer_BigBuffer.Length < TempBufferMaxSize)
+					mSerializer.TempBuffer_BigBuffer = new byte[TempBufferMaxSize];
+
 				while (true)
 				{
-					int bytesRead = stream.Read(mSerializer.mTempBuffer_BigBuffer, 0, mSerializer.mTempBuffer_BigBuffer.Length);
+					int bytesRead = stream.Read(mSerializer.TempBuffer_BigBuffer, 0, mSerializer.TempBuffer_BigBuffer.Length);
 					if (bytesRead == 0) break;
-					mStream.Write(mSerializer.mTempBuffer_BigBuffer, 0, bytesRead);
+					mStream.Write(mSerializer.TempBuffer_BigBuffer, 0, bytesRead);
 				}
 			}
 		}
@@ -934,20 +934,20 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			CloseArchiveStream();
 
-			int readbyte = mStream.ReadByte();
-			if (readbyte < 0) throw new SerializationException("Stream ended unexpectedly.");
-			if (readbyte != (int)type)
+			int readByte = mStream.ReadByte();
+			if (readByte < 0) throw new SerializationException("Stream ended unexpectedly.");
+			if (readByte != (int)type)
 			{
 				Debug.Fail("Unexpected payload type during deserialization.");
-				StackTrace trace = new StackTrace();
-				string error = string.Format("Unexpected payload type during deserialization. Stack Trace:\n{0}", trace);
+				var trace = new StackTrace();
+				string error = $"Unexpected payload type during deserialization. Stack Trace:\n{trace}";
 				sLog.Write(LogLevel.Error, error);
 				throw new SerializationException(error);
 			}
 		}
 
 		/// <summary>
-		/// Checks whether the specfied object is of the specified type and throws a SerializationException
+		/// Checks whether the specified object is of the specified type and throws a <see cref="SerializationException"/>
 		/// if the type of the specified object does not match the specified type.
 		/// </summary>
 		/// <param name="obj">Object to check.</param>
@@ -959,8 +959,8 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				if (!type.IsValueType) return; // null is valid for reference types
 				Debug.Fail("Unexpected type during deserialization.");
-				StackTrace trace = new StackTrace();
-				string error = string.Format("Unexpected type during deserialization (expected: '{0}', got: null). Stack Trace:\n{1}", type.FullName, trace);
+				var trace = new StackTrace();
+				string error = $"Unexpected type during deserialization (expected: '{type.FullName}', got: null). Stack Trace:\n{trace}";
 				sLog.Write(LogLevel.Error, error);
 				throw new SerializationException(error);
 			}
@@ -968,8 +968,8 @@ namespace GriffinPlus.Lib.Serialization
 			if (!type.IsInstanceOfType(obj))
 			{
 				Debug.Fail("Unexpected type during deserialization.");
-				StackTrace trace = new StackTrace();
-				string error = string.Format("Unexpected type during deserialization (expected: '{0}', got: '{1}'). Stack Trace:\n{2}", type.FullName, obj.GetType().FullName, trace);
+				var trace = new StackTrace();
+				string error = $"Unexpected type during deserialization (expected: '{type.FullName}', got: '{obj.GetType().FullName}'). Stack Trace:\n{trace}";
 				sLog.Write(LogLevel.Error, error);
 				throw new SerializationException(error);
 			}
@@ -993,7 +993,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					// stream does not support seeking
 					// => read and discard bytes to skip
-					byte[] buffer = mSerializer.mTempBuffer_BigBuffer;
+					byte[] buffer = mSerializer.TempBuffer_BigBuffer;
 					while (bytesToSkip > 0)
 					{
 						int bytesToRead = (int)Math.Min(bytesToSkip, int.MaxValue);

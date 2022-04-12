@@ -12,12 +12,9 @@ namespace GriffinPlus.Lib.Serialization
 	/// Attribute attached to an external object serializer class telling the serializer to use the annotated class
 	/// for serializing/deserializing the specified type.
 	/// </summary>
-	[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+	[AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 	public class ExternalObjectSerializerAttribute : Attribute
 	{
-		private readonly Type mTypeToSerialize;
-		private readonly uint mVersion;
-
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ExternalObjectSerializerAttribute"/> class.
 		/// </summary>
@@ -27,19 +24,19 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="version">Current version of the annotated external object serializer.</param>
 		public ExternalObjectSerializerAttribute(Type typeToSerialize, uint version)
 		{
-			mTypeToSerialize = typeToSerialize;
-			mVersion = version;
+			TypeToSerialize = typeToSerialize;
+			Version = version;
 		}
 
 		/// <summary>
 		/// Gets the class/struct that should be serialized using the annotated external object serializer class.
 		/// </summary>
-		public Type TypeToSerialize => mTypeToSerialize;
+		public Type TypeToSerialize { get; }
 
 		/// <summary>
 		/// Gets the current version of the external object serializer.
 		/// </summary>
-		public uint Version => mVersion;
+		public uint Version { get; }
 	}
 
 }

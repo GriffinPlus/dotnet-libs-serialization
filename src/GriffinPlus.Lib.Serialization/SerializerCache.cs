@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -28,9 +29,7 @@ namespace GriffinPlus.Lib.Serialization
 			private Guid   mGuid;
 			private string mPath;
 
-			public AssemblyInfo()
-			{
-			}
+			public AssemblyInfo() { }
 
 			public AssemblyInfo(Guid guid, string path)
 			{
@@ -101,9 +100,7 @@ namespace GriffinPlus.Lib.Serialization
 			private string mSerializeeFullTypeName;
 			private Guid   mSerializeeAssemblyGuid;
 
-			public ExternalObjectSerializerInfo()
-			{
-			}
+			public ExternalObjectSerializerInfo() { }
 
 			public ExternalObjectSerializerInfo(
 				string serializerFullTypeName,
@@ -198,7 +195,7 @@ namespace GriffinPlus.Lib.Serialization
 		#region Initialization
 
 		/// <summary>
-		/// Initializes a new instance of the SerializerCache class.
+		/// Initializes a new instance of the <see cref="SerializerCache"/> class.
 		/// </summary>
 		private SerializerCache()
 		{
@@ -218,7 +215,7 @@ namespace GriffinPlus.Lib.Serialization
 		#region Singleton Property
 
 		/// <summary>
-		/// Gets the singleton instance of the SerializerCache class.
+		/// Gets the singleton instance of the <see cref="SerializerCache"/> class.
 		/// </summary>
 		public static SerializerCache Instance
 		{
@@ -246,7 +243,9 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Checks whether the cache contains data.
 		/// </summary>
-		/// <returns>true, if the cache contains data, otherwise false.</returns>
+		/// <returns>
+		/// <c>true</c>if the cache contains data; otherwise <c>false</c>.
+		/// </returns>
 		public bool ContainsData()
 		{
 			return mTypeToExternalObjectSerializerInfo.Count > 0 || mTypeToInternalObjectSerializerInfo.Count > 0;
@@ -260,14 +259,15 @@ namespace GriffinPlus.Lib.Serialization
 		/// Loads an assembly by its full name.
 		/// </summary>
 		/// <param name="name">Full name of the assembly.</param>
-		/// <returns>The loaded assembly; null, if the assembly could not be loaded.</returns>
+		/// <returns>
+		/// The loaded assembly;
+		/// <c>null</c>, if the assembly could not be loaded.
+		/// </returns>
 		public Assembly LoadAssemblyByFullName(string name)
 		{
-			Assembly assembly = Assembly.Load(name);
+			var assembly = Assembly.Load(name);
 			if (assembly != null)
-			{
 				return assembly;
-			}
 
 			/*
 			string directory = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).ToLower();
@@ -364,6 +364,7 @@ namespace GriffinPlus.Lib.Serialization
 					}
 					catch (Exception)
 					{
+						// swallow...
 					}
 				}
 			}
@@ -379,6 +380,7 @@ namespace GriffinPlus.Lib.Serialization
 					}
 					catch (Exception)
 					{
+						// swallow...
 					}
 				}
 			}
@@ -391,7 +393,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="path">Path of the assembly to scan.</param>
 		private void ScanAssembly(string path)
 		{
-			Assembly assembly = Assembly.LoadFrom(path);
+			var assembly = Assembly.LoadFrom(path);
 			AddExternalObjectSerializers(assembly);
 			AddInternalObjectSerializers(assembly);
 			AddEnumerations(assembly);
@@ -413,7 +415,7 @@ namespace GriffinPlus.Lib.Serialization
 				types = ex.Types;
 			}
 
-			foreach (Type type in types)
+			foreach (var type in types)
 			{
 				if (type == null)
 					continue;
@@ -438,13 +440,21 @@ namespace GriffinPlus.Lib.Serialization
 						if (!attributeOk)
 						{
 							// attribute is missing
-							sLog.Write(LogLevel.Error, "Class '{0}' seems to be an external serializer class, but it is not annotated with the '{1}' attribute.", type.FullName, typeof(ExternalObjectSerializerAttribute).FullName);
+							sLog.Write(
+								LogLevel.Error,
+								"Class '{0}' seems to be an external serializer class, but it is not annotated with the '{1}' attribute.",
+								type.FullName,
+								typeof(ExternalObjectSerializerAttribute).FullName);
 						}
 
 						if (!interfaceOk)
 						{
 							// interface is missing
-							sLog.Write(LogLevel.Error, "Class '{0}' seems to be an external serializer class, but does not implement the '{1}' interface.", type.FullName, typeof(IExternalObjectSerializer).FullName);
+							sLog.Write(
+								LogLevel.Error,
+								"Class '{0}' seems to be an external serializer class, but does not implement the '{1}' interface.",
+								type.FullName,
+								typeof(IExternalObjectSerializer).FullName);
 						}
 					}
 				}
@@ -470,7 +480,7 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			// check type
-			foreach (Type type in types)
+			foreach (var type in types)
 			{
 				if (type == null)
 					continue;
@@ -482,7 +492,7 @@ namespace GriffinPlus.Lib.Serialization
 					bool iosAttributeOk = iosAttributes.Length > 0;
 					bool interfaceOk = typeof(IInternalObjectSerializer).IsAssignableFrom(type);
 					bool constructorOk = type.GetConstructor(BindingFlags.ExactBinding | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, Type.DefaultBinder, sConstructorArgumentTypes, null) != null;
-					MethodInfo serializeMethodInfo = type.GetMethod("Serialize", new[] { typeof(SerializerArchive), typeof(uint) });
+					var serializeMethodInfo = type.GetMethod("Serialize", new[] { typeof(SerializerArchive), typeof(uint) });
 					bool virtualSerializeMethod = serializeMethodInfo != null && serializeMethodInfo.IsVirtual && !serializeMethodInfo.IsFinal;
 
 					if (iosAttributeOk && interfaceOk && constructorOk && !virtualSerializeMethod)
@@ -541,15 +551,13 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			// check type
-			foreach (Type type in types)
+			foreach (var type in types)
 			{
 				if (type == null)
 					continue;
 
 				if (type.IsEnum)
-				{
 					SetEnumeration(type);
-				}
 			}
 		}
 
@@ -566,17 +574,17 @@ namespace GriffinPlus.Lib.Serialization
 			if (mTypeToInternalObjectSerializerInfo.Count > 0)
 			{
 				sLog.Write(level, "Known Internal Object Serializers:");
-				foreach (KeyValuePair<Type, InternalObjectSerializerInfo> kvp in mTypeToInternalObjectSerializerInfo)
+				foreach (var kvp in mTypeToInternalObjectSerializerInfo)
 				{
 					if (kvp.Value.AssemblyGuids.Count > 1)
 					{
-						StringBuilder builder = new StringBuilder();
+						var builder = new StringBuilder();
 						builder.AppendFormat("-> {0}", kvp.Key.FullName);
 						builder.AppendLine();
 
 						for (int i = 0; i < kvp.Value.AssemblyGuids.Count; i++)
 						{
-							AssemblyInfo ai = mAssemblyGuidToAssemblyInfo[kvp.Value.AssemblyGuids[i]];
+							var ai = mAssemblyGuidToAssemblyInfo[kvp.Value.AssemblyGuids[i]];
 							builder.AppendFormat("   -> {0}", ai.Path);
 							builder.AppendLine();
 						}
@@ -585,7 +593,7 @@ namespace GriffinPlus.Lib.Serialization
 					}
 					else
 					{
-						AssemblyInfo ai = mAssemblyGuidToAssemblyInfo[kvp.Value.AssemblyGuids[0]];
+						var ai = mAssemblyGuidToAssemblyInfo[kvp.Value.AssemblyGuids[0]];
 						sLog.Write(level, "-> {0} ({1})", kvp.Key.FullName, ai.Path);
 					}
 				}
@@ -599,12 +607,12 @@ namespace GriffinPlus.Lib.Serialization
 			if (mTypeToExternalObjectSerializerInfo.Count > 0)
 			{
 				sLog.Write(level, "Known External Object Serializers:");
-				foreach (KeyValuePair<Type, List<ExternalObjectSerializerInfo>> kvp in mTypeToExternalObjectSerializerInfo)
+				foreach (var kvp in mTypeToExternalObjectSerializerInfo)
 				{
-					foreach (ExternalObjectSerializerInfo eosi in kvp.Value)
+					foreach (var eosi in kvp.Value)
 					{
-						AssemblyInfo ai1 = mAssemblyGuidToAssemblyInfo[eosi.SerializerAssemblyGuid];
-						AssemblyInfo ai2 = mAssemblyGuidToAssemblyInfo[eosi.SerializeeAssemblyGuid];
+						var ai1 = mAssemblyGuidToAssemblyInfo[eosi.SerializerAssemblyGuid];
+						var ai2 = mAssemblyGuidToAssemblyInfo[eosi.SerializeeAssemblyGuid];
 						sLog.Write(level, "-> {0} ({1}) for type {2} ({3})", eosi.SerializerFullTypeName, ai1.Path, eosi.SerializeeFullTypeName, ai2.Path);
 					}
 				}
@@ -624,11 +632,13 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		/// <param name="type">Type to check.</param>
 		/// <param name="version">Max. supported serializer version.</param>
-		/// <returns>true, if the specified type has an internal object serializer; otherwise false.</returns>
+		/// <returns>
+		/// <c>true</c>, if the specified type has an internal object serializer;
+		/// otherwise <c>false</c>.
+		/// </returns>
 		public bool HasInternalObjectSerializer(Type type, out uint version)
 		{
-			InternalObjectSerializerInfo info;
-			if (mTypeToInternalObjectSerializerInfo.TryGetValue(type, out info))
+			if (mTypeToInternalObjectSerializerInfo.TryGetValue(type, out var info))
 			{
 				version = info.SerializerVersion;
 				return true;
@@ -636,7 +646,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			if (type.IsGenericType)
 			{
-				Type genericTypeDefinition = type.GetGenericTypeDefinition();
+				var genericTypeDefinition = type.GetGenericTypeDefinition();
 				if (mTypeToInternalObjectSerializerInfo.TryGetValue(genericTypeDefinition, out info))
 				{
 					version = info.SerializerVersion;
@@ -664,8 +674,7 @@ namespace GriffinPlus.Lib.Serialization
 			// get the assembly information object, if the assembly is already known
 			// or create a new information object for the assembly
 			// -----------------------------------------------------------------------------------------------------------
-			AssemblyInfo assemblyInfo;
-			if (!mAssemblyPathToAssemblyInfo.TryGetValue(assemblyPath, out assemblyInfo))
+			if (!mAssemblyPathToAssemblyInfo.TryGetValue(assemblyPath, out var assemblyInfo))
 			{
 				assemblyInfo = new AssemblyInfo(Guid.NewGuid(), assemblyPath);
 				mAssemblyPathToAssemblyInfo.Add(assemblyInfo.Path, assemblyInfo);
@@ -674,17 +683,16 @@ namespace GriffinPlus.Lib.Serialization
 
 			// store information about the internal object serializer type (same as the type to serialize)
 			// -----------------------------------------------------------------------------------------------------------
-			InternalObjectSerializerInfo infos;
-			if (!mTypeToInternalObjectSerializerInfo.TryGetValue(type, out infos))
+			if (!mTypeToInternalObjectSerializerInfo.TryGetValue(type, out var infos))
 			{
-				object[] attributes = type.GetCustomAttributes(typeof(InternalObjectSerializerAttribute), false);
-				InternalObjectSerializerAttribute versionAttribute = attributes[0] as InternalObjectSerializerAttribute;
+				var attributes = type.GetCustomAttributes<InternalObjectSerializerAttribute>(false);
+				var versionAttribute = attributes.First();
 				uint version = versionAttribute.Version;
 				infos = new InternalObjectSerializerInfo(type.FullName, new List<Guid>(), version);
 				mTypeToInternalObjectSerializerInfo.Add(type, infos);
 			}
 
-			if (infos.AssemblyGuids.Find(other => { return other == assemblyInfo.Guid; }) == default(Guid))
+			if (infos.AssemblyGuids.Find(other => other == assemblyInfo.Guid) == default)
 			{
 				infos.AssemblyGuids.Add(assemblyInfo.Guid);
 			}
@@ -757,33 +765,23 @@ namespace GriffinPlus.Lib.Serialization
 			// get the assembly information object, if the assembly is already known
 			// or create a new information object for the assembly
 			// -----------------------------------------------------------------------------------------------------------
-			AssemblyInfo assemblyInfo;
-			if (!mAssemblyPathToAssemblyInfo.TryGetValue(assemblyPath, out assemblyInfo))
+			if (!mAssemblyPathToAssemblyInfo.TryGetValue(assemblyPath, out var assemblyInfo))
 			{
-				try
-				{
-					assemblyInfo = new AssemblyInfo(Guid.NewGuid(), assemblyPath);
-					mAssemblyPathToAssemblyInfo.Add(assemblyInfo.Path, assemblyInfo);
-					mAssemblyGuidToAssemblyInfo.Add(assemblyInfo.Guid, assemblyInfo);
-				}
-				catch (Exception ex)
-				{
-					sLog.Write(LogLevel.Error, "Calculating file hash code failed ({0}). External object serializer '{1}' will be ignored...", ex.Message);
-					return;
-				}
+				assemblyInfo = new AssemblyInfo(Guid.NewGuid(), assemblyPath);
+				mAssemblyPathToAssemblyInfo.Add(assemblyInfo.Path, assemblyInfo);
+				mAssemblyGuidToAssemblyInfo.Add(assemblyInfo.Guid, assemblyInfo);
 			}
 
 			// store information about the enumeration type
 			// -----------------------------------------------------------------------------------------------------------
 
-			EnumerationInfo infos;
-			if (!mEnumTypeToAssemblyInfo.TryGetValue(type, out infos))
+			if (!mEnumTypeToAssemblyInfo.TryGetValue(type, out var infos))
 			{
 				infos = new EnumerationInfo(type.FullName, new List<Guid>());
 				mEnumTypeToAssemblyInfo.Add(type, infos);
 			}
 
-			if (infos.AssemblyGuids.Find(other => { return other == assemblyInfo.Guid; }) == default(Guid))
+			if (infos.AssemblyGuids.Find(other => other == assemblyInfo.Guid) == default)
 			{
 				infos.AssemblyGuids.Add(assemblyInfo.Guid);
 			}

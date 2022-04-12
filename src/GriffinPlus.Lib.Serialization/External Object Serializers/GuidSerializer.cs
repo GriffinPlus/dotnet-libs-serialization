@@ -25,7 +25,7 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			if (version == 1)
 			{
-				Guid guid = (Guid)obj;
+				var guid = (Guid)obj;
 				archive.Write(guid.ToUuidByteArray());
 			}
 			else

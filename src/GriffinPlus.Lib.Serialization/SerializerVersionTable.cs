@@ -35,11 +35,14 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Trys to get a mapping.
+		/// Tries to get a mapping.
 		/// </summary>
 		/// <param name="type">Type to look for.</param>
 		/// <param name="version">Receives the requested serializer version for the specified type.</param>
-		/// <returns>true if the type has a requested serializer version assigned.</returns>
+		/// <returns>
+		/// <c>true</c> if the type has a requested serializer version assigned;
+		/// otherwise <c>false</c>.
+		/// </returns>
 		public bool TryGet(Type type, out uint version)
 		{
 			return mTable.TryGetValue(type, out version);
