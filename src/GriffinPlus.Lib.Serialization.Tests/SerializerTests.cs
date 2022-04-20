@@ -508,8 +508,6 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[Fact]
 		public void SerializeAndDeserialize_ObjectOfClassUsingExternalObjectSerializer()
 		{
-			Serializer.RegisterExternalObjectSerializer(typeof(TestClassWithGenericObjectSerializer_ExternalObjectSerializer));
-
 			var obj = new TestClassWithExternalObjectSerializer();
 			var copy = SerializeAndDeserializeObject(obj) as TestClassWithExternalObjectSerializer;
 			Assert.Equal(obj, copy);

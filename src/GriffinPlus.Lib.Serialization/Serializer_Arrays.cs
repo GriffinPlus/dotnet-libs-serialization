@@ -287,7 +287,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="context">Context object to pass to an internal/external object serializer class.</param>
 		/// <returns>The read array.</returns>
 		/// <exception cref="SerializationException">Stream ended unexpectedly.</exception>
-		private object ReadArrayOfObjects(Stream stream, object context)
+		private Array ReadArrayOfObjects(Stream stream, object context)
 		{
 			// assembly and type metadata has been read already
 
@@ -705,7 +705,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="context">Context object to pass to an internal/external object serializer class.</param>
 		/// <returns>The read array.</returns>
 		/// <exception cref="SerializationException">Stream ended unexpectedly.</exception>
-		private object ReadMultidimensionalArrayOfObjects(Stream stream, object context)
+		private Array ReadMultidimensionalArrayOfObjects(Stream stream, object context)
 		{
 			var type = mCurrentDeserializedType.Type;
 

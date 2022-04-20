@@ -29,63 +29,10 @@ namespace GriffinPlus.Lib.Serialization
 	/// </summary>
 	public partial class Serializer
 	{
-		#region Internal Data Types
-
-		private struct TypeItem
-		{
-			public readonly string Name;
-			public readonly Type   Type;
-
-			public static readonly TypeItem Empty = new TypeItem();
-
-			public TypeItem(string name, Type type)
-			{
-				Name = name;
-				Type = type;
-			}
-		}
-
-		private delegate void SerializerDelegate(
-			Serializer serializer,
-			Stream     stream,
-			object     obj,
-			object     context);
-
-		private delegate object DeserializerDelegate(Serializer serializer, Stream stream, object context);
-
-		private delegate object EnumCasterDelegate(long value);
-
-		internal delegate void IosSerializeDelegate(IInternalObjectSerializer ios, SerializerArchive archive, uint version);
-
-		#endregion
-
 		#region Class Variables
 
-		// logging
-		private static readonly LogWriter sLog = LogWriter.Get<Serializer>();
-
-		// initialization
-		private static          bool   sInitializing       = false;
-		private static          bool   sInitialized        = false;
-		private static readonly object sInitializationSync = new object();
-
-		private static readonly object                                         sSync                                  = new object();
-		private static          Dictionary<string, Assembly>                   sAssemblyTable                         = new Dictionary<string, Assembly>();
-		private static readonly object                                         sAssemblyTableLock                     = new object();
-		private static          Dictionary<string, Type>                       sTypeTable                             = new Dictionary<string, Type>();
-		private static readonly object                                         sTypeTableLock                         = new object();
-		private static          Dictionary<Type, byte[]>                       sSerializedTypeSnippetsByType          = new Dictionary<Type, byte[]>();
-		private static readonly object                                         sSerializedTypeSnippetsByTypeLock      = new object();
-		private static          Dictionary<Type, SerializerDelegate>           sSerializers                           = new Dictionary<Type, SerializerDelegate>();
-		private static readonly Dictionary<Type, SerializerDelegate>           sMultidimensionalArraySerializers      = new Dictionary<Type, SerializerDelegate>();
-		private static readonly Dictionary<PayloadType, DeserializerDelegate>  sDeserializers                         = new Dictionary<PayloadType, DeserializerDelegate>();
-		private static          Dictionary<Type, ExternalObjectSerializerInfo> sExternalObjectSerializersBySerializee = new Dictionary<Type, ExternalObjectSerializerInfo>();
-		private static          Dictionary<Type, IosSerializeDelegate>         sIosSerializeCallers                   = new Dictionary<Type, IosSerializeDelegate>();
-		private static          int                                            sIosSerializeCallersId                 = -1;
-		private static          Dictionary<Type, EnumCasterDelegate>           sEnumCasters                           = new Dictionary<Type, EnumCasterDelegate>();
-		private static          int                                            sEnumCasterId                          = -1;
-		private static          SerializerCache                                sCache                                 = null;
-		private static          bool                                           sIsVersionTolerantDefault              = false;
+		private static readonly LogWriter sLog  = LogWriter.Get<Serializer>();
+		private static readonly object    sSync = new object();
 
 		#endregion
 
@@ -109,14 +56,24 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 
-		#region Class Initialization
+		#region Initialization (Scanning for Custom Serializers)
+
+		private static          bool                                           sInitializing                          = false;
+		private static          bool                                           sInitialized                           = false;
+		private static readonly object                                         sInitializationSync                    = new object();
+		private static          bool                                           sIsVersionTolerantDefault              = false;
+		private static          Dictionary<Type, InternalObjectSerializerInfo> sInternalObjectSerializerInfoByType    = new Dictionary<Type, InternalObjectSerializerInfo>();
+		private static          Dictionary<Type, ExternalObjectSerializerInfo> sExternalObjectSerializersBySerializee = new Dictionary<Type, ExternalObjectSerializerInfo>();
+		private static readonly Type[]                                         sConstructorArgumentTypes              = { typeof(SerializerArchive) };
 
 		/// <summary>
 		/// Initializes the serializer, if necessary.
 		/// </summary>
 		/// <param name="isVersionTolerant">
 		/// <c>true</c> to allow resolving assemblies to an assembly with a different version, if necessary;
-		/// <c>false</c> to abort deserialization if the full assembly name does not match.
+		/// <c>false</c> to abort deserialization if the full assembly name does not match.<br/>
+		/// This setting is only relevant if assemblies are strong-name signed. Assemblies without a strong
+		/// name are always resolved with version tolerance.
 		/// </param>
 		public static void Init(bool isVersionTolerant = false)
 		{
@@ -128,10 +85,10 @@ namespace GriffinPlus.Lib.Serialization
 					{
 						sInitializing = true;
 						sIsVersionTolerantDefault = isVersionTolerant;
-						sCache = SerializerCache.Instance;
-						InitSerializers();
-						InitDeserializers();
-						RegisterExternalObjectSerializers();
+						InitBuiltinSerializers();
+						InitBuiltinDeserializers();
+						InitCustomSerializers();
+						PrintToLog(LogLevel.Debug);
 						sInitialized = true;
 						sInitializing = false;
 					}
@@ -144,7 +101,9 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		/// <param name="isVersionTolerant">
 		/// <c>true</c> to allow resolving assemblies to an assembly with a different version, if necessary;
-		/// <c>false</c> to abort deserialization if the full assembly name does not match.
+		/// <c>false</c> to abort deserialization if the full assembly name does not match.<br/>
+		/// This setting is only relevant if assemblies are strong-name signed. Assemblies without a strong
+		/// name are always resolved with version tolerance.
 		/// </param>
 		public static void TriggerInit(bool isVersionTolerant = false)
 		{
@@ -164,7 +123,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Adds serializers for types that are supported out of the box.
 		/// </summary>
-		private static void InitSerializers()
+		private static void InitBuiltinSerializers()
 		{
 			// simple types
 			sSerializers.Add(
@@ -636,7 +595,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Adds deserializers for types that are supported out of the box.
 		/// </summary>
-		private static void InitDeserializers()
+		private static void InitBuiltinDeserializers()
 		{
 			// special types
 			sDeserializers.Add(PayloadType.NullReference, (serializer,     stream, context) => null);
@@ -719,12 +678,245 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Registers external object serializers provided along with the library.
+		/// Adds serializers and deserializers for types that are supported via custom serializers.
 		/// </summary>
-		private static void RegisterExternalObjectSerializers()
+		private static void InitCustomSerializers()
 		{
-			RegisterExternalObjectSerializer(typeof(GuidSerializer));
-			RegisterExternalObjectSerializer(typeof(ListTSerializer));
+			sLog.Write(LogLevel.Debug, "Scanning for custom serializers...");
+
+			string path = AppDomain.CurrentDomain.BaseDirectory;
+
+			// DLL files
+			foreach (string filename in Directory.GetFiles(path, "*.dll", SearchOption.AllDirectories))
+			{
+				try
+				{
+					ScanAssembly(filename);
+				}
+				catch (Exception)
+				{
+					// swallow...
+				}
+			}
+
+			// EXE files
+			foreach (string filename in Directory.GetFiles(path, "*.exe", SearchOption.AllDirectories))
+			{
+				try
+				{
+					ScanAssembly(filename);
+				}
+				catch (Exception)
+				{
+					// swallow...
+				}
+			}
+
+			sLog.Write(LogLevel.Debug, "Completed scanning for custom serializers.");
+		}
+
+		/// <summary>
+		/// Scans the assembly at the specified path.
+		/// </summary>
+		/// <param name="path">Path of the assembly to scan.</param>
+		private static void ScanAssembly(string path)
+		{
+			var assembly = Assembly.LoadFrom(path);
+			Type[] types;
+			try
+			{
+				types = assembly.GetTypes();
+			}
+			catch (ReflectionTypeLoadException ex)
+			{
+				types = ex.Types;
+			}
+
+			foreach (var type in types)
+			{
+				if (type == null)
+					continue;
+
+				TryToAddInternalObjectSerializer(type);
+				TryToAddExternalObjectSerializer(type);
+			}
+		}
+
+		/// <summary>
+		/// Adds the specified type to the list of internal object serializers, if appropriate.
+		/// </summary>
+		/// <param name="type">Type to add to the list of internal object serializers.</param>
+		private static void TryToAddInternalObjectSerializer(Type type)
+		{
+			if (type.IsClass || type.IsValueType && !type.IsPrimitive) // class or struct
+			{
+				// a class
+				var iosAttributes = type.GetCustomAttributes<InternalObjectSerializerAttribute>(false).ToArray();
+				bool iosAttributeOk = iosAttributes.Length > 0;
+				bool interfaceOk = typeof(IInternalObjectSerializer).IsAssignableFrom(type);
+				bool constructorOk = type.GetConstructor(BindingFlags.ExactBinding | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, Type.DefaultBinder, sConstructorArgumentTypes, null) != null;
+				var serializeMethodInfo = type.GetMethod("Serialize", new[] { typeof(SerializerArchive), typeof(uint) });
+				bool virtualSerializeMethod = serializeMethodInfo != null && serializeMethodInfo.IsVirtual && !serializeMethodInfo.IsFinal;
+
+				if (iosAttributeOk && interfaceOk && constructorOk && !virtualSerializeMethod)
+				{
+					// class is annotated with the internal object serializer attribute and implements the appropriate interface
+					// => add a serializer delegate that handles it
+					lock (sSync)
+					{
+						if (!sInternalObjectSerializerInfoByType.TryGetValue(type, out var serializerInfo))
+						{
+							var typeToInternalObjectSerializerInfo = new Dictionary<Type, InternalObjectSerializerInfo>(sInternalObjectSerializerInfoByType)
+							{
+								{ type, new InternalObjectSerializerInfo(type, iosAttributes[0].Version) }
+							};
+							Thread.MemoryBarrier();
+							sInternalObjectSerializerInfoByType = typeToInternalObjectSerializerInfo;
+						}
+					}
+				}
+				else if (iosAttributeOk || interfaceOk) // || constructorOk <-- do not check this, since this will create false alarms for classes taking a SerializerArchive in the constructor
+				{
+					if (!iosAttributeOk)
+					{
+						// attribute is missing
+						sLog.Write(LogLevel.Error, "Class '{0}' seems to be an internal serializer class, but it is not annotated with the '{1}' attribute.", type.FullName, typeof(InternalObjectSerializerAttribute).FullName);
+					}
+
+					if (!interfaceOk)
+					{
+						// interface is missing
+						sLog.Write(LogLevel.Error, "Class '{0}' seems to be an internal serializer class, but it does not implement the '{1}' interface.", type.FullName, typeof(IInternalObjectSerializer).FullName);
+					}
+
+					if (!constructorOk)
+					{
+						// serialization constructor is missing
+						sLog.Write(LogLevel.Error, "Class '{0}' seems to be an internal serializer class, but it lacks a serialization constructor.", type.FullName);
+					}
+
+					if (virtualSerializeMethod)
+					{
+						// 'Serialize' method is virtual
+						sLog.Write(
+							LogLevel.Error,
+							"Class '{0}' seems to be an internal serializer class, but its 'Serialize' method is virtual which will cause problems when serializing derived classes. You should overwrite the 'Serialize' method in derived classes instead.",
+							type.FullName);
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Adds the specified type to the list of external object serializers, if appropriate.
+		/// </summary>
+		/// <param name="type">Type to add to the list of external object serializers.</param>
+		private static void TryToAddExternalObjectSerializer(Type type)
+		{
+			if (type.IsClass)
+			{
+				// a class
+				var attributes = type.GetCustomAttributes<ExternalObjectSerializerAttribute>(false).ToArray();
+				bool attributeOk = attributes.Length > 0;
+				bool interfaceOk = typeof(IExternalObjectSerializer).IsAssignableFrom(type);
+				bool constructorOk = type.GetConstructor(BindingFlags.ExactBinding | BindingFlags.Instance | BindingFlags.Public, Type.DefaultBinder, Type.EmptyTypes, null) != null;
+
+				if (attributeOk && interfaceOk && constructorOk)
+				{
+					// class is annotated with the external object serializer attribute and implements the appropriate interface
+					lock (sSync)
+					{
+						// create an instance of the external object serializer
+						var eos = FastActivator.CreateInstance(type) as IExternalObjectSerializer;
+
+						// add types the external object serializer supports
+						var eosDictCopy = new Dictionary<Type, ExternalObjectSerializerInfo>(sExternalObjectSerializersBySerializee);
+						foreach (var attribute in attributes) eosDictCopy[attribute.TypeToSerialize] = new ExternalObjectSerializerInfo(eos, attribute.Version);
+						Thread.MemoryBarrier();
+						sExternalObjectSerializersBySerializee = eosDictCopy;
+					}
+				}
+				else if (attributeOk || interfaceOk || constructorOk)
+				{
+					if (!attributeOk)
+					{
+						// attribute is missing
+						sLog.Write(
+							LogLevel.Error,
+							"Class '{0}' seems to be an external serializer class, but it is not annotated with the '{1}' attribute.",
+							type.FullName,
+							typeof(ExternalObjectSerializerAttribute).FullName);
+					}
+
+					if (!interfaceOk)
+					{
+						// interface is missing
+						sLog.Write(
+							LogLevel.Error,
+							"Class '{0}' seems to be an external serializer class, but does not implement the '{1}' interface.",
+							type.FullName,
+							typeof(IExternalObjectSerializer).FullName);
+					}
+
+					if (!constructorOk)
+					{
+						// default constructor is missing
+						sLog.Write(
+							LogLevel.Error,
+							"Class '{0}' seems to be an external serializer class, but it does not have a public parameterless constructor.",
+							type.FullName);
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Prints information about internal object serializers and external object serializers to the log.
+		/// </summary>
+		private static void PrintToLog(LogLevel level)
+		{
+			var linesByTypeName = new SortedList<string, string>(StringComparer.Ordinal);
+
+			string ConditionAssemblyPath(Assembly assembly)
+			{
+				string fullPath = Path.GetFullPath(assembly.Location);
+				string basePath = Path.GetFullPath(AppDomain.CurrentDomain.BaseDirectory);
+				if (fullPath.StartsWith(basePath)) return fullPath.Substring(basePath.Length);
+				return fullPath;
+			}
+
+			// internal object serializers
+			foreach (var kvp in sInternalObjectSerializerInfoByType)
+			{
+				Debug.Assert(kvp.Key.FullName != null, "kvp.Key.FullName != null");
+				linesByTypeName.Add(
+					kvp.Key.FullName,
+					$"-> {kvp.Key.FullName}" + Environment.NewLine +
+					$"   o Assembly: {ConditionAssemblyPath(kvp.Key.Assembly)}" + Environment.NewLine +
+					"   o Serializer: Internal Object Serializer" + Environment.NewLine +
+					$"   o Version: {kvp.Value.SerializerVersion}");
+			}
+
+			// external object serializers
+			foreach (var kvp in sExternalObjectSerializersBySerializee)
+			{
+				Debug.Assert(kvp.Key.FullName != null, "kvp.Key.FullName != null");
+				var serializeeType = kvp.Key;
+				var eosType = kvp.Value.Serializer.GetType();
+				uint version = kvp.Value.SerializerVersion;
+				linesByTypeName.Add(
+					kvp.Key.FullName,
+					$"-> {serializeeType.FullName}" + Environment.NewLine +
+					$"   o Assembly: {ConditionAssemblyPath(serializeeType.Assembly)}" + Environment.NewLine +
+					$"   o Serializer: External Object Serializer, {eosType.FullName} ({ConditionAssemblyPath(eosType.Assembly)})" + Environment.NewLine +
+					$"   o Version: {version}");
+			}
+
+			// put everything together and print to the log
+			var builder = new StringBuilder();
+			builder.AppendLine("Types with Custom Serializers:");
+			foreach (var kvp in linesByTypeName) builder.AppendLine(kvp.Value);
+			sLog.Write(level, builder.ToString());
 		}
 
 		#endregion
@@ -775,86 +967,14 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 
-		#region Registering External Object Serializers
+		#region Type Serialization (incl. Version Tolerant Assembly Resolution)
 
-		/// <summary>
-		/// Registers an external object serializer for use with the serializer.
-		/// </summary>
-		/// <param name="type">The external object serializer class.</param>
-		/// <exception cref="ArgumentNullException">The specified type is <c>null</c>.</exception>
-		/// <exception cref="ArgumentException"><paramref name="type"/> is not a valid external object serializer.</exception>
-		/// <remarks>
-		/// This method dynamically creates delegates that handle serialization and deserialization using the specified
-		/// external object serializer.
-		/// </remarks>
-		public static void RegisterExternalObjectSerializer(Type type)
-		{
-			if (type == null) throw new ArgumentNullException(nameof(type));
-			if (!type.IsClass) throw new ArgumentException("An external object serializer must be a class.");
-
-			Init();
-
-			object[] attributes = type.GetCustomAttributes(typeof(ExternalObjectSerializerAttribute), false);
-			bool attributeOk = attributes.Length > 0;
-			bool interfaceOk = typeof(IExternalObjectSerializer).IsAssignableFrom(type);
-
-			if (attributeOk && interfaceOk)
-			{
-				// class is annotated with the external object serializer attribute and implements the appropriate interface
-				lock (sSync)
-				{
-					foreach (ExternalObjectSerializerAttribute attribute in attributes)
-					{
-						// create a copy of the serializer delegate dictionary and add a new serializer for type to register
-						var eos = FastActivator.CreateInstance(type) as IExternalObjectSerializer;
-						var serializer = CreateExternalObjectSerializer(attribute.TypeToSerialize, eos, attribute.Version);
-						var serDictCopy = new Dictionary<Type, SerializerDelegate>(sSerializers)
-						{
-							[attribute.TypeToSerialize] = serializer
-						};
-
-						// create a copy of the dictionary mapping types to serialize to external object serializers
-						var eosDictCopy = new Dictionary<Type, ExternalObjectSerializerInfo>(sExternalObjectSerializersBySerializee)
-						{
-							[attribute.TypeToSerialize] = new ExternalObjectSerializerInfo(eos, attribute.Version)
-						};
-
-						Thread.MemoryBarrier();
-						sSerializers = serDictCopy;
-						sExternalObjectSerializersBySerializee = eosDictCopy;
-					}
-				}
-
-				return;
-			}
-
-			if (!attributeOk)
-			{
-				// attribute is missing
-				sLog.Write(
-					LogLevel.Error,
-					"Class '{0}' seems to be an external serializer class, but it is not annotated with the '{1}' attribute.",
-					type.FullName,
-					typeof(ExternalObjectSerializerAttribute).FullName);
-			}
-
-			if (!interfaceOk)
-			{
-				// interface is missing
-				sLog.Write(
-					LogLevel.Error,
-					"Class '{0}' seems to be an external serializer class, but does not implement the '{1}' interface.",
-					type.FullName,
-					typeof(IExternalObjectSerializer).FullName);
-			}
-
-			throw new ArgumentException(
-				$"The specified type ({type.FullName}) is not annotated with the '{typeof(ExternalObjectSerializerAttribute).FullName}' attribute or does not implement the '{typeof(IExternalObjectSerializer).FullName}' interface.");
-		}
-
-		#endregion
-
-		#region Type Serialization
+		private static          Dictionary<string, Assembly> sAssemblyTable                    = new Dictionary<string, Assembly>(); // fully qualified assembly name => assembly
+		private static readonly object                       sAssemblyTableLock                = new object();                       // lock protecting the assembly table
+		private static          Dictionary<string, Type>     sTypeTable                        = new Dictionary<string, Type>();     // assembly-qualified type name => type
+		private static readonly object                       sTypeTableLock                    = new object();                       // lock protecting the type table
+		private static          Dictionary<Type, byte[]>     sSerializedTypeSnippetsByType     = new Dictionary<Type, byte[]>();     // type => UTF-8 encoded assembly-qualified type name
+		private static readonly object                       sSerializedTypeSnippetsByTypeLock = new object();                       // lock protecting the type snippet table
 
 		/// <summary>
 		/// Serializes metadata about a type.
@@ -1060,6 +1180,186 @@ namespace GriffinPlus.Lib.Serialization
 			}
 		}
 
+		/// <summary>
+		/// Is called to resolve the assembly name read during deserialization to the correct assembly.
+		/// </summary>
+		/// <param name="assemblyName">Name of the assembly to resolve.</param>
+		/// <returns>The resolved assembly.</returns>
+		private Assembly ResolveAssembly(AssemblyName assemblyName)
+		{
+			// ----------------------------------------------------------------------------------------------------------------
+			// check whether the assembly has been resolved before
+			// ----------------------------------------------------------------------------------------------------------------
+			if (sAssemblyTable.TryGetValue(assemblyName.FullName, out var assembly))
+			{
+				if (!mIsVersionTolerant && assembly.FullName != assemblyName.FullName)
+				{
+					throw new SerializationException(
+						"Resolving full name of assembly ({0}) failed. Resolution to assembly ({1}) exists, but the serializer is configured to be version-intolerant.",
+						assemblyName.FullName,
+						assembly.FullName);
+				}
+
+				return assembly;
+			}
+
+			sLog.Write(
+				LogLevel.Debug,
+				"Trying to load assembly by its full name ({0}).",
+				assemblyName.FullName);
+
+			// ----------------------------------------------------------------------------------------------------------------
+			// try to load the assembly by its full name
+			// (searches the application base directory, its private directories and the Global Assembly Cache (GAC) (.NET Framework only))
+			// ----------------------------------------------------------------------------------------------------------------
+			try
+			{
+				assembly = Assembly.Load(assemblyName);
+
+				sLog.Write(
+					LogLevel.Debug,
+					"Loading assembly by its full name ({0}) succeeded.",
+					assemblyName.FullName);
+
+				KeepAssemblyResolution(assemblyName.FullName, assembly);
+				return assembly;
+			}
+			catch (Exception ex)
+			{
+				if (mIsVersionTolerant)
+				{
+					sLog.Write(
+						LogLevel.Debug,
+						"Loading assembly by its full name ({0}) failed. Trying to load assembly allowing a different version.\nException: {1}",
+						assemblyName.FullName,
+						ex);
+				}
+				else
+				{
+					sLog.Write(
+						LogLevel.Error,
+						"Loading assembly by its full name ({0}) failed.\nException: {1}",
+						assemblyName.FullName,
+						ex);
+
+					throw;
+				}
+			}
+
+			// ----------------------------------------------------------------------------------------------------------------
+			// try to load assembly from the application's base directory
+			// (assumes that the file name is the same as the assembly name, ignores version information)
+			// ----------------------------------------------------------------------------------------------------------------
+
+			string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, assemblyName.Name + ".dll");
+
+			sLog.Write(
+				LogLevel.Debug,
+				"Trying to load assembly ({0}) from file ({1}).",
+				assemblyName.Name,
+				path);
+
+			try
+			{
+				assembly = Assembly.LoadFrom(path);
+
+				sLog.Write(
+					LogLevel.Debug,
+					"Loading assembly ({0}) from file ({1}) succeeded.",
+					assemblyName.Name,
+					path);
+
+				KeepAssemblyResolution(assemblyName.FullName, assembly);
+				return assembly;
+			}
+			catch (FileNotFoundException)
+			{
+				// try next...
+			}
+			catch (Exception ex)
+			{
+				sLog.Write(
+					LogLevel.Error,
+					"Loading assembly ({0}) from file ({1}) failed.\nException: {2}",
+					assemblyName.Name,
+					path,
+					ex);
+
+				throw;
+			}
+
+			// ----------------------------------------------------------------------------------------------------------------
+			// try to load assembly from the private bin path
+			// (assumes that the file name is the same as the assembly name, ignores version information)
+			// ----------------------------------------------------------------------------------------------------------------
+
+			if (!string.IsNullOrEmpty(AppDomain.CurrentDomain.RelativeSearchPath))
+			{
+				path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, AppDomain.CurrentDomain.RelativeSearchPath, assemblyName.Name);
+
+				sLog.Write(
+					LogLevel.Debug,
+					"Trying to load assembly ({0}) from ({1}).",
+					assemblyName.Name,
+					path);
+
+				try
+				{
+					assembly = Assembly.LoadFrom(path);
+
+					sLog.Write(
+						LogLevel.Debug,
+						"Loading assembly ({0}) from file ({1}) succeeded.",
+						assemblyName.Name,
+						path);
+
+					KeepAssemblyResolution(assemblyName.FullName, assembly);
+					return assembly;
+				}
+				catch (FileNotFoundException)
+				{
+					// try next...
+				}
+				catch (Exception ex)
+				{
+					sLog.Write(
+						LogLevel.Error,
+						"Loading assembly ({0}) from file ({1}) failed.\nException: {2}",
+						assemblyName.FullName,
+						path,
+						ex);
+
+					throw;
+				}
+			}
+
+			sLog.Write(
+				LogLevel.Error,
+				"Resolving name of assembly ({0}) failed. File could not be found.",
+				assemblyName.FullName,
+				path);
+
+			return null;
+		}
+
+		/// <summary>
+		/// Keeps the result of an assembly resolution in the assembly cache.
+		/// </summary>
+		/// <param name="assemblyFullName">Full name of the assembly (as read during deserialization).</param>
+		/// <param name="assembly">Assembly to use, if the specified assembly name is encountered.</param>
+		private static void KeepAssemblyResolution(string assemblyFullName, Assembly assembly)
+		{
+			lock (sAssemblyTableLock)
+			{
+				if (!sAssemblyTable.ContainsKey(assemblyFullName))
+				{
+					var copy = new Dictionary<string, Assembly>(sAssemblyTable) { { assemblyFullName, assembly } };
+					Thread.MemoryBarrier();
+					sAssemblyTable = copy;
+				}
+			}
+		}
+
 		#endregion
 
 		#region Resetting
@@ -1147,6 +1447,10 @@ namespace GriffinPlus.Lib.Serialization
 
 		#region Serialization
 
+		private static          Dictionary<Type, SerializerDelegate>   sSerializers                      = new Dictionary<Type, SerializerDelegate>();
+		private static readonly Dictionary<Type, SerializerDelegate>   sMultidimensionalArraySerializers = new Dictionary<Type, SerializerDelegate>();
+		private static          Dictionary<Type, IosSerializeDelegate> sIosSerializeCallers              = new Dictionary<Type, IosSerializeDelegate>();
+
 		/// <summary>
 		/// Serializes an object to a stream.
 		/// </summary>
@@ -1197,17 +1501,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					// an enumeration value
 					// => create a serializer delegate that handles it
-					lock (sSync)
-					{
-						if (!sSerializers.TryGetValue(type, out serializer))
-						{
-							serializer = GetEnumSerializer(type);
-							var copy = new Dictionary<Type, SerializerDelegate>(sSerializers) { [type] = serializer };
-							Thread.MemoryBarrier();
-							sSerializers = copy;
-						}
-					}
-
+					serializer = AddSerializerForType(type, () => GetEnumSerializer(type));
 					serializer(this, stream, obj, context);
 					return;
 				}
@@ -1261,56 +1555,26 @@ namespace GriffinPlus.Lib.Serialization
 					mSerializedObjectIdTable.Add(obj, mNextSerializedObjectId++);
 					return;
 				}
+			}
 
-				if (type.IsGenericType)
-				{
-					var genericTypeDefinition = type.GetGenericTypeDefinition();
-					if (sSerializers.TryGetValue(genericTypeDefinition, out serializer))
-					{
-						var eosi = sExternalObjectSerializersBySerializee[genericTypeDefinition];
-						serializer = CreateExternalObjectSerializer(type, eosi.Serializer, eosi.Version);
-
-						lock (sSync)
-						{
-							var serDictCopy = new Dictionary<Type, SerializerDelegate>(sSerializers)
-							{
-								[type] = serializer
-							};
-
-							// create a copy of the dictionary mapping types to serialize to external object serializers
-							var eosDictCopy = new Dictionary<Type, ExternalObjectSerializerInfo>(sExternalObjectSerializersBySerializee)
-							{
-								[type] = new ExternalObjectSerializerInfo(eosi.Serializer, eosi.Version)
-							};
-
-							Thread.MemoryBarrier();
-							sSerializers = serDictCopy;
-							sExternalObjectSerializersBySerializee = eosDictCopy;
-						}
-
-						serializer(this, stream, obj, context);
-						return;
-					}
-				}
+			// try to use an external object serializer
+			var eos = GetExternalObjectSerializer(type, out _);
+			if (eos != null)
+			{
+				// the type has an external object serializer
+				// => create a serializer delegate that handles it and store it to speed up the serializer lookup next time
+				serializer = AddSerializerForType(type, () => CreateExternalObjectSerializer(type, eos));
+				serializer(this, stream, obj, context);
+				return;
 			}
 
 			// try to use an internal object serializer
-			var ios = GetInternalObjectSerializer(obj, out uint currentInternalSerializerVersion);
+			var ios = GetInternalObjectSerializer(obj, out _);
 			if (ios != null)
 			{
-				// a struct that has an internal object serializer
-				// => create a serializer delegate that handles it
-				lock (sSync)
-				{
-					if (!sSerializers.TryGetValue(type, out serializer))
-					{
-						serializer = CreateInternalObjectSerializer(type);
-						var copy = new Dictionary<Type, SerializerDelegate>(sSerializers) { [type] = serializer };
-						Thread.MemoryBarrier();
-						sSerializers = copy;
-					}
-				}
-
+				// the type has an internal object serializer
+				// => create a serializer delegate that handles it and store it to speed up the serializer lookup for the next time
+				serializer = AddSerializerForType(type, () => CreateInternalObjectSerializer(type));
 				serializer(this, stream, obj, context);
 				return;
 			}
@@ -1318,10 +1582,6 @@ namespace GriffinPlus.Lib.Serialization
 			// object cannot be serialized
 			throw new SerializationException($"Type '{obj.GetType().FullName}' cannot be serialized, consider implementing an internal or external object serializer for this type.");
 		}
-
-		#endregion
-
-		#region Serialization of Type Objects
 
 		/// <summary>
 		/// Serializes a type object.
@@ -1341,10 +1601,6 @@ namespace GriffinPlus.Lib.Serialization
 			WriteDecomposedType(stream, type.Decompose());
 		}
 
-		#endregion
-
-		#region Serialization of Object Ids
-
 		/// <summary>
 		/// Serializes the id of an object that was already serialized.
 		/// </summary>
@@ -1357,9 +1613,298 @@ namespace GriffinPlus.Lib.Serialization
 			stream.Write(TempBuffer_Buffer, 0, 1 + count);
 		}
 
+		/// <summary>
+		/// Adds a serializer for the specified type.
+		/// </summary>
+		/// <param name="type">Type to add a serializer for.</param>
+		/// <param name="serializerFactory">Factory callback creating the serializer to add.</param>
+		/// <returns>The added serializer.</returns>
+		private static SerializerDelegate AddSerializerForType(Type type, Func<SerializerDelegate> serializerFactory)
+		{
+			lock (sSync)
+			{
+				if (!sSerializers.TryGetValue(type, out var serializer))
+				{
+					serializer = serializerFactory();
+					var copy = new Dictionary<Type, SerializerDelegate>(sSerializers) { [type] = serializer };
+					Thread.MemoryBarrier();
+					sSerializers = copy;
+				}
+
+				return serializer;
+			}
+		}
+
+		/// <summary>
+		/// Creates a delegate that handles the serialization of the specified type using an internal object serializer
+		/// implemented by the type itself.
+		/// </summary>
+		/// <param name="type">Type implementing an internal object serializer.</param>
+		/// <returns>A delegate that handles the serialization of the specified type.</returns>
+		private static SerializerDelegate CreateInternalObjectSerializer(Type type)
+		{
+			return (
+				serializer,
+				stream,
+				obj,
+				context) =>
+			{
+				// determine the serializer version to use
+				if (!serializer.mSerializedTypeVersionTable.TryGet(type, out uint version))
+					HasInternalObjectSerializer(type, out version);
+
+				serializer.WriteTypeMetadata(stream, type);
+				serializer.TempBuffer_Buffer[0] = (byte)PayloadType.ArchiveStart;
+				int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, version);
+				stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
+				var archive = new SerializerArchive(serializer, stream, type, version, context);
+				var serialize = GetInternalObjectSerializerSerializeCaller(type);
+				serialize(obj as IInternalObjectSerializer, archive, version);
+				archive.Close();
+				stream.WriteByte((byte)PayloadType.ArchiveEnd);
+			};
+		}
+
+		/// <summary>
+		/// Gets a delegate that refers to the <see cref="IInternalObjectSerializer.Serialize"/> method of the specified type
+		/// (needed during serialization of base classes implementing an internal object serializer).
+		/// </summary>
+		/// <param name="type">Type of class to retrieve the Serialize() method from.</param>
+		/// <returns>Delegate referring to the <see cref="IInternalObjectSerializer.Serialize"/> method of the specified class.</returns>
+		internal static IosSerializeDelegate GetInternalObjectSerializerSerializeCaller(Type type)
+		{
+			if (!sIosSerializeCallers.TryGetValue(type, out var serializeDelegate))
+			{
+				lock (sSync)
+				{
+					if (!sIosSerializeCallers.TryGetValue(type, out serializeDelegate))
+					{
+						serializeDelegate = CreateIosSerializeCaller(type);
+						var copy = new Dictionary<Type, IosSerializeDelegate>(sIosSerializeCallers) { { type, serializeDelegate } };
+						Thread.MemoryBarrier();
+						sIosSerializeCallers = copy;
+					}
+				}
+			}
+
+			return serializeDelegate;
+		}
+
+		/// <summary>
+		/// Creates a dynamic method that calls the <see cref="IInternalObjectSerializer.Serialize"/> method of the specified type
+		/// that may be implemented implicitly or explicitly.
+		/// </summary>
+		/// <param name="type">Type of a class implementing the <see cref="IInternalObjectSerializer"/> interface.</param>
+		/// <returns>A delegate to a dynamic method that simply calls the <see cref="IInternalObjectSerializer.Serialize"/> method of the specified type.</returns>
+		private static IosSerializeDelegate CreateIosSerializeCaller(Type type)
+		{
+			// try to get the publicly implemented 'Serialize' method...
+			var method = type.GetMethod(nameof(IInternalObjectSerializer.Serialize), new[] { typeof(SerializerArchive), typeof(uint) });
+			if (method == null)
+			{
+				// the publicly implemented 'Serialize' method is not available
+				// => try to get the explicitly implemented 'Serialize' method...
+				method = type.GetMethod(
+					typeof(IInternalObjectSerializer).FullName + "." + nameof(IInternalObjectSerializer.Serialize),
+					BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly,
+					null,
+					new[] { typeof(SerializerArchive), typeof(uint) },
+					null);
+			}
+
+			Debug.Assert(method != null);
+
+			// create a delegate that simply calls the Serialize() method of the internal object serializer
+			ParameterExpression[] parameterExpressions =
+			{
+				Expression.Parameter(typeof(IInternalObjectSerializer), "object"),
+				Expression.Parameter(typeof(SerializerArchive), "archive"),
+				Expression.Parameter(typeof(uint), "version")
+			};
+
+			Expression body = Expression.Call(
+				Expression.Convert(parameterExpressions[0], type),
+				method,
+				parameterExpressions[1],
+				parameterExpressions[2]);
+
+			var lambda = Expression.Lambda(typeof(IosSerializeDelegate), body, parameterExpressions);
+			return (IosSerializeDelegate)lambda.Compile();
+		}
+
+		/// <summary>
+		/// Creates a delegate that handles the serialization of the specified type using an external object serializer.
+		/// </summary>
+		/// <param name="typeToSerialize">Type the delegate will handle.</param>
+		/// <param name="eos">Receives the created external object serializer.</param>
+		/// <returns>A delegate that handles the serialization of the specified type.</returns>
+		private static SerializerDelegate CreateExternalObjectSerializer(Type typeToSerialize, IExternalObjectSerializer eos)
+		{
+			return (
+				serializer,
+				stream,
+				obj,
+				context) =>
+			{
+				// determine the serializer version to use
+				if (!serializer.mSerializedTypeVersionTable.TryGet(typeToSerialize, out uint version))
+					HasExternalObjectSerializer(typeToSerialize, out version);
+
+				// write type metadata
+				serializer.WriteTypeMetadata(stream, typeToSerialize);
+
+				// write serializer archive
+				serializer.TempBuffer_Buffer[0] = (byte)PayloadType.ArchiveStart;
+				int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, version);
+				stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
+				var archive = new SerializerArchive(serializer, stream, typeToSerialize, version, context);
+				eos.Serialize(archive, version, obj);
+				archive.Close();
+				stream.WriteByte((byte)PayloadType.ArchiveEnd);
+			};
+		}
+
+		/// <summary>
+		/// Gets a serialization delegate for the specified enumeration type.
+		/// </summary>
+		/// <param name="type">Enumeration type to get a serialization delegate for.</param>
+		/// <returns>A delegate that handles the serialization of the specified enumeration type.</returns>
+		private static SerializerDelegate GetEnumSerializer(Type type)
+		{
+			// determine the integer type the enumeration is built on top to return a serialization
+			// delegate that is optimized for that type
+			var underlyingType = type.GetEnumUnderlyingType();
+
+			if (underlyingType == typeof(sbyte))
+			{
+				return (
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WriteTypeMetadata(stream, type);
+					serializer.TempBuffer_Buffer[0] = (byte)PayloadType.Enum;
+					int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, (sbyte)obj);
+					stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
+				};
+			}
+
+			if (underlyingType == typeof(byte))
+			{
+				return (
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WriteTypeMetadata(stream, type);
+					serializer.TempBuffer_Buffer[0] = (byte)PayloadType.Enum;
+					int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, (byte)obj);
+					stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
+				};
+			}
+
+			if (underlyingType == typeof(short))
+			{
+				return (
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WriteTypeMetadata(stream, type);
+					serializer.TempBuffer_Buffer[0] = (byte)PayloadType.Enum;
+					int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, (short)obj);
+					stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
+				};
+			}
+
+			if (underlyingType == typeof(ushort))
+			{
+				return (
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WriteTypeMetadata(stream, type);
+					serializer.TempBuffer_Buffer[0] = (byte)PayloadType.Enum;
+					int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, (ushort)obj);
+					stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
+				};
+			}
+
+			if (underlyingType == typeof(int))
+			{
+				return (
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WriteTypeMetadata(stream, type);
+					serializer.TempBuffer_Buffer[0] = (byte)PayloadType.Enum;
+					int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, (int)obj);
+					stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
+				};
+			}
+
+			if (underlyingType == typeof(uint))
+			{
+				return (
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WriteTypeMetadata(stream, type);
+					serializer.TempBuffer_Buffer[0] = (byte)PayloadType.Enum;
+					int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, (long)(uint)obj);
+					stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
+				};
+			}
+
+			if (underlyingType == typeof(long))
+			{
+				return (
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WriteTypeMetadata(stream, type);
+					serializer.TempBuffer_Buffer[0] = (byte)PayloadType.Enum;
+					int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, (long)obj);
+					stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
+				};
+			}
+
+			if (underlyingType == typeof(ulong))
+			{
+				return (
+					serializer,
+					stream,
+					obj,
+					context) =>
+				{
+					serializer.WriteTypeMetadata(stream, type);
+					serializer.TempBuffer_Buffer[0] = (byte)PayloadType.Enum;
+					int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, (long)(ulong)obj);
+					stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
+				};
+			}
+
+			throw new NotSupportedException($"The underlying type ({underlyingType.FullName}) of enumeration ({type.FullName}) is not supported.");
+		}
+
 		#endregion
 
 		#region Deserialization
+
+		private static readonly Dictionary<PayloadType, DeserializerDelegate> sDeserializers = new Dictionary<PayloadType, DeserializerDelegate>();
+		private static          Dictionary<Type, EnumCasterDelegate>          sEnumCasters   = new Dictionary<Type, EnumCasterDelegate>();
+		private static          int                                           sEnumCasterId  = -1;
 
 		/// <summary>
 		/// Deserializes an object from a stream.
@@ -1401,8 +1946,6 @@ namespace GriffinPlus.Lib.Serialization
 			return null;
 		}
 
-		#region Deserialization of Enumerations
-
 		/// <summary>
 		/// Reads an enumeration value.
 		/// </summary>
@@ -1410,7 +1953,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read enumeration value.</returns>
 		/// <exception cref="SerializationException">Stream ended unexpectedly.</exception>
 		/// <exception cref="SerializationException">Deserialized value does not match the underlying type of the enumeration.</exception>
-		private object ReadEnum(Stream stream)
+		private Enum ReadEnum(Stream stream)
 		{
 			// assembly and type metadata have been read already
 
@@ -1445,14 +1988,10 @@ namespace GriffinPlus.Lib.Serialization
 			string name = "_enumCaster" + enumCaster_id;
 			Type[] parameterTypes = { typeof(long) };
 			var parameterExpression = parameterTypes.Select(Expression.Parameter).First();
-			Expression body = Expression.Convert(Expression.Convert(parameterExpression, type), typeof(object));
+			Expression body = Expression.Convert(Expression.Convert(parameterExpression, type), typeof(Enum));
 			var lambda = Expression.Lambda(typeof(EnumCasterDelegate), body, parameterExpression);
 			return (EnumCasterDelegate)lambda.Compile();
 		}
-
-		#endregion
-
-		#region Deserialization of Type Objects
 
 		/// <summary>
 		/// Deserializes a type object.
@@ -1460,7 +1999,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="stream">Stream to deserialize the type object from.</param>
 		/// <returns>Type object.</returns>
 		/// <exception cref="SerializationException">Stream ended unexpectedly.</exception>
-		private object ReadTypeObject(Stream stream)
+		private Type ReadTypeObject(Stream stream)
 		{
 			TypeItem typeItem;
 
@@ -1526,10 +2065,6 @@ namespace GriffinPlus.Lib.Serialization
 			return typeItem.Type;
 		}
 
-		#endregion
-
-		#region Deserialization of Already Serialized Objects
-
 		/// <summary>
 		/// Gets an already deserialized object from its object id stored in the stream.
 		/// </summary>
@@ -1545,10 +2080,6 @@ namespace GriffinPlus.Lib.Serialization
 
 			throw new SerializationException("Invalid object id detected.");
 		}
-
-		#endregion
-
-		#region Deserialization of Serialization Archives
 
 		/// <summary>
 		/// Deserializes an object from an archive.
@@ -1579,7 +2110,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			if (eosi != null)
 			{
-				currentVersion = eosi.Version;
+				currentVersion = eosi.SerializerVersion;
 
 				if (deserializedVersion > currentVersion)
 				{
@@ -1654,230 +2185,12 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 
-		#region Assembly and Type Resolution (Version Tolerant Serialization)
-
-		/// <summary>
-		/// Is called to resolve the assembly name read during deserialization to the correct assembly.
-		/// </summary>
-		/// <param name="assemblyName">Name of the assembly to resolve.</param>
-		/// <returns>The resolved assembly.</returns>
-		private Assembly ResolveAssembly(AssemblyName assemblyName)
-		{
-			// ----------------------------------------------------------------------------------------------------------------
-			// check whether the assembly has been resolved before
-			// ----------------------------------------------------------------------------------------------------------------
-			if (sAssemblyTable.TryGetValue(assemblyName.FullName, out var assembly))
-			{
-				if (!mIsVersionTolerant && assembly.FullName != assemblyName.FullName)
-				{
-					throw new SerializationException(
-						"Resolving full name of assembly ({0}) failed. Resolution to assembly ({1}) exists, but the serializer is configured to be version-intolerant.",
-						assemblyName.FullName,
-						assembly.FullName);
-				}
-
-				return assembly;
-			}
-
-			sLog.Write(
-				LogLevel.Debug,
-				"Trying to load assembly by its full name ({0}).",
-				assemblyName.FullName);
-
-			// ----------------------------------------------------------------------------------------------------------------
-			// try to load the assembly by its full name
-			// (searches the application base directory, its private directories and the Global Assembly Cache (GAC))
-			// ----------------------------------------------------------------------------------------------------------------
-			try
-			{
-				assembly = Assembly.Load(assemblyName);
-
-				sLog.Write(
-					LogLevel.Debug,
-					"Loading assembly by its full name ({0}) succeeded.",
-					assemblyName.FullName);
-
-				KeepAssemblyResolution(assemblyName.FullName, assembly);
-				return assembly;
-			}
-			catch (Exception ex)
-			{
-				if (mIsVersionTolerant)
-				{
-					sLog.Write(
-						LogLevel.Debug,
-						"Loading assembly by its full name ({0}) failed. Trying to load assembly allowing a different version.\nException: {1}",
-						assemblyName.FullName,
-						ex.ToString());
-				}
-				else
-				{
-					sLog.Write(
-						LogLevel.Error,
-						"Loading assembly by its full name ({0}) failed.\nException: {1}",
-						assemblyName.FullName,
-						ex.ToString());
-
-					throw;
-				}
-			}
-
-			// ----------------------------------------------------------------------------------------------------------------
-			// try to load assembly from the application's base directory
-			// (ignores version information)
-			// ----------------------------------------------------------------------------------------------------------------
-
-			string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, assemblyName.Name + ".dll");
-
-			sLog.Write(
-				LogLevel.Debug,
-				"Trying to load assembly ({0}) from file ({1}).",
-				assemblyName.Name,
-				path);
-
-			try
-			{
-				assembly = Assembly.LoadFrom(path);
-
-				sLog.Write(
-					LogLevel.Debug,
-					"Loading assembly ({0}) from file ({1}) succeeded.",
-					assemblyName.Name,
-					path);
-
-				KeepAssemblyResolution(assemblyName.FullName, assembly);
-				return assembly;
-			}
-			catch (FileNotFoundException)
-			{
-				// try next...
-			}
-			catch (Exception ex)
-			{
-				sLog.Write(
-					LogLevel.Error,
-					"Loading assembly ({0}) from file ({1}) failed.\nException: {2}",
-					assemblyName.Name,
-					path,
-					ex.ToString());
-
-				throw;
-			}
-
-			// ----------------------------------------------------------------------------------------------------------------
-			// try to load assembly from the private bin path
-			// (ignores version information)
-			// ----------------------------------------------------------------------------------------------------------------
-
-			if (!string.IsNullOrEmpty(AppDomain.CurrentDomain.RelativeSearchPath))
-			{
-				path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, AppDomain.CurrentDomain.RelativeSearchPath, assemblyName.Name);
-
-				sLog.Write(
-					LogLevel.Debug,
-					"Trying to load assembly ({0}) from ({1}).",
-					assemblyName.Name,
-					path);
-
-				try
-				{
-					assembly = Assembly.LoadFrom(path);
-
-					sLog.Write(
-						LogLevel.Debug,
-						"Loading assembly ({0}) from file ({1}) succeeded.",
-						assemblyName.Name,
-						path);
-
-					KeepAssemblyResolution(assemblyName.FullName, assembly);
-					return assembly;
-				}
-				catch (FileNotFoundException)
-				{
-					// try next...
-				}
-				catch (Exception ex)
-				{
-					sLog.Write(
-						LogLevel.Error,
-						"Loading assembly ({0}) from file ({1}) failed.\nException: {2}",
-						assemblyName.FullName,
-						path,
-						ex.ToString());
-
-					throw;
-				}
-			}
-
-			sLog.Write(
-				LogLevel.Error,
-				"Resolving name of assembly ({0}) failed. File could not be found.",
-				assemblyName.FullName,
-				path);
-
-			return null;
-		}
-
-		/// <summary>
-		/// Keeps the result of an assembly resolution in the assembly cache.
-		/// </summary>
-		/// <param name="assemblyFullName">Full name of the assembly (as read during deserialization).</param>
-		/// <param name="assembly">Assembly to use, if the specified assembly name is encountered.</param>
-		private static void KeepAssemblyResolution(string assemblyFullName, Assembly assembly)
-		{
-			lock (sAssemblyTableLock)
-			{
-				if (!sAssemblyTable.ContainsKey(assemblyFullName))
-				{
-					var copy = new Dictionary<string, Assembly>(sAssemblyTable) { { assemblyFullName, assembly } };
-					Thread.MemoryBarrier();
-					sAssemblyTable = copy;
-				}
-			}
-		}
-
-		/// <summary>
-		/// Is called to resolve the type name read during deserialization to the correct <see cref="Type"/> object.
-		/// </summary>
-		/// <param name="assembly">Assembly that contains the type.</param>
-		/// <param name="name">Name of the type to resolve.</param>
-		/// <param name="caseInsensitive">
-		/// <c>true</c> to perform a case-insensitive search;
-		/// <c>false</c> to perform a case-sensitive search.
-		/// </param>
-		/// <returns>
-		/// The resolved type;
-		/// <c>null</c>, if the type could not be resolved.
-		/// </returns>
-		private static Type ResolveType(Assembly assembly, string name, bool caseInsensitive)
-		{
-			try
-			{
-				return assembly.GetType(name);
-			}
-			catch (Exception ex)
-			{
-				sLog.Write(
-					LogLevel.Error,
-					"Resolving type name ({0}) in assembly ({1}) failed. Exception:\n{2}",
-					name,
-					assembly.FullName,
-					ex.ToString());
-
-				return null;
-			}
-		}
-
-		#endregion
-
-		#endregion
-
 		#region Info
 
 		/// <summary>
 		/// Gets the maximum version a serializer of the specified type supports.
 		/// </summary>
-		/// <param name="type">Type to check for.</param>
+		/// <param name="type">Type to check.</param>
 		/// <returns>Maximum version the serializer supports.</returns>
 		/// <exception cref="ArgumentException">Type is not serializable.</exception>
 		/// <remarks>
@@ -1894,6 +2207,65 @@ namespace GriffinPlus.Lib.Serialization
 				return version;
 
 			throw new ArgumentException($"Specified type ({type.FullName}) is not serializable.", nameof(type));
+		}
+
+		/// <summary>
+		/// Checks whether the specified object is serializable.
+		/// </summary>
+		/// <param name="obj">Object to check.</param>
+		/// <returns>
+		/// <c>true</c>, if the object is serializable;
+		/// otherwise <c>false</c>.
+		/// </returns>
+		public static bool IsSerializable(object obj)
+		{
+			if (obj == null) return true;
+			Init();
+			var type = obj.GetType();
+			return IsSerializable(type);
+		}
+
+		/// <summary>
+		/// Checks whether the specified type is serializable.
+		/// </summary>
+		/// <param name="type">Type to check.</param>
+		/// <returns>
+		/// <c>true</c>, if the object is serializable;
+		/// otherwise <c>false</c>.
+		/// </returns>
+		public static bool IsSerializable(Type type)
+		{
+			Init();
+			if (sSerializers.ContainsKey(type)) return true;
+			if (type.IsArray && IsSerializable(type.GetElementType())) return true;
+			if (type.IsGenericType)
+			{
+				var genericTypeDefinition = type.GetGenericTypeDefinition();
+				return sSerializers.ContainsKey(genericTypeDefinition);
+			}
+
+			// check whether the type has an internal object serializer and create a serializer delegate for it,
+			// so it is found faster next time...
+			if (HasInternalObjectSerializer(type, out uint _))
+			{
+				AddSerializerForType(type, () => CreateInternalObjectSerializer(type));
+				return true;
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// Checks whether the specified type is serialized using a custom (internal/external) object serializer.
+		/// </summary>
+		/// <param name="type">Type to check.</param>
+		/// <returns>
+		/// <c>true</c>, if the type is serialized using a custom serializer;
+		/// otherwise <c>false</c>.
+		/// </returns>
+		public static bool HasCustomSerializer(Type type)
+		{
+			return HasInternalObjectSerializer(type, out uint _) || HasExternalObjectSerializer(type, out uint _);
 		}
 
 		#endregion
@@ -2153,86 +2525,34 @@ namespace GriffinPlus.Lib.Serialization
 		#region Helpers
 
 		/// <summary>
-		/// Checks whether the specified object is serializable.
-		/// </summary>
-		/// <param name="obj">Object to check.</param>
-		/// <returns>
-		/// <c>true</c>, if the object is serializable;
-		/// otherwise <c>false</c>.
-		/// </returns>
-		public static bool IsSerializable(object obj)
-		{
-			if (obj == null) return true;
-			Init();
-			var type = obj.GetType();
-			return IsSerializable(type);
-		}
-
-		/// <summary>
-		/// Checks whether the specified type is serializable.
-		/// </summary>
-		/// <param name="type">Type to check.</param>
-		/// <returns>
-		/// <c>true</c>, if the object is serializable;
-		/// otherwise <c>false</c>.
-		/// </returns>
-		public static bool IsSerializable(Type type)
-		{
-			Init();
-			if (sSerializers.ContainsKey(type)) return true;
-			if (type.IsArray && IsSerializable(type.GetElementType())) return true;
-			if (type.IsGenericType)
-			{
-				var genericTypeDefinition = type.GetGenericTypeDefinition();
-				return sSerializers.ContainsKey(genericTypeDefinition);
-			}
-
-			// check whether the type has an internal object serializer and create a serializer delegate for it,
-			// so it is found faster next time...
-			if (sCache.HasInternalObjectSerializer(type, out uint _))
-			{
-				lock (sSync)
-				{
-					if (!sSerializers.ContainsKey(type))
-					{
-						var serializer = CreateInternalObjectSerializer(type);
-						var copy = new Dictionary<Type, SerializerDelegate>(sSerializers) { [type] = serializer };
-						Thread.MemoryBarrier();
-						sSerializers = copy;
-					}
-				}
-
-				return true;
-			}
-
-			return false;
-		}
-
-		/// <summary>
-		/// Checks whether the specified type is serialized using a custom (internal/external) object serializer.
-		/// </summary>
-		/// <param name="type">Type to check.</param>
-		/// <returns>
-		/// <c>true</c>, if the type is serialized using a custom serializer;
-		/// otherwise <c>false</c>.
-		/// </returns>
-		public static bool HasCustomSerializer(Type type)
-		{
-			return HasInternalObjectSerializer(type, out uint _) || HasExternalObjectSerializer(type, out uint _);
-		}
-
-		/// <summary>
 		/// Checks whether the specified type provides an internal object serializer.
 		/// </summary>
 		/// <param name="type">Type to check.</param>
-		/// <param name="version">Receives the current version of internal object serializer.</param>
+		/// <param name="version">Receives the current version of the internal object serializer.</param>
 		/// <returns>
 		/// <c>true</c> if the specified type provides an internal object serializer;
 		/// otherwise <c>false</c>.
 		/// </returns>
 		internal static bool HasInternalObjectSerializer(Type type, out uint version)
 		{
-			return sCache.HasInternalObjectSerializer(type, out version);
+			if (sInternalObjectSerializerInfoByType.TryGetValue(type, out var info))
+			{
+				version = info.SerializerVersion;
+				return true;
+			}
+
+			if (type.IsGenericType)
+			{
+				var genericTypeDefinition = type.GetGenericTypeDefinition();
+				if (sInternalObjectSerializerInfoByType.TryGetValue(genericTypeDefinition, out info))
+				{
+					version = info.SerializerVersion;
+					return true;
+				}
+			}
+
+			version = 0;
+			return false;
 		}
 
 		/// <summary>
@@ -2263,7 +2583,7 @@ namespace GriffinPlus.Lib.Serialization
 			// check whether a serializer for exactly the specified type is available
 			if (sExternalObjectSerializersBySerializee.TryGetValue(type, out var eosi))
 			{
-				version = eosi.Version;
+				version = eosi.SerializerVersion;
 				return true;
 			}
 
@@ -2272,7 +2592,7 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				if (sExternalObjectSerializersBySerializee.TryGetValue(type.GetGenericTypeDefinition(), out eosi))
 				{
-					version = eosi.Version;
+					version = eosi.SerializerVersion;
 					return true;
 				}
 			}
@@ -2295,8 +2615,18 @@ namespace GriffinPlus.Lib.Serialization
 			// check whether a serializer for exactly the specified type is available
 			if (sExternalObjectSerializersBySerializee.TryGetValue(type, out var eosi))
 			{
-				version = eosi.Version;
+				version = eosi.SerializerVersion;
 				return eosi.Serializer;
+			}
+
+			// check, whether a serializer for the generic type definition is available
+			if (type.IsGenericType)
+			{
+				if (sExternalObjectSerializersBySerializee.TryGetValue(type.GetGenericTypeDefinition(), out eosi))
+				{
+					version = eosi.SerializerVersion;
+					return eosi.Serializer;
+				}
 			}
 
 			version = 0;
@@ -2314,7 +2644,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// </returns>
 		internal static IInternalObjectSerializer GetInternalObjectSerializer(object obj, out uint version)
 		{
-			if (sCache.HasInternalObjectSerializer(obj.GetType(), out version))
+			if (HasInternalObjectSerializer(obj.GetType(), out version))
 				return obj as IInternalObjectSerializer;
 
 			// type does not implement an internal object serializer, or not properly...
@@ -2333,286 +2663,11 @@ namespace GriffinPlus.Lib.Serialization
 		/// </returns>
 		internal static IInternalObjectSerializer GetInternalObjectSerializer(object obj, Type type, out uint version)
 		{
-			if (sCache.HasInternalObjectSerializer(type, out version))
+			if (HasInternalObjectSerializer(type, out version))
 				return obj as IInternalObjectSerializer;
 
 			// type does not implement an internal object serializer, or not properly...
 			return null;
-		}
-
-		#endregion
-
-		#region Creating/Getting Serializer Delegates
-
-		/// <summary>
-		/// Creates a delegate that handles the serialization of the specified type using an internal object serializer
-		/// implemented by the type itself.
-		/// </summary>
-		/// <param name="type">Type implementing an internal object serializer.</param>
-		/// <returns>A delegate that handles the serialization of the specified type.</returns>
-		private static SerializerDelegate CreateInternalObjectSerializer(Type type)
-		{
-			return (
-				serializer,
-				stream,
-				obj,
-				context) =>
-			{
-				// determine the serializer version to use
-				if (!serializer.mSerializedTypeVersionTable.TryGet(type, out uint version))
-					sCache.HasInternalObjectSerializer(type, out version);
-
-				serializer.WriteTypeMetadata(stream, type);
-				serializer.TempBuffer_Buffer[0] = (byte)PayloadType.ArchiveStart;
-				int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, version);
-				stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
-				var archive = new SerializerArchive(serializer, stream, type, version, context);
-				var serialize = GetInternalObjectSerializerSerializeCaller(type);
-				serialize(obj as IInternalObjectSerializer, archive, version);
-				archive.Close();
-				stream.WriteByte((byte)PayloadType.ArchiveEnd);
-			};
-		}
-
-		/// <summary>
-		/// Gets a delegate that refers to the <see cref="IInternalObjectSerializer.Serialize"/> method of the specified type
-		/// (needed during serialization of base classes implementing an internal object serializer).
-		/// </summary>
-		/// <param name="type">Type of class to retrieve the Serialize() method from.</param>
-		/// <returns>Delegate referring to the <see cref="IInternalObjectSerializer.Serialize"/> method of the specified class.</returns>
-		internal static IosSerializeDelegate GetInternalObjectSerializerSerializeCaller(Type type)
-		{
-			if (!sIosSerializeCallers.TryGetValue(type, out var serializeDelegate))
-			{
-				lock (sSync)
-				{
-					if (!sIosSerializeCallers.TryGetValue(type, out serializeDelegate))
-					{
-						serializeDelegate = CreateIosSerializeCaller(type);
-						var copy = new Dictionary<Type, IosSerializeDelegate>(sIosSerializeCallers) { { type, serializeDelegate } };
-						Thread.MemoryBarrier();
-						sIosSerializeCallers = copy;
-					}
-				}
-			}
-
-			return serializeDelegate;
-		}
-
-		/// <summary>
-		/// Creates a dynamic method that calls the <see cref="IInternalObjectSerializer.Serialize"/> method of the specified type
-		/// that may be implemented implicitly or explicitly.
-		/// </summary>
-		/// <param name="type">Type of a class implementing the <see cref="IInternalObjectSerializer"/> interface.</param>
-		/// <returns>A delegate to a dynamic method that simply calls the <see cref="IInternalObjectSerializer.Serialize"/> method of the specified type.</returns>
-		private static IosSerializeDelegate CreateIosSerializeCaller(Type type)
-		{
-			// try to get the publicly implemented 'Serialize' method...
-			var method = type.GetMethod(nameof(IInternalObjectSerializer.Serialize), new[] { typeof(SerializerArchive), typeof(uint) });
-			if (method == null)
-			{
-				// the publicly implemented 'Serialize' method is not available
-				// => try to get the explicitly implemented 'Serialize' method...
-				method = type.GetMethod(
-					typeof(IInternalObjectSerializer).FullName + "." + nameof(IInternalObjectSerializer.Serialize),
-					BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly,
-					null,
-					new[] { typeof(SerializerArchive), typeof(uint) },
-					null);
-			}
-
-			Debug.Assert(method != null);
-
-			// create a delegate that simply calls the Serialize() method of the internal object serializer
-			int method_id = Interlocked.Increment(ref sIosSerializeCallersId);
-			string name = "_ios_serialize_caller" + method_id;
-			Type[] parameterTypes = { typeof(IInternalObjectSerializer), typeof(SerializerArchive), typeof(uint) };
-
-			ParameterExpression[] parameterExpressions =
-			{
-				Expression.Parameter(typeof(IInternalObjectSerializer), "object"),
-				Expression.Parameter(typeof(SerializerArchive), "archive"),
-				Expression.Parameter(typeof(uint), "version")
-			};
-
-			Expression body = Expression.Call(
-				Expression.Convert(parameterExpressions[0], type),
-				method,
-				parameterExpressions[1],
-				parameterExpressions[2]);
-
-			var lambda = Expression.Lambda(typeof(IosSerializeDelegate), body, parameterExpressions);
-			return (IosSerializeDelegate)lambda.Compile();
-		}
-
-		/// <summary>
-		/// Creates a delegate that handles the serialization of the specified type using an external object serializer.
-		/// </summary>
-		/// <param name="typeToSerialize">Type the delegate will handle.</param>
-		/// <param name="eos">Receives the created external object serializer.</param>
-		/// <param name="serializerVersion">
-		/// Max. supported version of the serializer
-		/// (as specified in the <see cref="ExternalObjectSerializerAttribute"/> attached to the external object serializer).
-		/// </param>
-		/// <returns>A delegate that handles the serialization of the specified type.</returns>
-		private static SerializerDelegate CreateExternalObjectSerializer(Type typeToSerialize, IExternalObjectSerializer eos, uint serializerVersion)
-		{
-			return (
-				serializer,
-				stream,
-				obj,
-				context) =>
-			{
-				// determine the serializer version to use
-				if (!serializer.mSerializedTypeVersionTable.TryGet(typeToSerialize, out uint version))
-					version = serializerVersion;
-
-				// write type metadata
-				serializer.WriteTypeMetadata(stream, typeToSerialize);
-
-				// write serializer archive
-				serializer.TempBuffer_Buffer[0] = (byte)PayloadType.ArchiveStart;
-				int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, version);
-				stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
-				var archive = new SerializerArchive(serializer, stream, typeToSerialize, version, context);
-				eos.Serialize(archive, version, obj);
-				archive.Close();
-				stream.WriteByte((byte)PayloadType.ArchiveEnd);
-			};
-		}
-
-		/// <summary>
-		/// Gets a serialization delegate for the specified enumeration type.
-		/// </summary>
-		/// <param name="type">Enumeration type to get a serialization delegate for.</param>
-		/// <returns>A delegate that handles the serialization of the specified enumeration type.</returns>
-		private static SerializerDelegate GetEnumSerializer(Type type)
-		{
-			// determine the integer type the enumeration is built on top to return a serialization
-			// delegate that is optimized for that type
-			var underlyingType = type.GetEnumUnderlyingType();
-
-			if (underlyingType == typeof(sbyte))
-			{
-				return (
-					serializer,
-					stream,
-					obj,
-					context) =>
-				{
-					serializer.WriteTypeMetadata(stream, type);
-					serializer.TempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, (sbyte)obj);
-					stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
-				};
-			}
-
-			if (underlyingType == typeof(byte))
-			{
-				return (
-					serializer,
-					stream,
-					obj,
-					context) =>
-				{
-					serializer.WriteTypeMetadata(stream, type);
-					serializer.TempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, (byte)obj);
-					stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
-				};
-			}
-
-			if (underlyingType == typeof(short))
-			{
-				return (
-					serializer,
-					stream,
-					obj,
-					context) =>
-				{
-					serializer.WriteTypeMetadata(stream, type);
-					serializer.TempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, (short)obj);
-					stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
-				};
-			}
-
-			if (underlyingType == typeof(ushort))
-			{
-				return (
-					serializer,
-					stream,
-					obj,
-					context) =>
-				{
-					serializer.WriteTypeMetadata(stream, type);
-					serializer.TempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, (ushort)obj);
-					stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
-				};
-			}
-
-			if (underlyingType == typeof(int))
-			{
-				return (
-					serializer,
-					stream,
-					obj,
-					context) =>
-				{
-					serializer.WriteTypeMetadata(stream, type);
-					serializer.TempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, (int)obj);
-					stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
-				};
-			}
-
-			if (underlyingType == typeof(uint))
-			{
-				return (
-					serializer,
-					stream,
-					obj,
-					context) =>
-				{
-					serializer.WriteTypeMetadata(stream, type);
-					serializer.TempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, (long)(uint)obj);
-					stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
-				};
-			}
-
-			if (underlyingType == typeof(long))
-			{
-				return (
-					serializer,
-					stream,
-					obj,
-					context) =>
-				{
-					serializer.WriteTypeMetadata(stream, type);
-					serializer.TempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, (long)obj);
-					stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
-				};
-			}
-
-			if (underlyingType == typeof(ulong))
-			{
-				return (
-					serializer,
-					stream,
-					obj,
-					context) =>
-				{
-					serializer.WriteTypeMetadata(stream, type);
-					serializer.TempBuffer_Buffer[0] = (byte)PayloadType.Enum;
-					int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, (long)(ulong)obj);
-					stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
-				};
-			}
-
-			throw new NotSupportedException($"The underlying type ({underlyingType.FullName}) of enumeration ({type.FullName}) is not supported.");
 		}
 
 		#endregion

@@ -17,7 +17,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Serializes a GUID to a stream.
 		/// </summary>
-		/// <param name="archive">Archive to put the specfied GUID into.</param>
+		/// <param name="archive">Archive to put the specified GUID into.</param>
 		/// <param name="version">Requested version when serializing the GUID.</param>
 		/// <param name="obj">Object to serialize (type System.Guid).</param>
 		/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
