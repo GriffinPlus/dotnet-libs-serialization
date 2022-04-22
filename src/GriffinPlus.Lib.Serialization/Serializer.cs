@@ -85,6 +85,7 @@ namespace GriffinPlus.Lib.Serialization
 					{
 						sInitializing = true;
 						sIsVersionTolerantDefault = isVersionTolerant;
+						AppDomainInfo.Init();
 						InitBuiltinSerializers();
 						InitBuiltinDeserializers();
 						InitCustomSerializers();
@@ -684,62 +685,34 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			sLog.Write(LogLevel.Debug, "Scanning for custom serializers...");
 
-			string path = AppDomain.CurrentDomain.BaseDirectory;
-
-			// DLL files
-			foreach (string filename in Directory.GetFiles(path, "*.dll", SearchOption.AllDirectories))
+			string applicationBasePath = Path.GetFullPath(AppDomain.CurrentDomain.BaseDirectory);
+			foreach (var kvp in AppDomainInfo.TypesByAssembly)
 			{
+				var assembly = kvp.Key;
+				var types = kvp.Value;
+
+				// skip assemblies that are not in the application's base directory or a sub-directory of it
+				// (custom serializers are expected to occur in assemblies in this directory only)
 				try
 				{
-					ScanAssembly(filename);
+					string assemblyPath = Path.GetFullPath(assembly.Location);
+					if (!assemblyPath.StartsWith(applicationBasePath))
+						continue;
 				}
 				catch (Exception)
 				{
-					// swallow...
+					continue;
 				}
-			}
 
-			// EXE files
-			foreach (string filename in Directory.GetFiles(path, "*.exe", SearchOption.AllDirectories))
-			{
-				try
+				// scan assembly for custom serializers
+				foreach (var type in types)
 				{
-					ScanAssembly(filename);
-				}
-				catch (Exception)
-				{
-					// swallow...
+					TryToAddInternalObjectSerializer(type);
+					TryToAddExternalObjectSerializer(type);
 				}
 			}
 
 			sLog.Write(LogLevel.Debug, "Completed scanning for custom serializers.");
-		}
-
-		/// <summary>
-		/// Scans the assembly at the specified path.
-		/// </summary>
-		/// <param name="path">Path of the assembly to scan.</param>
-		private static void ScanAssembly(string path)
-		{
-			var assembly = Assembly.LoadFrom(path);
-			Type[] types;
-			try
-			{
-				types = assembly.GetTypes();
-			}
-			catch (ReflectionTypeLoadException ex)
-			{
-				types = ex.Types;
-			}
-
-			foreach (var type in types)
-			{
-				if (type == null)
-					continue;
-
-				TryToAddInternalObjectSerializer(type);
-				TryToAddExternalObjectSerializer(type);
-			}
 		}
 
 		/// <summary>
