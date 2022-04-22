@@ -707,8 +707,18 @@ namespace GriffinPlus.Lib.Serialization
 				// scan assembly for custom serializers
 				foreach (var type in types)
 				{
-					TryToAddInternalObjectSerializer(type);
-					TryToAddExternalObjectSerializer(type);
+					try
+					{
+						TryToAddInternalObjectSerializer(type);
+						TryToAddExternalObjectSerializer(type);
+					}
+					catch (Exception ex)
+					{
+						sLog.Write(
+							LogLevel.Error, 
+							"Inspecting type ({0}) failed. Exception:\n{1}", 
+							type.AssemblyQualifiedName, ex);
+					}
 				}
 			}
 
