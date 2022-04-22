@@ -60,7 +60,6 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		/// <param name="info">The <see cref="SerializationInfo"/> that holds the serialized object data about the object.</param>
 		/// <param name="context">The <see cref="StreamingContext"/> that contains contextual information about the source or destination.</param>
-		[SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
 		public override void GetObjectData(SerializationInfo info, StreamingContext context)
 		{
 			base.GetObjectData(info, context);
