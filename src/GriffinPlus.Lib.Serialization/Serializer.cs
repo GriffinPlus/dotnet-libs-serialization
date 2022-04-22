@@ -819,7 +819,7 @@ namespace GriffinPlus.Lib.Serialization
 				var attributes = type.GetCustomAttributes<ExternalObjectSerializerAttribute>(false).ToArray();
 				bool attributeOk = attributes.Length > 0;
 				bool interfaceOk = typeof(IExternalObjectSerializer).IsAssignableFrom(type);
-				bool constructorOk = type.GetConstructor(BindingFlags.ExactBinding | BindingFlags.Instance | BindingFlags.Public, Type.DefaultBinder, Type.EmptyTypes, null) != null;
+				bool constructorOk = type.GetConstructor(BindingFlags.ExactBinding | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, Type.DefaultBinder, Type.EmptyTypes, null) != null;
 
 				if (attributeOk && interfaceOk && constructorOk)
 				{
@@ -836,7 +836,7 @@ namespace GriffinPlus.Lib.Serialization
 						sExternalObjectSerializersBySerializee = eosDictCopy;
 					}
 				}
-				else if (attributeOk || interfaceOk || constructorOk)
+				else if (attributeOk || interfaceOk) // || constructorOk <-- do not check this, since this will create false alarms for all classes with a parameterless constructor
 				{
 					if (!attributeOk)
 					{
