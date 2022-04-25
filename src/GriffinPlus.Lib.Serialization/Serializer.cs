@@ -20,6 +20,7 @@ using GriffinPlus.Lib.Io;
 using GriffinPlus.Lib.Logging;
 
 // ReSharper disable ForCanBeConvertedToForeach
+// ReSharper disable InconsistentlySynchronizedField
 
 namespace GriffinPlus.Lib.Serialization
 {
@@ -52,7 +53,7 @@ namespace GriffinPlus.Lib.Serialization
 		private readonly Dictionary<uint, object>   mDeserializedObjectIdTable;
 		private          uint                       mNextDeserializedTypeId;
 		private          uint                       mNextDeserializedObjectId;
-		private          bool                       mIsVersionTolerant;
+		private          bool                       mUseTolerantDeserialization;
 
 		#endregion
 
@@ -61,7 +62,7 @@ namespace GriffinPlus.Lib.Serialization
 		private static          bool                                           sInitializing                          = false;
 		private static          bool                                           sInitialized                           = false;
 		private static readonly object                                         sInitializationSync                    = new object();
-		private static          bool                                           sIsVersionTolerantDefault              = false;
+		private static volatile bool                                           sUseTolerantDeserializationByDefault   = false;
 		private static          Dictionary<Type, InternalObjectSerializerInfo> sInternalObjectSerializerInfoByType    = new Dictionary<Type, InternalObjectSerializerInfo>();
 		private static          Dictionary<Type, ExternalObjectSerializerInfo> sExternalObjectSerializersBySerializee = new Dictionary<Type, ExternalObjectSerializerInfo>();
 		private static readonly Type[]                                         sConstructorArgumentTypes              = { typeof(SerializerArchive) };
@@ -69,13 +70,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Initializes the serializer, if necessary.
 		/// </summary>
-		/// <param name="isVersionTolerant">
-		/// <c>true</c> to allow resolving assemblies to an assembly with a different version, if necessary;
-		/// <c>false</c> to abort deserialization if the full assembly name does not match.<br/>
-		/// This setting is only relevant if assemblies are strong-name signed. Assemblies without a strong
-		/// name are always resolved with version tolerance.
-		/// </param>
-		public static void Init(bool isVersionTolerant = false)
+		public static void Init()
 		{
 			if (!sInitialized)
 			{
@@ -84,7 +79,6 @@ namespace GriffinPlus.Lib.Serialization
 					if (!sInitialized && !sInitializing)
 					{
 						sInitializing = true;
-						sIsVersionTolerantDefault = isVersionTolerant;
 						AppDomainInfo.Init();
 						InitBuiltinSerializers();
 						InitBuiltinDeserializers();
@@ -100,13 +94,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Triggers initializing the serializer asynchronously, if necessary.
 		/// </summary>
-		/// <param name="isVersionTolerant">
-		/// <c>true</c> to allow resolving assemblies to an assembly with a different version, if necessary;
-		/// <c>false</c> to abort deserialization if the full assembly name does not match.<br/>
-		/// This setting is only relevant if assemblies are strong-name signed. Assemblies without a strong
-		/// name are always resolved with version tolerance.
-		/// </param>
-		public static void TriggerInit(bool isVersionTolerant = false)
+		public static void TriggerInit()
 		{
 			if (!sInitialized && !sInitializing)
 			{
@@ -114,8 +102,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					if (!sInitialized && !sInitializing)
 					{
-						sIsVersionTolerantDefault = isVersionTolerant;
-						ThreadPool.QueueUserWorkItem(x => Init(isVersionTolerant));
+						ThreadPool.QueueUserWorkItem(x => Init());
 					}
 				}
 			}
@@ -702,9 +689,10 @@ namespace GriffinPlus.Lib.Serialization
 					catch (Exception ex)
 					{
 						sLog.Write(
-							LogLevel.Error, 
-							"Inspecting type ({0}) failed. Exception:\n{1}", 
-							type.AssemblyQualifiedName, ex);
+							LogLevel.Error,
+							"Inspecting type ({0}) failed. Exception:\n{1}",
+							type.AssemblyQualifiedName,
+							ex);
 					}
 				}
 			}
@@ -907,7 +895,7 @@ namespace GriffinPlus.Lib.Serialization
 			mSerializedObjectIdTable = new Dictionary<object, uint>(new IdentityComparer<object>());
 
 			// deserializer specific
-			mIsVersionTolerant = sIsVersionTolerantDefault;
+			mUseTolerantDeserialization = sUseTolerantDeserializationByDefault;
 			mDeserializedTypeIdTable = new Dictionary<uint, TypeItem>();
 			mDeserializedObjectIdTable = new Dictionary<uint, object>();
 
@@ -927,7 +915,7 @@ namespace GriffinPlus.Lib.Serialization
 			mSerializedObjectIdTable = new Dictionary<object, uint>(new IdentityComparer<object>());
 
 			// deserializer specific
-			mIsVersionTolerant = sIsVersionTolerantDefault;
+			mUseTolerantDeserialization = sUseTolerantDeserializationByDefault;
 			mDeserializedTypeIdTable = new Dictionary<uint, TypeItem>();
 			mDeserializedObjectIdTable = new Dictionary<uint, object>();
 
@@ -937,14 +925,12 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 
-		#region Type Serialization (incl. Version Tolerant Assembly Resolution)
+		#region Type Serialization
 
-		private static          Dictionary<string, Assembly> sAssemblyTable                    = new Dictionary<string, Assembly>(); // fully qualified assembly name => assembly
-		private static readonly object                       sAssemblyTableLock                = new object();                       // lock protecting the assembly table
-		private static          Dictionary<string, Type>     sTypeTable                        = new Dictionary<string, Type>();     // assembly-qualified type name => type
-		private static readonly object                       sTypeTableLock                    = new object();                       // lock protecting the type table
-		private static          Dictionary<Type, byte[]>     sSerializedTypeSnippetsByType     = new Dictionary<Type, byte[]>();     // type => UTF-8 encoded assembly-qualified type name
-		private static readonly object                       sSerializedTypeSnippetsByTypeLock = new object();                       // lock protecting the type snippet table
+		private static          Dictionary<string, Type> sTypeTable                        = new Dictionary<string, Type>(); // assembly-qualified type name => type
+		private static readonly object                   sTypeTableLock                    = new object();                   // lock protecting the type table
+		private static          Dictionary<Type, byte[]> sSerializedTypeSnippetsByType     = new Dictionary<Type, byte[]>(); // type => UTF-8 encoded assembly-qualified type name
+		private static readonly object                   sSerializedTypeSnippetsByTypeLock = new object();                   // lock protecting the type snippet table
 
 		/// <summary>
 		/// Serializes metadata about a type.
@@ -1059,7 +1045,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Type specified in the stream could not be loaded.</exception>
 		private void ReadTypeMetadata(Stream stream)
 		{
-			// read number of characters in the following string
+			// read number of utf-8 code units in the following string
 			int length = Leb128EncodingHelper.ReadInt32(stream);
 
 			// read type full name
@@ -1079,35 +1065,22 @@ namespace GriffinPlus.Lib.Serialization
 			}
 			else
 			{
-				type = Type.GetType(typename, ResolveAssembly, null, false);
-				if (type != null)
+				type = ResolveType(typename);
+
+				// remember the determined name-to-type mapping
+				lock (sTypeTableLock)
 				{
-					// remember the determined name-to-type mapping
-					lock (sTypeTableLock)
+					if (!sTypeTable.ContainsKey(typename))
 					{
-						if (!sTypeTable.ContainsKey(typename))
-						{
-							var copy = new Dictionary<string, Type>(sTypeTable) { { typename, type } };
-							Thread.MemoryBarrier();
-							sTypeTable = copy;
-						}
+						var copy = new Dictionary<string, Type>(sTypeTable) { { typename, type } };
+						Thread.MemoryBarrier();
+						sTypeTable = copy;
 					}
-
-					// assign a type id if the serializer uses assembly and type ids
-					typeItem = new TypeItem(typename, type);
-					mDeserializedTypeIdTable.Add(mNextDeserializedTypeId++, typeItem);
 				}
-				else
-				{
-					// type is unknown
 
-					sLog.Write(
-						LogLevel.Error,
-						"Stream contains an unknown type (type: {0}). Aborting deserialization...",
-						typename);
-
-					throw new SerializationException("Unable to load type " + typename + ".");
-				}
+				// assign a type id if the serializer uses assembly and type ids
+				typeItem = new TypeItem(typename, type);
+				mDeserializedTypeIdTable.Add(mNextDeserializedTypeId++, typeItem);
 			}
 
 			if (typeItem.Type.IsGenericTypeDefinition)
@@ -1151,183 +1124,143 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Is called to resolve the assembly name read during deserialization to the correct assembly.
+		/// Resolves the specified assembly qualified type name to the corresponding <see cref="Type"/> object
+		/// taking resolution tolerance criteria into account.
 		/// </summary>
-		/// <param name="assemblyName">Name of the assembly to resolve.</param>
-		/// <returns>The resolved assembly.</returns>
-		private Assembly ResolveAssembly(AssemblyName assemblyName)
+		/// <param name="assemblyQualifiedTypeName">The assembly qualified type name to resolve.</param>
+		/// <returns>
+		/// The <see cref="Type"/> object corresponding to the specified type name
+		/// (may be some other type than it was originally, if tolerant deserialization is enabled).
+		/// </returns>
+		/// <exception cref="TypeResolutionException">The type could not be resolved.</exception>
+		/// <exception cref="AmbiguousTypeResolutionException">The type could not be resolved unambiguously.</exception>
+		/// <exception cref="SerializationException">Type could be resolved, but tolerant deserialization is disabled and the type was not resolved exactly.</exception>
+		private Type ResolveType(string assemblyQualifiedTypeName)
 		{
-			// ----------------------------------------------------------------------------------------------------------------
-			// check whether the assembly has been resolved before
-			// ----------------------------------------------------------------------------------------------------------------
-			if (sAssemblyTable.TryGetValue(assemblyName.FullName, out var assembly))
+			// split assembly name and type name
+			int index = assemblyQualifiedTypeName.IndexOf(',');
+			if (index < 0 || index + 1 == assemblyQualifiedTypeName.Length) throw new SerializationException($"Detected invalid type name ({assemblyQualifiedTypeName}) during deserialization.");
+			string fullTypeName = assemblyQualifiedTypeName.Substring(0, index).Trim();
+			var assemblyName = new AssemblyName(assemblyQualifiedTypeName.Substring(index + 1).Trim());
+
+			// -----------------------------------------------------------------------------------------------------------------
+			// determine types with the same full name (independent of the assembly the type is declared in)
+			// -----------------------------------------------------------------------------------------------------------------
+
+			var matchingTypes = AppDomainInfo
+				.TypesByFullName
+				.Where(x => x.Key == fullTypeName)
+				.Select(x => x.Value)
+				.FirstOrDefault();
+
+			if (matchingTypes == null)
 			{
-				if (!mIsVersionTolerant && assembly.FullName != assemblyName.FullName)
+				string message = $"Resolving type ({assemblyQualifiedTypeName}) failed. There is no assembly containing a type with that name ({fullTypeName}).";
+				sLog.Write(LogLevel.Debug, message);
+				throw new TypeResolutionException(message, assemblyQualifiedTypeName);
+			}
+
+			// -----------------------------------------------------------------------------------------------------------------
+			// take the type with the assembly matching exactly, if possible 
+			// -----------------------------------------------------------------------------------------------------------------
+
+			sLog.Write(
+				LogLevel.Debug,
+				"Trying to resolve type ({0}) by its assembly qualified name...",
+				assemblyQualifiedTypeName);
+
+			var resolvedTypes = matchingTypes.Where(x => x.Assembly.FullName == assemblyName.FullName).ToArray();
+			if (resolvedTypes.Length == 1) goto proceed;
+			if (resolvedTypes.Length > 1)
+			{
+				string message = $"Resolving type ({assemblyQualifiedTypeName}) failed. The full assembly name is ambiguous.";
+				sLog.Write(LogLevel.Debug, message);
+				throw new AmbiguousTypeResolutionException(
+					message,
+					assemblyQualifiedTypeName,
+					resolvedTypes);
+			}
+
+			// -----------------------------------------------------------------------------------------------------------------
+			// fall back to the type in an assembly with the same simple assembly name
+			// (this does not take the version and the public key into account)
+			// -----------------------------------------------------------------------------------------------------------------
+
+			sLog.Write(
+				LogLevel.Debug,
+				"Trying to tolerantly resolve type ({0}) using the full name of the type ({1}) and the simple name of the declaring assembly ({2})...",
+				assemblyQualifiedTypeName,
+				fullTypeName,
+				assemblyName.Name);
+
+			resolvedTypes = matchingTypes.Where(x => x.Assembly.GetName().Name == assemblyName.Name).ToArray();
+			if (resolvedTypes.Length == 1) goto proceed;
+			if (resolvedTypes.Length > 1)
+			{
+				string message = $"Resolving type ({assemblyQualifiedTypeName}) failed. The simple assembly name is ambiguous.";
+				sLog.Write(LogLevel.Debug, message);
+				throw new AmbiguousTypeResolutionException(
+					message,
+					assemblyQualifiedTypeName,
+					resolvedTypes);
+			}
+
+			// -----------------------------------------------------------------------------------------------------------------
+			// fall back to the type in an assembly with some other name
+			// (type has probably migrated, maybe due to a different .NET version)
+			// -----------------------------------------------------------------------------------------------------------------
+
+			sLog.Write(
+				LogLevel.Debug,
+				"Trying to tolerantly resolve type ({0}) to some other assembly...",
+				assemblyQualifiedTypeName);
+
+			resolvedTypes = matchingTypes.ToArray();
+			if (resolvedTypes.Length == 1) goto proceed;
+			if (resolvedTypes.Length > 1)
+			{
+				string message = $"Resolving type ({assemblyQualifiedTypeName}) failed. There are multiple assemblies defining a type with that name ({fullTypeName}).";
+				sLog.Write(LogLevel.Debug, message);
+				throw new AmbiguousTypeResolutionException(
+					message,
+					assemblyQualifiedTypeName,
+					resolvedTypes);
+			}
+
+			// -----------------------------------------------------------------------------------------------------------------
+
+			proceed:
+
+			// at this point there should be exactly one resolved type
+			// (other cases have been covered above)
+			Debug.Assert(resolvedTypes.Length == 1);
+
+			// check whether the resolution was done exactly or tolerantly
+			var resolvedType = resolvedTypes[0];
+			if (resolvedType.AssemblyQualifiedName == assemblyQualifiedTypeName)
+			{
+				sLog.Write(
+					LogLevel.Debug,
+					"The type ({0}) was resolved exactly.",
+					assemblyQualifiedTypeName);
+			}
+			else
+			{
+				sLog.Write(
+					LogLevel.Debug,
+					"The type ({0}) was resolved tolerantly to ({1})",
+					assemblyQualifiedTypeName,
+					resolvedType.AssemblyQualifiedName);
+
+				if (!mUseTolerantDeserialization)
 				{
 					throw new SerializationException(
-						"Resolving full name of assembly ({0}) failed. Resolution to assembly ({1}) exists, but the serializer is configured to be version-intolerant.",
-						assemblyName.FullName,
-						assembly.FullName);
-				}
-
-				return assembly;
-			}
-
-			sLog.Write(
-				LogLevel.Debug,
-				"Trying to load assembly by its full name ({0}).",
-				assemblyName.FullName);
-
-			// ----------------------------------------------------------------------------------------------------------------
-			// try to load the assembly by its full name
-			// (searches the application base directory, its private directories and the Global Assembly Cache (GAC) (.NET Framework only))
-			// ----------------------------------------------------------------------------------------------------------------
-			try
-			{
-				assembly = Assembly.Load(assemblyName);
-
-				sLog.Write(
-					LogLevel.Debug,
-					"Loading assembly by its full name ({0}) succeeded.",
-					assemblyName.FullName);
-
-				KeepAssemblyResolution(assemblyName.FullName, assembly);
-				return assembly;
-			}
-			catch (Exception ex)
-			{
-				if (mIsVersionTolerant)
-				{
-					sLog.Write(
-						LogLevel.Debug,
-						"Loading assembly by its full name ({0}) failed. Trying to load assembly allowing a different version.\nException: {1}",
-						assemblyName.FullName,
-						ex);
-				}
-				else
-				{
-					sLog.Write(
-						LogLevel.Error,
-						"Loading assembly by its full name ({0}) failed.\nException: {1}",
-						assemblyName.FullName,
-						ex);
-
-					throw;
+						"The type ({0}) could be resolved, but tolerant deserialization is disabled and the type was not resolved exactly.",
+						assemblyQualifiedTypeName);
 				}
 			}
 
-			// ----------------------------------------------------------------------------------------------------------------
-			// try to load assembly from the application's base directory
-			// (assumes that the file name is the same as the assembly name, ignores version information)
-			// ----------------------------------------------------------------------------------------------------------------
-
-			string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, assemblyName.Name + ".dll");
-
-			sLog.Write(
-				LogLevel.Debug,
-				"Trying to load assembly ({0}) from file ({1}).",
-				assemblyName.Name,
-				path);
-
-			try
-			{
-				assembly = Assembly.LoadFrom(path);
-
-				sLog.Write(
-					LogLevel.Debug,
-					"Loading assembly ({0}) from file ({1}) succeeded.",
-					assemblyName.Name,
-					path);
-
-				KeepAssemblyResolution(assemblyName.FullName, assembly);
-				return assembly;
-			}
-			catch (FileNotFoundException)
-			{
-				// try next...
-			}
-			catch (Exception ex)
-			{
-				sLog.Write(
-					LogLevel.Error,
-					"Loading assembly ({0}) from file ({1}) failed.\nException: {2}",
-					assemblyName.Name,
-					path,
-					ex);
-
-				throw;
-			}
-
-			// ----------------------------------------------------------------------------------------------------------------
-			// try to load assembly from the private bin path
-			// (assumes that the file name is the same as the assembly name, ignores version information)
-			// ----------------------------------------------------------------------------------------------------------------
-
-			if (!string.IsNullOrEmpty(AppDomain.CurrentDomain.RelativeSearchPath))
-			{
-				path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, AppDomain.CurrentDomain.RelativeSearchPath, assemblyName.Name);
-
-				sLog.Write(
-					LogLevel.Debug,
-					"Trying to load assembly ({0}) from ({1}).",
-					assemblyName.Name,
-					path);
-
-				try
-				{
-					assembly = Assembly.LoadFrom(path);
-
-					sLog.Write(
-						LogLevel.Debug,
-						"Loading assembly ({0}) from file ({1}) succeeded.",
-						assemblyName.Name,
-						path);
-
-					KeepAssemblyResolution(assemblyName.FullName, assembly);
-					return assembly;
-				}
-				catch (FileNotFoundException)
-				{
-					// try next...
-				}
-				catch (Exception ex)
-				{
-					sLog.Write(
-						LogLevel.Error,
-						"Loading assembly ({0}) from file ({1}) failed.\nException: {2}",
-						assemblyName.FullName,
-						path,
-						ex);
-
-					throw;
-				}
-			}
-
-			sLog.Write(
-				LogLevel.Error,
-				"Resolving name of assembly ({0}) failed. File could not be found.",
-				assemblyName.FullName,
-				path);
-
-			return null;
-		}
-
-		/// <summary>
-		/// Keeps the result of an assembly resolution in the assembly cache.
-		/// </summary>
-		/// <param name="assemblyFullName">Full name of the assembly (as read during deserialization).</param>
-		/// <param name="assembly">Assembly to use, if the specified assembly name is encountered.</param>
-		private static void KeepAssemblyResolution(string assemblyFullName, Assembly assembly)
-		{
-			lock (sAssemblyTableLock)
-			{
-				if (!sAssemblyTable.ContainsKey(assemblyFullName))
-				{
-					var copy = new Dictionary<string, Assembly>(sAssemblyTable) { { assemblyFullName, assembly } };
-					Thread.MemoryBarrier();
-					sAssemblyTable = copy;
-				}
-			}
+			return resolvedType;
 		}
 
 		#endregion
@@ -1398,19 +1331,29 @@ namespace GriffinPlus.Lib.Serialization
 		#region Configuration
 
 		/// <summary>
-		/// Gets the default value indicating whether the serializer allows to resolve a full assembly name during deserialization
-		/// to a different assembly with the same name, but a different version number.
+		/// Gets or sets the default value indicating whether the serializer is tolerant when deserializing.
+		/// Enabling this allows to deserialize an object even if the assembly is strong-name signed and the version does not match.
+		/// Furthermore types may travel between different assemblies. In this case the full type name is used to find a certain type.
+		/// This is strictly necessary when using .NET framework types and serialization and deserialization is done on different .NET
+		/// versions. New serializer instances will use this setting to initialize their <see cref="UseTolerantDeserialization"/> property.
 		/// </summary>
-		public static bool IsVersionTolerantDefault => sIsVersionTolerantDefault;
+		public static bool UseTolerantDeserializationByDefault
+		{
+			get => sUseTolerantDeserializationByDefault;
+			set => sUseTolerantDeserializationByDefault = value;
+		}
 
 		/// <summary>
-		/// Gets or sets a value indicating whether the serializer allows to resolve a full assembly name during deserialization
-		/// to a different assembly with the same name, but a different version number.
+		/// Gets or sets a value indicating whether the serializer is tolerant when deserializing.
+		/// Enabling this allows to deserialize an object even if the assembly is strong-name signed and the version does not match.
+		/// Furthermore types may travel between different assemblies. In this case the full type name is used to find a certain type.
+		/// This is strictly necessary when using .NET framework types and serialization and deserialization is done on different .NET
+		/// versions. New serializer instances will use this setting to initialize their <see cref="UseTolerantDeserialization"/> property.
 		/// </summary>
-		public bool IsVersionTolerant
+		public bool UseTolerantDeserialization
 		{
-			get => mIsVersionTolerant;
-			set => mIsVersionTolerant = value;
+			get => mUseTolerantDeserialization;
+			set => mUseTolerantDeserialization = value;
 		}
 
 		#endregion
@@ -2000,12 +1943,8 @@ namespace GriffinPlus.Lib.Serialization
 				}
 				else
 				{
-					type = Type.GetType(typename, ResolveAssembly, null, false);
-
-					if (type == null)
-					{
-						throw new SerializationException("Unable to load type " + typename + ".");
-					}
+					// resolve type by its name
+					type = ResolveType(typename);
 
 					// remember the determined name-to-type mapping
 					lock (sTypeTableLock)
@@ -2287,7 +2226,7 @@ namespace GriffinPlus.Lib.Serialization
 			try
 			{
 				stream = GetPooledMemoryBlockStream();
-				serializer = GetPooledSerializer();
+				serializer = GetPooledSerializer(false);
 				serializer.Serialize(stream, obj, serializationContext);
 				stream.Position = 0;
 				copy = serializer.Deserialize(stream, deserializationContext);
@@ -2352,7 +2291,7 @@ namespace GriffinPlus.Lib.Serialization
 			try
 			{
 				stream = GetPooledMemoryBlockStream();
-				serializer = GetPooledSerializer();
+				serializer = GetPooledSerializer(false);
 				serializer.Serialize(stream, obj, serializationContext);
 				stream.Position = 0;
 				copy = serializer.Deserialize(stream, deserializationContext);
@@ -2437,7 +2376,7 @@ namespace GriffinPlus.Lib.Serialization
 			try
 			{
 				stream = GetPooledMemoryBlockStream();
-				serializer = GetPooledSerializer();
+				serializer = GetPooledSerializer(false);
 				serializer.Serialize(stream, obj, serializationContext);
 				for (int i = 0; i < count; i++)
 				{
@@ -2650,12 +2589,15 @@ namespace GriffinPlus.Lib.Serialization
 		/// Gets a serializer from the pool.
 		/// </summary>
 		/// <returns>A serializer.</returns>
-		private static Serializer GetPooledSerializer()
+		private static Serializer GetPooledSerializer(bool useTolerantDeserialization)
 		{
 			if (sSerializerPool.TryTake(out var serializer))
+			{
+				serializer.UseTolerantDeserialization = useTolerantDeserialization;
 				return serializer;
+			}
 
-			return new Serializer();
+			return new Serializer { UseTolerantDeserialization = useTolerantDeserialization };
 		}
 
 		/// <summary>
