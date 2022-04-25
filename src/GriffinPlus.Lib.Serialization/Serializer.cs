@@ -691,19 +691,6 @@ namespace GriffinPlus.Lib.Serialization
 				var assembly = kvp.Key;
 				var types = kvp.Value;
 
-				// skip assemblies that are not in the application's base directory or a sub-directory of it
-				// (custom serializers are expected to occur in assemblies in this directory only)
-				try
-				{
-					string assemblyPath = Path.GetFullPath(assembly.Location);
-					if (!assemblyPath.StartsWith(applicationBasePath))
-						continue;
-				}
-				catch (Exception)
-				{
-					continue;
-				}
-
 				// scan assembly for custom serializers
 				foreach (var type in types)
 				{
