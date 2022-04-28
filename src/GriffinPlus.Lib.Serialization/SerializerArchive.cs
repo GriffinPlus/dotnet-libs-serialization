@@ -22,10 +22,10 @@ namespace GriffinPlus.Lib.Serialization
 		#region Constants
 
 		/// <summary>
-		/// Maximum buffer size when resizing <see cref="Serializer.TempBuffer_BigBuffer"/> for reading/writing
+		/// Maximum buffer size when resizing <see cref="Serializer.TempBuffer_Buffer"/> for reading/writing
 		/// streams and unmanaged buffers.
 		/// </summary>
-		internal const int TempBufferMaxSize = 256 * 1024;
+		internal const int TempBufferMaxSize = 80000; // Objects > 85000 bytes are allocated on the large object heap, so keep away from this limit!
 
 		#endregion
 
@@ -741,14 +741,12 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				// some other stream
 				// => copying data to a temporary buffer is needed before passing it to the stream
-				if (mSerializer.TempBuffer_BigBuffer.Length < TempBufferMaxSize)
-					mSerializer.TempBuffer_BigBuffer = new byte[TempBufferMaxSize];
-
+				mSerializer.EnsureTemporaryByteBufferSize(TempBufferMaxSize);
 				while (count > 0)
 				{
-					int bytesToCopy = (int)Math.Min(count, mSerializer.TempBuffer_BigBuffer.Length);
-					Marshal.Copy(p, mSerializer.TempBuffer_BigBuffer, 0, bytesToCopy);
-					mStream.Write(mSerializer.TempBuffer_BigBuffer, 0, bytesToCopy);
+					int bytesToCopy = (int)Math.Min(count, mSerializer.TempBuffer_Buffer.Length);
+					Marshal.Copy(p, mSerializer.TempBuffer_Buffer, 0, bytesToCopy);
+					mStream.Write(mSerializer.TempBuffer_Buffer, 0, bytesToCopy);
 					count -= bytesToCopy;
 					p += bytesToCopy;
 				}
@@ -788,15 +786,12 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				// some other stream
 				// => copying data to a temporary buffer is needed before passing it to the stream
-
-				if (mSerializer.TempBuffer_BigBuffer.Length < TempBufferMaxSize)
-					mSerializer.TempBuffer_BigBuffer = new byte[TempBufferMaxSize];
-
+				mSerializer.EnsureTemporaryByteBufferSize(TempBufferMaxSize);
 				while (count > 0 && length > 0)
 				{
-					int bytesToRead = (int)Math.Min(count, mSerializer.TempBuffer_BigBuffer.Length);
-					if (mStream.Read(mSerializer.TempBuffer_BigBuffer, 0, bytesToRead) != bytesToRead) throw new SerializationException("Stream ended unexpectedly.");
-					Marshal.Copy(mSerializer.TempBuffer_BigBuffer, 0, p, bytesToRead);
+					int bytesToRead = (int)Math.Min(count, mSerializer.TempBuffer_Buffer.Length);
+					if (mStream.Read(mSerializer.TempBuffer_Buffer, 0, bytesToRead) != bytesToRead) throw new SerializationException("Stream ended unexpectedly.");
+					Marshal.Copy(mSerializer.TempBuffer_Buffer, 0, p, bytesToRead);
 					length -= bytesToRead;
 					count -= bytesToRead;
 					p += bytesToRead;
@@ -814,13 +809,11 @@ namespace GriffinPlus.Lib.Serialization
 				}
 				else
 				{
-					if (mSerializer.TempBuffer_BigBuffer.Length < TempBufferMaxSize)
-						mSerializer.TempBuffer_BigBuffer = new byte[TempBufferMaxSize];
-
+					mSerializer.EnsureTemporaryByteBufferSize(TempBufferMaxSize);
 					while (length > 0)
 					{
-						int bytesToRead = (int)Math.Min(length, mSerializer.TempBuffer_BigBuffer.Length);
-						if (mStream.Read(mSerializer.TempBuffer_BigBuffer, 0, bytesToRead) != bytesToRead) throw new SerializationException("Stream ended unexpectedly.");
+						int bytesToRead = (int)Math.Min(length, mSerializer.TempBuffer_Buffer.Length);
+						if (mStream.Read(mSerializer.TempBuffer_Buffer, 0, bytesToRead) != bytesToRead) throw new SerializationException("Stream ended unexpectedly.");
 						length -= bytesToRead;
 					}
 				}
@@ -854,14 +847,12 @@ namespace GriffinPlus.Lib.Serialization
 				using (var bufferStream = new MemoryBlockStream())
 				{
 					// read stream into temporary buffer
-					if (mSerializer.TempBuffer_BigBuffer.Length < TempBufferMaxSize)
-						mSerializer.TempBuffer_BigBuffer = new byte[TempBufferMaxSize];
-
+					mSerializer.EnsureTemporaryByteBufferSize(TempBufferMaxSize);
 					while (true)
 					{
-						int bytesRead = s.Read(mSerializer.TempBuffer_BigBuffer, 0, mSerializer.TempBuffer_BigBuffer.Length);
+						int bytesRead = s.Read(mSerializer.TempBuffer_Buffer, 0, mSerializer.TempBuffer_Buffer.Length);
 						if (bytesRead == 0) break;
-						bufferStream.Write(mSerializer.TempBuffer_BigBuffer, 0, bytesRead);
+						bufferStream.Write(mSerializer.TempBuffer_Buffer, 0, bytesRead);
 					}
 
 					bufferStream.Position = 0;
@@ -893,14 +884,12 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				// some other stream
 				// => copying data to a temporary buffer is needed before passing it to the stream
-				if (mSerializer.TempBuffer_BigBuffer.Length < TempBufferMaxSize)
-					mSerializer.TempBuffer_BigBuffer = new byte[TempBufferMaxSize];
-
+				mSerializer.EnsureTemporaryByteBufferSize(TempBufferMaxSize);
 				while (true)
 				{
-					int bytesRead = stream.Read(mSerializer.TempBuffer_BigBuffer, 0, mSerializer.TempBuffer_BigBuffer.Length);
+					int bytesRead = stream.Read(mSerializer.TempBuffer_Buffer, 0, mSerializer.TempBuffer_Buffer.Length);
 					if (bytesRead == 0) break;
-					mStream.Write(mSerializer.TempBuffer_BigBuffer, 0, bytesRead);
+					mStream.Write(mSerializer.TempBuffer_Buffer, 0, bytesRead);
 				}
 			}
 		}
@@ -993,7 +982,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					// stream does not support seeking
 					// => read and discard bytes to skip
-					byte[] buffer = mSerializer.TempBuffer_BigBuffer;
+					byte[] buffer = mSerializer.TempBuffer_Buffer;
 					while (bytesToSkip > 0)
 					{
 						int bytesToRead = (int)Math.Min(bytesToSkip, int.MaxValue);

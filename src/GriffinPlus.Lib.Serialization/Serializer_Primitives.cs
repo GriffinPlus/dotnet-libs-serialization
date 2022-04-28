@@ -12,25 +12,6 @@ namespace GriffinPlus.Lib.Serialization
 
 	partial class Serializer
 	{
-		#region Temporary Buffers
-
-		internal byte[]    TempBuffer_UInt8     = new byte[1];
-		internal ushort[]  TempBuffer_UInt16    = new ushort[1];
-		internal uint[]    TempBuffer_UInt32    = new uint[1];
-		internal ulong[]   TempBuffer_UInt64    = new ulong[1];
-		internal sbyte[]   TempBuffer_Int8      = new sbyte[1];
-		internal short[]   TempBuffer_Int16     = new short[1];
-		internal int[]     TempBuffer_Int32     = new int[4]; // intermediate buffer for decimal conversion as well
-		internal long[]    TempBuffer_Int64     = new long[1];
-		internal char[]    TempBuffer_Char      = new char[1];
-		internal float[]   TempBuffer_Single    = new float[1];
-		internal double[]  TempBuffer_Double    = new double[1];
-		internal decimal[] TempBuffer_Decimal   = new decimal[1];
-		internal byte[]    TempBuffer_Buffer    = new byte[16];
-		internal byte[]    TempBuffer_BigBuffer = new byte[256]; // resized on demand
-
-		#endregion
-
 		#region System.Boolean
 
 		/// <summary>
@@ -429,18 +410,21 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="stream">Stream to write the string to.</param>
 		internal void WritePrimitive_String(string value, Stream stream)
 		{
-			// convert string to utf-8
-			int size = Encoding.UTF8.GetMaxByteCount(value.Length);
-			if (TempBuffer_BigBuffer.Length < size) TempBuffer_BigBuffer = new byte[size];
-			int valueByteCount = Encoding.UTF8.GetBytes(value, 0, value.Length, TempBuffer_BigBuffer, 0);
+			// resize temporary buffer for the encoding the string
+			// (reserve max. expected bytes for the string + max. 5 bytes of LEB128 encoded 32 bit integer + 1 byte for payload type)
+			int size = Encoding.UTF8.GetMaxByteCount(value.Length) + 6;
+			EnsureTemporaryByteBufferSize(size);
 
-			// write header
-			TempBuffer_Buffer[0] = (byte)PayloadType.String;
-			int count = Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, valueByteCount);
-			stream.Write(TempBuffer_Buffer, 0, 1 + count);
+			// encode the string
+			int valueByteCount = Encoding.UTF8.GetBytes(value, 0, value.Length, TempBuffer_Buffer, 6);
+			
+			// put the header with the payload type and the size of the encoded string in front of the encoded string
+			int headerLength = Leb128EncodingHelper.GetByteCount(valueByteCount) + 1;
+			TempBuffer_Buffer[6 - headerLength] = (byte)PayloadType.String;
+			Leb128EncodingHelper.Write(TempBuffer_Buffer, 7 - headerLength, valueByteCount);
 
-			// write string
-			stream.Write(TempBuffer_BigBuffer, 0, valueByteCount);
+			// write the sequence to the stream
+			stream.Write(TempBuffer_Buffer, 6 - headerLength, headerLength + valueByteCount);
 			mSerializedObjectIdTable.Add(value, mNextSerializedObjectId++);
 		}
 
@@ -454,12 +438,12 @@ namespace GriffinPlus.Lib.Serialization
 			int size = Leb128EncodingHelper.ReadInt32(stream);
 
 			// read encoded string
-			if (TempBuffer_BigBuffer.Length < size) TempBuffer_BigBuffer = new byte[size];
-			int bytesRead = stream.Read(TempBuffer_BigBuffer, 0, size);
+			EnsureTemporaryByteBufferSize(size);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
 
 			// decode string
-			string s = Encoding.UTF8.GetString(TempBuffer_BigBuffer, 0, size);
+			string s = Encoding.UTF8.GetString(TempBuffer_Buffer, 0, size);
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, s);
 			return s;
 		}

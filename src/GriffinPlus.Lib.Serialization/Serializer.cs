@@ -1454,8 +1454,16 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Serializing the object failed.</exception>
 		public void Serialize(Stream stream, object obj, object context = null)
 		{
-			ResetSerializer();
-			InnerSerialize(stream, obj, context);
+			try
+			{
+				ResetSerializer();
+				AllocateTemporaryBuffers();
+				InnerSerialize(stream, obj, context);
+			}
+			finally
+			{
+				ReleaseTemporaryBuffers();
+			}
 		}
 
 		/// <summary>
@@ -1908,8 +1916,16 @@ namespace GriffinPlus.Lib.Serialization
 		/// </exception>
 		public object Deserialize(Stream stream, object context = null)
 		{
-			ResetDeserializer();
-			return InnerDeserialize(stream, context);
+			try
+			{
+				ResetDeserializer();
+				AllocateTemporaryBuffers();
+				return InnerDeserialize(stream, context);
+			}
+			finally
+			{
+				ReleaseTemporaryBuffers();
+			}
 		}
 
 		/// <summary>

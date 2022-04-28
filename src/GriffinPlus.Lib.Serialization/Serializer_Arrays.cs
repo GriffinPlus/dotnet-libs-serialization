@@ -43,12 +43,12 @@ namespace GriffinPlus.Lib.Serialization
 			int length = array.Length;
 			int sizeByteCount = Leb128EncodingHelper.GetByteCount(length);
 			int size = 1 + sizeByteCount + length * elementSize;
-			if (TempBuffer_BigBuffer.Length < size) TempBuffer_BigBuffer = new byte[size];
-			TempBuffer_BigBuffer[0] = (byte)type;
-			Leb128EncodingHelper.Write(TempBuffer_BigBuffer, 1, length);
+			EnsureTemporaryByteBufferSize(size);
+			TempBuffer_Buffer[0] = (byte)type;
+			Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, length);
 			int index = 1 + sizeByteCount;
-			Buffer.BlockCopy(array, 0, TempBuffer_BigBuffer, index, length * elementSize);
-			stream.Write(TempBuffer_BigBuffer, 0, size);
+			Buffer.BlockCopy(array, 0, TempBuffer_Buffer, index, length * elementSize);
+			stream.Write(TempBuffer_Buffer, 0, size);
 			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
 		}
 
@@ -64,17 +64,17 @@ namespace GriffinPlus.Lib.Serialization
 			int length = array.Length;
 			int sizeByteCount = Leb128EncodingHelper.GetByteCount(length);
 			int size = 1 + sizeByteCount + length * elementSize;
-			if (TempBuffer_BigBuffer.Length < size) TempBuffer_BigBuffer = new byte[size];
-			TempBuffer_BigBuffer[0] = (byte)PayloadType.ArrayOfDecimal;
-			int index = Leb128EncodingHelper.Write(TempBuffer_BigBuffer, 1, length) + 1;
+			EnsureTemporaryByteBufferSize(size);
+			TempBuffer_Buffer[0] = (byte)PayloadType.ArrayOfDecimal;
+			int index = Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, length) + 1;
 			for (int i = 0; i < length; i++)
 			{
 				int[] bits = decimal.GetBits(array[i]);
-				Buffer.BlockCopy(bits, 0, TempBuffer_BigBuffer, index, elementSize);
+				Buffer.BlockCopy(bits, 0, TempBuffer_Buffer, index, elementSize);
 				index += elementSize;
 			}
 
-			stream.Write(TempBuffer_BigBuffer, 0, index);
+			stream.Write(TempBuffer_Buffer, 0, index);
 			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
 		}
 
@@ -124,11 +124,11 @@ namespace GriffinPlus.Lib.Serialization
 			foreach (var dt in array)
 			{
 				TempBuffer_Int64[0] = dt.ToBinary();
-				Buffer.BlockCopy(TempBuffer_Int64, 0, TempBuffer_BigBuffer, index, elementSize);
+				Buffer.BlockCopy(TempBuffer_Int64, 0, TempBuffer_Buffer, index, elementSize);
 				index += elementSize;
 			}
 
-			stream.Write(TempBuffer_BigBuffer, 0, size);
+			stream.Write(TempBuffer_Buffer, 0, size);
 			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
 		}
 
@@ -193,10 +193,10 @@ namespace GriffinPlus.Lib.Serialization
 
 			// read array data
 			var array = FastActivator.CreateArray(type, length);
-			if (TempBuffer_BigBuffer.Length < length) TempBuffer_BigBuffer = new byte[size];
-			int bytesRead = stream.Read(TempBuffer_BigBuffer, 0, size);
+			EnsureTemporaryByteBufferSize(size);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
-			Buffer.BlockCopy(TempBuffer_BigBuffer, 0, array, 0, size);
+			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
@@ -216,8 +216,8 @@ namespace GriffinPlus.Lib.Serialization
 			int size = length * elementSize;
 
 			// read data from stream
-			if (TempBuffer_BigBuffer.Length < length) TempBuffer_BigBuffer = new byte[size];
-			int bytesRead = stream.Read(TempBuffer_BigBuffer, 0, size);
+			EnsureTemporaryByteBufferSize(size);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
 
 			// read array data
@@ -225,7 +225,7 @@ namespace GriffinPlus.Lib.Serialization
 			int index = 0;
 			for (int i = 0; i < length; i++)
 			{
-				Buffer.BlockCopy(TempBuffer_BigBuffer, index, TempBuffer_Int32, 0, elementSize);
+				Buffer.BlockCopy(TempBuffer_Buffer, index, TempBuffer_Int32, 0, elementSize);
 				array[i] = new decimal(TempBuffer_Int32);
 				index += elementSize;
 			}
@@ -271,10 +271,10 @@ namespace GriffinPlus.Lib.Serialization
 
 			// read array data
 			var array = new DateTime[length];
-			if (TempBuffer_BigBuffer.Length < size) TempBuffer_BigBuffer = new byte[size];
-			int bytesRead = stream.Read(TempBuffer_BigBuffer, 0, size);
+			EnsureTemporaryByteBufferSize(size);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
-			for (int i = 0; i < length; i++) array[i] = DateTime.FromBinary(BitConverter.ToInt64(TempBuffer_BigBuffer, i * elementSize));
+			for (int i = 0; i < length; i++) array[i] = DateTime.FromBinary(BitConverter.ToInt64(TempBuffer_Buffer, i * elementSize));
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
@@ -337,9 +337,9 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			int size = totalCount * elementSize;
-			if (TempBuffer_BigBuffer.Length < size) TempBuffer_BigBuffer = new byte[size];
-			Buffer.BlockCopy(array, 0, TempBuffer_BigBuffer, 0, size);
-			stream.Write(TempBuffer_BigBuffer, 0, size);
+			EnsureTemporaryByteBufferSize(size);
+			Buffer.BlockCopy(array, 0, TempBuffer_Buffer, 0, size);
+			stream.Write(TempBuffer_Buffer, 0, size);
 
 			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
 		}
@@ -459,19 +459,19 @@ namespace GriffinPlus.Lib.Serialization
 
 			// resize temporary buffer, if necessary
 			int size = totalCount * elementSize;
-			if (TempBuffer_BigBuffer.Length < size) TempBuffer_BigBuffer = new byte[size];
+			EnsureTemporaryByteBufferSize(size);
 
 			// convert array elements
 			for (int i = 0; i < array.Length; i++)
 			{
 				var dt = (DateTime)array.GetValue(indices);
 				TempBuffer_Int64[0] = dt.ToBinary();
-				Buffer.BlockCopy(TempBuffer_Int64, 0, TempBuffer_BigBuffer, i * elementSize, elementSize);
+				Buffer.BlockCopy(TempBuffer_Int64, 0, TempBuffer_Buffer, i * elementSize, elementSize);
 				IncrementArrayIndices(indices, array);
 			}
 
 			// write to stream
-			stream.Write(TempBuffer_BigBuffer, 0, size);
+			stream.Write(TempBuffer_Buffer, 0, size);
 			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
 		}
 
@@ -542,10 +542,10 @@ namespace GriffinPlus.Lib.Serialization
 
 			// read array data
 			int size = totalCount;
-			if (TempBuffer_BigBuffer.Length < size) TempBuffer_BigBuffer = new byte[size];
-			int bytesRead = stream.Read(TempBuffer_BigBuffer, 0, size);
+			EnsureTemporaryByteBufferSize(size);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
-			Buffer.BlockCopy(TempBuffer_BigBuffer, 0, array, 0, size);
+			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
@@ -577,10 +577,10 @@ namespace GriffinPlus.Lib.Serialization
 
 			// read array data
 			int size = totalCount * elementSize;
-			if (TempBuffer_BigBuffer.Length < size) TempBuffer_BigBuffer = new byte[size];
-			int bytesRead = stream.Read(TempBuffer_BigBuffer, 0, size);
+			EnsureTemporaryByteBufferSize(size);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
-			Buffer.BlockCopy(TempBuffer_BigBuffer, 0, array, 0, size);
+			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
@@ -747,7 +747,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="type">Type of the payload.</param>
 		/// <param name="length">Length of the array (in elements).</param>
 		/// <param name="elementSize">Size of an element (in bytes).</param>
-		/// <param name="size">Receives the number of valid bytes in <see cref="TempBuffer_BigBuffer"/>.</param>
+		/// <param name="size">Receives the number of valid bytes in <see cref="TempBuffer_Buffer"/>.</param>
 		/// <returns>Index in the returned buffer where the array data part begins.</returns>
 		private int PrepareArrayBuffer(
 			PayloadType type,
@@ -757,9 +757,9 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			int sizeByteCount = Leb128EncodingHelper.GetByteCount(length);
 			size = 1 + sizeByteCount + length * elementSize;
-			if (TempBuffer_BigBuffer.Length < size) TempBuffer_BigBuffer = new byte[size];
-			TempBuffer_BigBuffer[0] = (byte)type;
-			Leb128EncodingHelper.Write(TempBuffer_BigBuffer, 1, length);
+			EnsureTemporaryByteBufferSize(size);
+			TempBuffer_Buffer[0] = (byte)type;
+			Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, length);
 			return 1 + sizeByteCount;
 		}
 
