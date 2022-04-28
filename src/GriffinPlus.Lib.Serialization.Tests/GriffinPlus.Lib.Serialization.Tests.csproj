@@ -7,6 +7,7 @@
 		<IsTestProject>true</IsTestProject>
 		<OmitDocumentationFile>true</OmitDocumentationFile>
 		<RootNamespace>UnitTests</RootNamespace>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<ItemGroup>

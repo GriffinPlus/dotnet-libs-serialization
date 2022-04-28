@@ -3,7 +3,6 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-using System;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable NonReadonlyMemberInGetHashCode
@@ -16,13 +15,11 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InternalObjectSerializer(1)]
 		public class TestClassWithInternalObjectSerializer_Derived : TestClassWithInternalObjectSerializer
 		{
-			public string   String   { get; set; }
-			public DateTime DateTime { get; set; }
+			public string AnotherString { get; set; }
 
 			public TestClassWithInternalObjectSerializer_Derived()
 			{
-				String = "The quick brown fox jumps over the lazy dog";
-				DateTime = DateTime.Now;
+				AnotherString = "The quick brown fox jumps over the lazy dog";
 			}
 
 			public TestClassWithInternalObjectSerializer_Derived(SerializerArchive archive) :
@@ -30,8 +27,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			{
 				if (archive.Version == 1)
 				{
-					String = archive.ReadString();
-					DateTime = archive.ReadDateTime();
+					AnotherString = archive.ReadString();
 				}
 				else
 				{
@@ -45,8 +41,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 				if (version == 1)
 				{
-					archive.Write(String);
-					archive.Write(DateTime);
+					archive.Write(AnotherString);
 				}
 				else
 				{
@@ -59,17 +54,14 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				unchecked
 				{
 					int hashCode = base.GetHashCode();
-					hashCode = (hashCode * 397) ^ (String != null ? String.GetHashCode() : 0);
-					hashCode = (hashCode * 397) ^ DateTime.GetHashCode();
+					hashCode = (hashCode * 397) ^ (AnotherString != null ? AnotherString.GetHashCode() : 0);
 					return hashCode;
 				}
 			}
 
 			protected bool Equals(TestClassWithInternalObjectSerializer_Derived other)
 			{
-				return base.Equals(other) &&
-				       String == other.String &&
-				       DateTime.Equals(other.DateTime);
+				return base.Equals(other) && AnotherString == other.AnotherString;
 			}
 
 			public override bool Equals(object obj)

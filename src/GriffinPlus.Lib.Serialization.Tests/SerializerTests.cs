@@ -4,6 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 
@@ -300,25 +301,32 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		/// <summary>
 		/// Tests serializing and deserializing a type object.
 		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_Type()
+		[Theory]
+		[InlineData(typeof(int))]                     // non-generic type
+		[InlineData(typeof(Dictionary<int, string>))] // closed constructed generic type
+		[InlineData(typeof(Dictionary<,>))]           // generic type definition
+		public void SerializeAndDeserialize_Type(Type type)
 		{
-			var value = typeof(SerializerTests);
-			object copy = SerializeAndDeserializeObject(value);
-			Assert.Equal(value, copy);
+			object copy = SerializeAndDeserializeObject(type);
+			Assert.Equal(type, copy);
 		}
 
 		/// <summary>
 		/// Tests serializing and deserializing an array of type objects (one-dimensional, zero-based indexing).
 		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_OneDimensionalArrayOfType()
+		[Theory]
+		[InlineData(typeof(int))]                                  // 1 element, non-generic type
+		[InlineData(typeof(Dictionary<int, string>))]              // 1 element, closed constructed generic type
+		[InlineData(typeof(Dictionary<,>))]                        // 1 element, generic type definition
+		[InlineData(typeof(int), typeof(uint))]                    // 2 elements, non-generic types only
+		[InlineData(typeof(int), typeof(Dictionary<int, string>))] // 2 elements, non-generic type and closed constructed generic type
+		[InlineData(typeof(int), typeof(Dictionary<,>))]           // 2 elements, non-generic type and generic type definition
+		public void SerializeAndDeserialize_OneDimensionalArrayOfType(params Type[] types)
 		{
-			Type[] array = { typeof(Serializer), typeof(SerializerArchive), typeof(SerializerTests), typeof(SerializerVersionTable) };
-			dynamic copy = SerializeAndDeserializeObject(array);
+			dynamic copy = SerializeAndDeserializeObject(types);
 			Assert.NotNull(copy);
 			Assert.IsType<Type[]>(copy);
-			Assert.Equal(array, copy);
+			Assert.Equal(types, copy);
 		}
 
 		/// <summary>

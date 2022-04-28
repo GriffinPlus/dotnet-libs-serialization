@@ -608,7 +608,7 @@ namespace GriffinPlus.Lib.Serialization
 			sDeserializers.Add(PayloadType.String, (serializer,     stream, context) => serializer.ReadPrimitive_String(stream));
 			sDeserializers.Add(PayloadType.DateTime, (serializer,   stream, context) => serializer.ReadPrimitive_DateTime(stream));
 			sDeserializers.Add(PayloadType.Object, (serializer,     stream, context) => serializer.ReadPrimitive_Object());
-			sDeserializers.Add(PayloadType.TypeObject, (serializer, stream, context) => serializer.ReadTypeObject(stream));
+			sDeserializers.Add(PayloadType.TypeObject, (serializer, stream, context) => serializer.ReadTypeObject(stream, out _));
 
 			// arrays of simple types (one-dimensional, zero-based indexing)
 			sDeserializers.Add(PayloadType.ArrayOfBoolean, (serializer,  stream, context) => serializer.ReadArrayOfPrimitives(stream, typeof(bool), sizeof(bool)));
@@ -645,6 +645,15 @@ namespace GriffinPlus.Lib.Serialization
 			sDeserializers.Add(PayloadType.MultidimensionalArrayOfString, (serializer,   stream, context) => serializer.ReadMultidimensionalStringArray(stream));
 			sDeserializers.Add(PayloadType.MultidimensionalArrayOfDateTime, (serializer, stream, context) => serializer.ReadMultidimensionalDateTimeArray(stream));
 			sDeserializers.Add(PayloadType.MultidimensionalArrayOfObjects, (serializer,  stream, context) => serializer.ReadMultidimensionalArrayOfObjects(stream, context));
+
+			// generic type
+			sDeserializers.Add(
+				PayloadType.GenericType,
+				(serializer, stream, context) =>
+				{
+					serializer.ReadTypeMetadata(stream);
+					return serializer.InnerDeserialize(stream, context);
+				});
 
 			// type
 			sDeserializers.Add(
@@ -945,7 +954,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// decompose generic types and store types separately to allow the deserializer to
 			// access assembly information of types used as generic arguments
-			WriteDecomposedType(stream, type.Decompose());
+			WriteDecomposedType(stream, type);
 
 			// store currently serialized type to avoid bloating the stream when a bunch of objects
 			// of the same type is serialized
@@ -956,10 +965,28 @@ namespace GriffinPlus.Lib.Serialization
 		/// Serializes the specified decomposed type.
 		/// </summary>
 		/// <param name="stream">Stream to serialize the type to.</param>
-		/// <param name="decomposedType">The decomposed type to serialize.</param>
-		private void WriteDecomposedType(Stream stream, DecomposedType decomposedType)
+		/// <param name="type">Type to serialize.</param>
+		private void WriteDecomposedType(Stream stream, Type type)
 		{
-			if (mSerializedTypeIdTable.TryGetValue(decomposedType.Type, out uint id))
+			WriteDecomposedTypeInternal(stream, type);
+
+			// write the number of type arguments that are following, if the type itself is a type definition
+			// (in this case the number of following type arguments is always 0)
+			if (type.IsGenericTypeDefinition)
+			{
+				TempBuffer_Buffer[0] = 0; // LEB128 encoded '0'
+				stream.Write(TempBuffer_Buffer, 0, 1);
+			}
+		}
+
+		/// <summary>
+		/// Serializes the specified decomposed type (for internal use).
+		/// </summary>
+		/// <param name="stream">Stream to serialize the type to.</param>
+		/// <param name="type">Type to serialize.</param>
+		private void WriteDecomposedTypeInternal(Stream stream, Type type)
+		{
+			if (mSerializedTypeIdTable.TryGetValue(type, out uint id))
 			{
 				// the type was serialized before
 				// => write type id only
@@ -968,23 +995,56 @@ namespace GriffinPlus.Lib.Serialization
 			else
 			{
 				// its the first time this type is serialized
-				// => write the fully qualified assembly name of the type
+				// => write the fully qualified assembly name of the outermost type and recurse in case of generic types to cover
+				//    generic type arguments
+
+				if (type.IsGenericType)
+				{
+					if (type.IsGenericTypeDefinition)
+					{
+						// a generic type definition
+
+						// try to get a pre-serialized type snippet, add it, if necessary
+						if (!sSerializedTypeSnippetsByType.TryGetValue(type, out byte[] serializedTypeName))
+							serializedTypeName = AddSerializedTypeSnippet(type);
+
+						// write pre-serialized type snippet
+						stream.Write(serializedTypeName, 0, serializedTypeName.Length);
+					}
+					else if (!type.ContainsGenericParameters)
+					{
+						// a closed constructed generic type
+						// => write generic type definition and generic type arguments
+						WriteDecomposedTypeInternal(stream, type.GetGenericTypeDefinition());
+						int count = Leb128EncodingHelper.Write(TempBuffer_Buffer, 0, type.GenericTypeArguments.Length);
+						stream.Write(TempBuffer_Buffer, 0, count);
+						for (int i = 0; i < type.GenericTypeArguments.Length; i++)
+						{
+							WriteDecomposedTypeInternal(stream, type.GenericTypeArguments[i]);
+						}
+					}
+					else
+					{
+						// the type has unassigned generic type parameters, but it is not a type definition
+						// => it's an open constructed generic type (the runtime supports this, but it is not supported by C#)
+						throw new SerializationException(
+							"Serializing type (namespace: {0}, name: {1}) is not supported (it is an open constructed generic type, i.e. it is not a generic type definition, but it contains generic parameters).",
+							type.Namespace,
+							type.Name);
+					}
+				}
+				else
+				{
+					// try to get a pre-serialized type snippet, add it, if necessary
+					if (!sSerializedTypeSnippetsByType.TryGetValue(type, out byte[] serializedTypeName))
+						serializedTypeName = AddSerializedTypeSnippet(type);
+
+					// write pre-serialized type snippet
+					stream.Write(serializedTypeName, 0, serializedTypeName.Length);
+				}
 
 				// assign a type id to the type to allow referencing it later on
-				mSerializedTypeIdTable.Add(decomposedType.Type, mNextSerializedTypeId++);
-
-				// try to get a pre-serialized type snippet, add it, if necessary
-				if (!sSerializedTypeSnippetsByType.TryGetValue(decomposedType.Type, out byte[] serializedTypeName))
-					serializedTypeName = AddSerializedTypeSnippet(decomposedType.Type);
-
-				// write pre-serialized type snippet
-				stream.Write(serializedTypeName, 0, serializedTypeName.Length);
-			}
-
-			// serialize generic type arguments separately, if the type is a generic type definition
-			for (int i = 0; i < decomposedType.GenericTypeArguments.Count; i++)
-			{
-				WriteDecomposedType(stream, decomposedType.GenericTypeArguments[i]);
+				mSerializedTypeIdTable.Add(type, mNextSerializedTypeId++);
 			}
 		}
 
@@ -1007,7 +1067,7 @@ namespace GriffinPlus.Lib.Serialization
 					int utf8NameLength = Encoding.UTF8.GetByteCount(name);
 					int leb128Length = Leb128EncodingHelper.GetByteCount(utf8NameLength);
 					serializedTypeName = new byte[1 + leb128Length + utf8NameLength];
-					serializedTypeName[0] = (byte)PayloadType.Type;
+					serializedTypeName[0] = (byte)(type.IsGenericTypeDefinition ? PayloadType.GenericType : PayloadType.Type);
 					Leb128EncodingHelper.Write(serializedTypeName, 1, utf8NameLength);
 					Encoding.UTF8.GetBytes(name, 0, name.Length, serializedTypeName, 1 + leb128Length);
 
@@ -1085,22 +1145,42 @@ namespace GriffinPlus.Lib.Serialization
 
 			if (typeItem.Type.IsGenericTypeDefinition)
 			{
-				var genericTypeParameters = typeItem.Type.GetTypeInfo().GenericTypeParameters;
-				var types = new Type[genericTypeParameters.Length];
-				for (int i = 0; i < genericTypeParameters.Length; i++)
-				{
-					ReadAndCheckPayloadType(stream, PayloadType.Type);
-					ReadTypeMetadata(stream);
-					types[i] = mCurrentDeserializedType.Type;
-				}
+				// read number of type arguments following the type definition
+				// (0, if the effective type is really a type definition and not a constructed generic type)
+				int genericTypeArgumentCount = Leb128EncodingHelper.ReadInt32(stream);
 
-				var composedType = typeItem.Type.MakeGenericType(types);
-				mCurrentDeserializedType = new TypeItem(composedType.AssemblyQualifiedName, composedType);
+				if (genericTypeArgumentCount > 0)
+				{
+					var genericTypeParameters = typeItem.Type.GetTypeInfo().GenericTypeParameters;
+					var genericTypeArgumentTypeItems = new TypeItem[genericTypeParameters.Length];
+					for (int i = 0; i < genericTypeParameters.Length; i++)
+					{
+						var genericTypeArgument = ReadTypeObject(stream, out string genericTypeArgumentSourceName);
+						genericTypeArgumentTypeItems[i] = new TypeItem(genericTypeArgumentSourceName, genericTypeArgument);
+					}
+
+					// compose the generic type
+					var composedType = typeItem.Type.MakeGenericType(genericTypeArgumentTypeItems.Select(x => x.Type).ToArray());
+					typeItem = new TypeItem(MakeGenericTypeName(typeItem.Name, genericTypeArgumentTypeItems.Select(x => x.Name)), composedType);
+
+					// remember the determined name-to-type mapping
+					lock (sTypeTableLock)
+					{
+						if (!sTypeTable.ContainsKey(typeItem.Name))
+						{
+							var copy = new Dictionary<string, Type>(sTypeTable) { { typeItem.Name, typeItem.Type } };
+							Thread.MemoryBarrier();
+							sTypeTable = copy;
+						}
+					}
+
+					// assign a type id if the serializer uses assembly and type ids
+					typeItem = new TypeItem(typeItem.Name, composedType);
+					mDeserializedTypeIdTable.Add(mNextDeserializedTypeId++, typeItem);
+				}
 			}
-			else
-			{
-				mCurrentDeserializedType = typeItem;
-			}
+
+			mCurrentDeserializedType = typeItem;
 		}
 
 		/// <summary>
@@ -1503,15 +1583,11 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="type">Type object to serialize.</param>
 		private void SerializeTypeObject(Stream stream, Type type)
 		{
-			// serialize type metadata
-			// ReSharper disable once PossibleMistakenCallToGetType.2
-			WriteTypeMetadata(stream, type.GetType());
-
 			// tell the deserializer that a type object follows
 			stream.WriteByte((byte)PayloadType.TypeObject);
 
 			// serialize the decomposed type
-			WriteDecomposedType(stream, type.Decompose());
+			WriteDecomposedType(stream, type);
 		}
 
 		/// <summary>
@@ -1910,22 +1986,24 @@ namespace GriffinPlus.Lib.Serialization
 		/// Deserializes a type object.
 		/// </summary>
 		/// <param name="stream">Stream to deserialize the type object from.</param>
+		/// <param name="sourceTypeName">Receives the assembly qualified name of the type as it was known when serializing.</param>
 		/// <returns>Type object.</returns>
 		/// <exception cref="SerializationException">Stream ended unexpectedly.</exception>
-		private Type ReadTypeObject(Stream stream)
+		private Type ReadTypeObject(Stream stream, out string sourceTypeName)
 		{
 			TypeItem typeItem;
-
-			// read type
-			// -----------------------------------------------------------------------------------------------
-
 			int byteRead = stream.ReadByte();
 			if (byteRead < 0) throw new SerializationException("Unexpected end of stream.");
 			var objType = (PayloadType)byteRead;
-
-			if (objType == PayloadType.Type)
+			if (objType == PayloadType.TypeId)
 			{
-				// read number of characters in the following string
+				uint id = Leb128EncodingHelper.ReadUInt32(stream);
+				if (!mDeserializedTypeIdTable.TryGetValue(id, out typeItem))
+					throw new SerializationException("Deserialized type id that does not match a previously deserialized type.");
+			}
+			else if (objType == PayloadType.Type || objType == PayloadType.GenericType)
+			{
+				// read number of utf-8 code units in the following string
 				int length = Leb128EncodingHelper.ReadInt32(stream);
 
 				// read type full name
@@ -1937,41 +2015,108 @@ namespace GriffinPlus.Lib.Serialization
 				// try to get the type name from the type cache
 				if (sTypeTable.TryGetValue(typename, out var type))
 				{
-					// assign a type id if the serializer uses assembly and type ids
+					// assign a type id
 					typeItem = new TypeItem(typename, type);
 					mDeserializedTypeIdTable.Add(mNextDeserializedTypeId++, typeItem);
 				}
 				else
 				{
-					// resolve type by its name
 					type = ResolveType(typename);
 
 					// remember the determined name-to-type mapping
 					lock (sTypeTableLock)
 					{
-						var copy = new Dictionary<string, Type>(sTypeTable) { [typename] = type };
-						Thread.MemoryBarrier();
-						sTypeTable = copy;
+						if (!sTypeTable.ContainsKey(typename))
+						{
+							var copy = new Dictionary<string, Type>(sTypeTable) { { typename, type } };
+							Thread.MemoryBarrier();
+							sTypeTable = copy;
+						}
 					}
 
-					// assign a type id
+					// assign a type id if the serializer uses assembly and type ids
 					typeItem = new TypeItem(typename, type);
 					mDeserializedTypeIdTable.Add(mNextDeserializedTypeId++, typeItem);
 				}
 			}
-			else if (objType == PayloadType.TypeId)
-			{
-				uint id = Leb128EncodingHelper.ReadUInt32(stream);
-				if (!mDeserializedTypeIdTable.TryGetValue(id, out typeItem))
-					throw new SerializationException("Deserialized type id that does not match a previously deserialized type.");
-			}
 			else
 			{
-				throw new SerializationException($"Expected 'Type' or 'TypeId' in the stream, but got payload id '{objType}'.");
+				var trace = new StackTrace();
+				string error = $"Unexpected payload type during deserialization. Stack Trace:\n{trace}";
+				sLog.Write(LogLevel.Error, error);
+				throw new SerializationException(error);
+			}
+
+			if (typeItem.Type.IsGenericTypeDefinition)
+			{
+				// read number of type arguments following the type definition
+				int genericTypeArgumentCount = Leb128EncodingHelper.ReadInt32(stream);
+
+				if (genericTypeArgumentCount > 0)
+				{
+					var genericTypeParameters = typeItem.Type.GetTypeInfo().GenericTypeParameters;
+					var genericTypeArgumentTypeItems = new TypeItem[genericTypeParameters.Length];
+					for (int i = 0; i < genericTypeParameters.Length; i++)
+					{
+						var genericTypeArgument = ReadTypeObject(stream, out string genericTypeArgumentSourceName);
+						genericTypeArgumentTypeItems[i] = new TypeItem(genericTypeArgumentSourceName, genericTypeArgument);
+					}
+
+					// compose the generic type
+					var composedType = typeItem.Type.MakeGenericType(genericTypeArgumentTypeItems.Select(x => x.Type).ToArray());
+					typeItem = new TypeItem(MakeGenericTypeName(typeItem.Name, genericTypeArgumentTypeItems.Select(x => x.Name)), composedType);
+
+					// remember the determined name-to-type mapping
+					lock (sTypeTableLock)
+					{
+						if (!sTypeTable.ContainsKey(typeItem.Name))
+						{
+							var copy = new Dictionary<string, Type>(sTypeTable) { { typeItem.Name, typeItem.Type } };
+							Thread.MemoryBarrier();
+							sTypeTable = copy;
+						}
+					}
+
+					// assign a type id if the serializer uses assembly and type ids
+					typeItem = new TypeItem(typeItem.Name, composedType);
+					mDeserializedTypeIdTable.Add(mNextDeserializedTypeId++, typeItem);
+				}
 			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, typeItem.Type);
+			sourceTypeName = typeItem.Name;
 			return typeItem.Type;
+		}
+
+		/// <summary>
+		/// Composes an assembly qualified type name taking the assembly qualified type name of the generic type definition
+		/// and assembly qualified generic type arguments.
+		/// </summary>
+		/// <param name="genericTypeDefinitionName">The assembly qualified type name of the generic type definition.</param>
+		/// <param name="genericTypeArgumentNames">The assembly qualified type names of the generic type arguments.</param>
+		/// <returns>The assembly qualified name of the composed generic type.</returns>
+		private static string MakeGenericTypeName(string genericTypeDefinitionName, IEnumerable<string> genericTypeArgumentNames)
+		{
+			int index = genericTypeDefinitionName.IndexOf(',');
+			if (index < 0 || index + 1 == genericTypeDefinitionName.Length) throw new SerializationException($"Detected invalid type name ({genericTypeDefinitionName}) during deserialization.");
+			string typeName = genericTypeDefinitionName.Substring(0, index).Trim();
+			string assemblyName = genericTypeDefinitionName.Substring(index + 1).Trim();
+			var builder = new StringBuilder();
+			builder.Append(typeName);
+			builder.Append('[');
+			bool first = true;
+			foreach (string argumentTypeName in genericTypeArgumentNames)
+			{
+				if (!first) builder.Append(',');
+				builder.Append('[');
+				builder.Append(argumentTypeName);
+				builder.Append(']');
+				first = false;
+			}
+
+			builder.Append("], ");
+			builder.Append(assemblyName);
+			return builder.ToString();
 		}
 
 		/// <summary>

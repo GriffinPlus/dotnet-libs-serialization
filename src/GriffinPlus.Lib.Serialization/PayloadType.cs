@@ -11,10 +11,13 @@ namespace GriffinPlus.Lib.Serialization
 		// null reference
 		NullReference,
 
-		// type metadata.
+		// a generic type (may be a generic type definition or a closed constructed generic type)
+		GenericType,
+
+		// a closed type
 		Type,
 
-		// reference to previously serialized type metadata
+		// reference to a previously serialized type
 		TypeId,
 
 		// serializer archive
