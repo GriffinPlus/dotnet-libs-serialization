@@ -79,7 +79,7 @@ namespace GriffinPlus.Lib.Serialization
 					if (!sInitialized && !sInitializing)
 					{
 						sInitializing = true;
-						AppDomainInfo.Init();
+						TypeInfo.Init();
 						InitBuiltinSerializers();
 						InitBuiltinDeserializers();
 						InitCustomSerializers();
@@ -682,7 +682,7 @@ namespace GriffinPlus.Lib.Serialization
 			sLog.Write(LogLevel.Debug, "Scanning for custom serializers...");
 
 			string applicationBasePath = Path.GetFullPath(AppDomain.CurrentDomain.BaseDirectory);
-			foreach (var kvp in AppDomainInfo.TypesByAssembly)
+			foreach (var kvp in TypeInfo.TypesByAssembly)
 			{
 				var assembly = kvp.Key;
 				var types = kvp.Value;
@@ -715,7 +715,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="type">Type to add to the list of internal object serializers.</param>
 		private static void TryToAddInternalObjectSerializer(Type type)
 		{
-			if (type.IsClass || type.IsValueType && !type.IsPrimitive) // class or struct
+			if (type.IsClass || (type.IsValueType && !type.IsPrimitive)) // class or struct
 			{
 				// a class
 				var iosAttributes = type.GetCustomAttributes<InternalObjectSerializerAttribute>(false).ToArray();
@@ -1227,7 +1227,7 @@ namespace GriffinPlus.Lib.Serialization
 			// determine types with the same full name (independent of the assembly the type is declared in)
 			// -----------------------------------------------------------------------------------------------------------------
 
-			var matchingTypes = AppDomainInfo
+			var matchingTypes = TypeInfo
 				.TypesByFullName
 				.Where(x => x.Key == fullTypeName)
 				.Select(x => x.Value)

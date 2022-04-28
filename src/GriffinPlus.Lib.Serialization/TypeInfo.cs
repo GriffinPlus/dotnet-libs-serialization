@@ -23,11 +23,11 @@ namespace GriffinPlus.Lib.Serialization
 {
 
 	/// <summary>
-	/// Provides various information about assemblies and types in the current application domain.
+	/// Provides various information types in the current application domain.
 	/// </summary>
-	public static class AppDomainInfo
+	public static class TypeInfo
 	{
-		private static readonly LogWriter                                 sLog                     = LogWriter.Get(typeof(AppDomainInfo));
+		private static readonly LogWriter                                 sLog                     = LogWriter.Get(typeof(TypeInfo));
 		private static          bool                                      sInitialized             = false;
 		private static          bool                                      sInitializing            = false;
 		private static readonly object                                    sInitializationSync      = new object();
