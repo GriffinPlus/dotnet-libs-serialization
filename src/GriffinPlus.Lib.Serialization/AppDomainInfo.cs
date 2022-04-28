@@ -5,7 +5,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -28,15 +27,15 @@ namespace GriffinPlus.Lib.Serialization
 	/// </summary>
 	public static class AppDomainInfo
 	{
-		private static readonly LogWriter                                           sLog                     = LogWriter.Get(typeof(AppDomainInfo));
-		private static          bool                                                sInitialized             = false;
-		private static          bool                                                sInitializing            = false;
-		private static readonly object                                              sInitializationSync      = new object();
-		private static readonly ReaderWriterLockSlim                                sLock                    = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
-		private static          ImmutableDictionary<Assembly, ImmutableArray<Type>> sTypesByAssembly         = ImmutableDictionary<Assembly, ImmutableArray<Type>>.Empty;
-		private static          ImmutableDictionary<Assembly, ImmutableArray<Type>> sExportedTypesByAssembly = ImmutableDictionary<Assembly, ImmutableArray<Type>>.Empty;
-		private static          ImmutableDictionary<string, ImmutableArray<Type>>   sTypesByFullName         = ImmutableDictionary<string, ImmutableArray<Type>>.Empty;
-		private static          ImmutableDictionary<string, ImmutableArray<Type>>   sExportedTypesByFullName = ImmutableDictionary<string, ImmutableArray<Type>>.Empty;
+		private static readonly LogWriter                                 sLog                     = LogWriter.Get(typeof(AppDomainInfo));
+		private static          bool                                      sInitialized             = false;
+		private static          bool                                      sInitializing            = false;
+		private static readonly object                                    sInitializationSync      = new object();
+		private static readonly ReaderWriterLockSlim                      sLock                    = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+		private static          Dictionary<Assembly, IReadOnlyList<Type>> sTypesByAssembly         = new Dictionary<Assembly, IReadOnlyList<Type>>();
+		private static          Dictionary<Assembly, IReadOnlyList<Type>> sExportedTypesByAssembly = new Dictionary<Assembly, IReadOnlyList<Type>>();
+		private static          Dictionary<string, IReadOnlyList<Type>>   sTypesByFullName         = new Dictionary<string, IReadOnlyList<Type>>();
+		private static          Dictionary<string, IReadOnlyList<Type>>   sExportedTypesByFullName = new Dictionary<string, IReadOnlyList<Type>>();
 
 #if NET5_0_OR_GREATER
 		/// <summary>
@@ -53,7 +52,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// Gets a dictionary mapping assemblies to types stored within them.
 		/// The dictionary contains public and non-public types.
 		/// </summary>
-		public static ImmutableDictionary<Assembly, ImmutableArray<Type>> TypesByAssembly
+		public static IReadOnlyDictionary<Assembly, IReadOnlyList<Type>> TypesByAssembly
 		{
 			get
 			{
@@ -68,7 +67,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// Gets a dictionary mapping assemblies to types stored within them.
 		/// The dictionary contains public types only.
 		/// </summary>
-		public static ImmutableDictionary<Assembly, ImmutableArray<Type>> ExportedTypesByAssembly
+		public static IReadOnlyDictionary<Assembly, IReadOnlyList<Type>> ExportedTypesByAssembly
 		{
 			get
 			{
@@ -84,7 +83,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// Multiple assemblies may contain a type with the same full name.
 		/// The dictionary contains public and non-public types.
 		/// </summary>
-		public static ImmutableDictionary<string, ImmutableArray<Type>> TypesByFullName
+		public static IReadOnlyDictionary<string, IReadOnlyList<Type>> TypesByFullName
 		{
 			get
 			{
@@ -100,7 +99,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// Multiple assemblies may contain a type with the same full name.
 		/// The dictionary contains public types only.
 		/// </summary>
-		public static ImmutableDictionary<string, ImmutableArray<Type>> ExportedTypesByFullName
+		public static IReadOnlyDictionary<string, IReadOnlyList<Type>> ExportedTypesByFullName
 		{
 			get
 			{
@@ -188,8 +187,9 @@ namespace GriffinPlus.Lib.Serialization
 			sLock.EnterWriteLock();
 			try
 			{
-				var typesByAssembly = sTypesByAssembly.ToDictionary(x => x.Key, x => x.Value.ToArray());
-				var exportedTypesByAssembly = sExportedTypesByAssembly.ToDictionary(x => x.Key, x => x.Value.ToArray());
+				// create a copy of the existing dictionaries
+				var typesByAssembly = new Dictionary<Assembly, IReadOnlyList<Type>>(sTypesByAssembly);
+				var exportedTypesByAssembly = new Dictionary<Assembly, IReadOnlyList<Type>>(sExportedTypesByAssembly);
 				var typesByFullName = sTypesByFullName.ToDictionary(x => x.Key, x => x.Value.ToList());
 				var exportedTypesByFullName = sExportedTypesByFullName.ToDictionary(x => x.Key, x => x.Value.ToList());
 
@@ -203,10 +203,11 @@ namespace GriffinPlus.Lib.Serialization
 						exportedTypesByFullName);
 				}
 
-				sTypesByAssembly = typesByAssembly.ToImmutableDictionary(x => x.Key, x => x.Value.ToImmutableArray());
-				sExportedTypesByAssembly = exportedTypesByAssembly.ToImmutableDictionary(x => x.Key, x => x.Value.ToImmutableArray());
-				sTypesByFullName = typesByFullName.ToImmutableDictionary(x => x.Key, x => x.Value.ToImmutableArray());
-				sExportedTypesByFullName = exportedTypesByFullName.ToImmutableDictionary(x => x.Key, x => x.Value.ToImmutableArray());
+				// replace exposed dictionaries
+				sTypesByAssembly = typesByAssembly;
+				sExportedTypesByAssembly = exportedTypesByAssembly;
+				sTypesByFullName = typesByFullName.ToDictionary(x => x.Key, x => (IReadOnlyList<Type>)x.Value.ToList());
+				sExportedTypesByFullName = exportedTypesByFullName.ToDictionary(x => x.Key, x => (IReadOnlyList<Type>)x.Value.ToList());
 			}
 			finally
 			{
@@ -263,11 +264,11 @@ namespace GriffinPlus.Lib.Serialization
 		/// <see cref="Type"/> objects.
 		/// </param>
 		private static void InspectAssemblyAndCollectInformation(
-			Assembly                       assembly,
-			Dictionary<Assembly, Type[]>   typesByAssembly,
-			Dictionary<Assembly, Type[]>   exportedTypesByAssembly,
-			Dictionary<string, List<Type>> typesByFullName,
-			Dictionary<string, List<Type>> exportedTypesByFullName)
+			Assembly                                  assembly,
+			Dictionary<Assembly, IReadOnlyList<Type>> typesByAssembly,
+			Dictionary<Assembly, IReadOnlyList<Type>> exportedTypesByAssembly,
+			Dictionary<string, List<Type>>            typesByFullName,
+			Dictionary<string, List<Type>>            exportedTypesByFullName)
 		{
 			// the executing thread should held the lock for writing as this modifies internal data
 			Debug.Assert(sLock.IsWriteLockHeld);
@@ -336,8 +337,9 @@ namespace GriffinPlus.Lib.Serialization
 			sLock.EnterWriteLock();
 			try
 			{
-				var typesByAssembly = sTypesByAssembly.ToDictionary(x => x.Key, x => x.Value.ToArray());
-				var exportedTypesByAssembly = sExportedTypesByAssembly.ToDictionary(x => x.Key, x => x.Value.ToArray());
+				// create a copy of the existing dictionaries
+				var typesByAssembly = new Dictionary<Assembly, IReadOnlyList<Type>>(sTypesByAssembly);
+				var exportedTypesByAssembly = new Dictionary<Assembly, IReadOnlyList<Type>>(sExportedTypesByAssembly);
 				var typesByFullName = sTypesByFullName.ToDictionary(x => x.Key, x => x.Value.ToList());
 				var exportedTypesByFullName = sExportedTypesByFullName.ToDictionary(x => x.Key, x => x.Value.ToList());
 
@@ -348,10 +350,11 @@ namespace GriffinPlus.Lib.Serialization
 					typesByFullName,
 					exportedTypesByFullName);
 
-				sTypesByAssembly = typesByAssembly.ToImmutableDictionary(x => x.Key, x => x.Value.ToImmutableArray());
-				sExportedTypesByAssembly = exportedTypesByAssembly.ToImmutableDictionary(x => x.Key, x => x.Value.ToImmutableArray());
-				sTypesByFullName = typesByFullName.ToImmutableDictionary(x => x.Key, x => x.Value.ToImmutableArray());
-				sExportedTypesByFullName = exportedTypesByFullName.ToImmutableDictionary(x => x.Key, x => x.Value.ToImmutableArray());
+				// replace exposed dictionaries
+				sTypesByAssembly = typesByAssembly;
+				sExportedTypesByAssembly = exportedTypesByAssembly;
+				sTypesByFullName = typesByFullName.ToDictionary(x => x.Key, x => (IReadOnlyList<Type>)x.Value.ToList());
+				sExportedTypesByFullName = exportedTypesByFullName.ToDictionary(x => x.Key, x => (IReadOnlyList<Type>)x.Value.ToList());
 			}
 			finally
 			{
