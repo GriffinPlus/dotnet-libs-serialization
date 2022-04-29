@@ -40,20 +40,20 @@ namespace GriffinPlus.Lib.Serialization
 		#region Member Variables
 
 		// for serialization only
-		private          Type                     mCurrentSerializedType;
-		private readonly Dictionary<Type, uint>   mSerializedTypeIdTable;
-		private readonly SerializerVersionTable   mSerializedTypeVersionTable;
-		private readonly Dictionary<object, uint> mSerializedObjectIdTable;
-		private          uint                     mNextSerializedTypeId;
-		private          uint                     mNextSerializedObjectId;
+		private          Type                     mCurrentSerializedType      = default;
+		private readonly Dictionary<Type, uint>   mSerializedTypeIdTable      = new Dictionary<Type, uint>();
+		private readonly SerializerVersionTable   mSerializedTypeVersionTable = new SerializerVersionTable();
+		private readonly Dictionary<object, uint> mSerializedObjectIdTable    = new Dictionary<object, uint>(IdentityComparer<object>.Default);
+		private          uint                     mNextSerializedTypeId       = default;
+		private          uint                     mNextSerializedObjectId     = default;
 
 		// for deserialization only
-		private          TypeItem                   mCurrentDeserializedType;
-		private readonly Dictionary<uint, TypeItem> mDeserializedTypeIdTable;
-		private readonly Dictionary<uint, object>   mDeserializedObjectIdTable;
-		private          uint                       mNextDeserializedTypeId;
-		private          uint                       mNextDeserializedObjectId;
-		private          bool                       mUseTolerantDeserialization;
+		private          TypeItem                   mCurrentDeserializedType    = default;
+		private readonly Dictionary<uint, TypeItem> mDeserializedTypeIdTable    = new Dictionary<uint, TypeItem>();
+		private readonly Dictionary<uint, object>   mDeserializedObjectIdTable  = new Dictionary<uint, object>();
+		private          uint                       mNextDeserializedTypeId     = default;
+		private          uint                       mNextDeserializedObjectId   = default;
+		private          bool                       mUseTolerantDeserialization = sUseTolerantDeserializationByDefault;
 
 		#endregion
 
@@ -897,19 +897,6 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			// ensure static data is initialized appropriately
 			Init();
-
-			// serializer specific
-			mSerializedTypeIdTable = new Dictionary<Type, uint>();
-			mSerializedTypeVersionTable = new SerializerVersionTable();
-			mSerializedObjectIdTable = new Dictionary<object, uint>(new IdentityComparer<object>());
-
-			// deserializer specific
-			mUseTolerantDeserialization = sUseTolerantDeserializationByDefault;
-			mDeserializedTypeIdTable = new Dictionary<uint, TypeItem>();
-			mDeserializedObjectIdTable = new Dictionary<uint, object>();
-
-			// init the serializer/deserializer
-			Reset();
 		}
 
 		/// <summary>
@@ -918,18 +905,11 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="versions">Table defining requested serializer versions for specific types.</param>
 		public Serializer(SerializerVersionTable versions)
 		{
-			// serializer specific
-			mSerializedTypeIdTable = new Dictionary<Type, uint>();
+			// ensure static data is initialized appropriately
+			Init();
+
+			// use specified serializer version table
 			mSerializedTypeVersionTable = versions;
-			mSerializedObjectIdTable = new Dictionary<object, uint>(new IdentityComparer<object>());
-
-			// deserializer specific
-			mUseTolerantDeserialization = sUseTolerantDeserializationByDefault;
-			mDeserializedTypeIdTable = new Dictionary<uint, TypeItem>();
-			mDeserializedObjectIdTable = new Dictionary<uint, object>();
-
-			// init the serializer/deserializer
-			Reset();
 		}
 
 		#endregion
