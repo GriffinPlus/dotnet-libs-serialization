@@ -14,19 +14,19 @@
 		<tags>serialization</tags>
 		<dependencies>
 			<group targetFramework="netstandard2.0">
-				<dependency id="GriffinPlus.Lib.Common" version="[2.0.2,3)" include="all" />
+				<dependency id="GriffinPlus.Lib.Common" version="[2.0.3,3)" include="all" />
 				<dependency id="GriffinPlus.Lib.FastActivator" version="[1.0.13,2)" include="all" />
 				<dependency id="GriffinPlus.Lib.Logging.Interface" version="[1.1.0,2)" include="all" />
 				<dependency id="System.Memory" version="4.5.4" />
 			</group>
 			<group targetFramework="net461">
-				<dependency id="GriffinPlus.Lib.Common" version="[2.0.2,3)" include="all" />
+				<dependency id="GriffinPlus.Lib.Common" version="[2.0.3,3)" include="all" />
 				<dependency id="GriffinPlus.Lib.FastActivator" version="[1.0.13,2)" include="all" />
 				<dependency id="GriffinPlus.Lib.Logging.Interface" version="[1.1.0,2)" include="all" />
 				<dependency id="System.Memory" version="4.5.4" />
 			</group>
 			<group targetFramework="net5.0">
-				<dependency id="GriffinPlus.Lib.Common" version="[2.0.2,3)" include="all" />
+				<dependency id="GriffinPlus.Lib.Common" version="[2.0.3,3)" include="all" />
 				<dependency id="GriffinPlus.Lib.FastActivator" version="[1.0.13,2)" include="all" />
 				<dependency id="GriffinPlus.Lib.Logging.Interface" version="[1.1.0,2)" include="all" />
 			</group>
