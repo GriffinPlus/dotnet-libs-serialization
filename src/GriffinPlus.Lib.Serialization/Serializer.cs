@@ -1454,88 +1454,80 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="context">Context object to pass to the serializer of the object that is serialized next.</param>
 		internal void InnerSerialize(Stream stream, object obj, object context)
 		{
-			SerializerDelegate serializer;
-
 			// a null reference?
-			if (obj == null)
+			if (ReferenceEquals(obj, null))
 			{
 				stream.WriteByte((byte)PayloadType.NullReference);
+				return;
+			}
+
+			// write object id, if the object was already serialized
+			if (mSerializedObjectIdTable.TryGetValue(obj, out uint id))
+			{
+				// the object is already serialized
+				// => write object id only
+				SerializeObjectId(stream, id);
 				return;
 			}
 
 			// get the type of the type to serialize
 			var type = obj.GetType();
 
-			if (type.IsValueType)
+			// use serialization handler that has been prepared before
+			if (sSerializers.TryGetValue(type, out var serializer))
 			{
-				// a value type
-				// => every object is unique (checking for for already serialized objects doesn't make sense)
-
-				// check whether the serializer knows how to serialize the object
-				if (sSerializers.TryGetValue(type, out serializer))
-				{
-					serializer(this, stream, obj, context);
-					return;
-				}
-
-				if (type.IsEnum)
-				{
-					// an enumeration value
-					// => create a serializer delegate that handles it
-					serializer = AddSerializerForType(type, () => GetEnumSerializer(type));
-					serializer(this, stream, obj, context);
-					return;
-				}
+				serializer(this, stream, obj, context);
+				return;
 			}
-			else
+
+			// handle arrays of types that do not have predefined serialization handlers
+			// (these objects are serialized on demand, there is no serialization handler)
+			if (type.IsArray)
 			{
-				// a reference type
+				// the type is an array
+				// => differentiate one-dimensional arrays (SZARRAY) and multi-dimensional arrays (MDARRAY)
 
-				if (mSerializedObjectIdTable.TryGetValue(obj, out uint id))
+				var array = (Array)obj;
+				if (type.GetArrayRank() == 1 && array.GetLowerBound(0) == 0)
 				{
-					// the object is already serialized
-					// => write object id only
-					SerializeObjectId(stream, id);
+					// an SZARRAY
+					WriteArrayOfObjects(array, stream);
 					return;
 				}
 
-				if (sSerializers.TryGetValue(type, out serializer))
+				// an MDARRAY
+				var elementType = type.GetElementType();
+				Debug.Assert(elementType != null, nameof(elementType) + " != null");
+				if (sMultidimensionalArraySerializers.TryGetValue(elementType, out serializer))
 				{
-					serializer(this, stream, obj, context);
-					return;
+					serializer(this, stream, array, context);
+				}
+				else
+				{
+					WriteMultidimensionalArrayOfObjects(array, stream);
 				}
 
-				if (type.IsArray)
-				{
-					var array = (Array)obj;
-					if (type.GetArrayRank() == 1 && array.GetLowerBound(0) == 0)
-					{
-						// an SZARRAY
-						WriteArrayOfObjects(array, stream);
-						return;
-					}
+				return;
+			}
 
-					// an MDARRAY
-					var elementType = type.GetElementType();
-					Debug.Assert(elementType != null, nameof(elementType) + " != null");
-					if (sMultidimensionalArraySerializers.TryGetValue(elementType, out serializer))
-					{
-						serializer(this, stream, array, context);
-					}
-					else
-					{
-						WriteMultidimensionalArrayOfObjects(array, stream);
-					}
+			// handle type objects
+			if (type.IsInstanceOfType(typeof(Type)))
+			{
+				SerializeTypeObject(stream, (Type)obj);
+				mSerializedObjectIdTable.Add(obj, mNextSerializedObjectId++);
+				return;
+			}
 
-					return;
-				}
+			// there is no serialization handler for this type, yet
+			// => analyze what this type is and prepare a serialization handler for the next time
 
-				if (type.IsInstanceOfType(typeof(Type)))
-				{
-					SerializeTypeObject(stream, (Type)obj);
-					mSerializedObjectIdTable.Add(obj, mNextSerializedObjectId++);
-					return;
-				}
+			if (type.IsEnum)
+			{
+				// an enumeration value
+				// => create a serializer delegate that handles it
+				serializer = AddSerializerForType(type, () => GetEnumSerializer(type));
+				serializer(this, stream, obj, context);
+				return;
 			}
 
 			// try to use an external object serializer
