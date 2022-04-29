@@ -93,8 +93,10 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData(typeof(char))]
 		public void SerializeAndDeserialize_Primitives(Type type)
 		{
-			object min = type.GetField("MinValue").GetValue(null);
-			object max = type.GetField("MaxValue").GetValue(null);
+			var minValueField = type.GetField("MinValue");
+			var maxValueField = type.GetField("MaxValue");
+			object min = minValueField.GetValue(null);
+			object max = maxValueField.GetValue(null);
 
 			object minCopy = SerializeAndDeserializeObject(min);
 			object maxCopy = SerializeAndDeserializeObject(max);
@@ -122,8 +124,11 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData(typeof(char))]
 		public void SerializeAndDeserialize_OneDimensionalArrayOfPrimitives(Type type)
 		{
-			dynamic min = type.GetField("MinValue").GetValue(null);
-			dynamic max = type.GetField("MaxValue").GetValue(null);
+			var minValueField = type.GetField("MinValue");
+			var maxValueField = type.GetField("MaxValue");
+			dynamic min = minValueField.GetValue(null);
+			dynamic max = maxValueField.GetValue(null);
+
 			dynamic mid = Convert.ChangeType((max + min) / 2, type);
 
 			dynamic array = Array.CreateInstance(type, 3);
@@ -156,8 +161,10 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData(typeof(char))]
 		public void SerializeAndDeserialize_MultiDimensionalArrayOfPrimitives(Type type)
 		{
-			dynamic min = type.GetField("MinValue").GetValue(null);
-			dynamic max = type.GetField("MaxValue").GetValue(null);
+			var minValueField = type.GetField("MinValue");
+			var maxValueField = type.GetField("MaxValue");
+			dynamic min = minValueField.GetValue(null);
+			dynamic max = maxValueField.GetValue(null);
 			dynamic mid = Convert.ChangeType((max + min) / 2, type);
 
 			int[] lengths = { 5, 4, 3 };

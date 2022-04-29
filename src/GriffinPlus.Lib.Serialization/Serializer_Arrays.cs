@@ -4,6 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Diagnostics;
 using System.IO;
 
 namespace GriffinPlus.Lib.Serialization
@@ -366,8 +367,10 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			// write array elements
+			// ReSharper disable once ForCanBeConvertedToForeach
 			for (int i = 0; i < array.Length; i++)
 			{
+				Debug.Assert(array != null, nameof(array) + " != null");
 				decimal value = (decimal)array.GetValue(indices);
 				int[] bits = decimal.GetBits(value);
 				Buffer.BlockCopy(bits, 0, TempBuffer_Buffer, 0, elementSize);
@@ -403,6 +406,7 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			// write array elements
+			// ReSharper disable once ForCanBeConvertedToForeach
 			for (int i = 0; i < array.Length; i++)
 			{
 				string s = (string)array.GetValue(indices);
@@ -504,6 +508,7 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			// write array elements
+			// ReSharper disable once ForCanBeConvertedToForeach
 			for (int i = 0; i < array.Length; i++)
 			{
 				object obj = array.GetValue(indices);
@@ -727,7 +732,7 @@ namespace GriffinPlus.Lib.Serialization
 			// read array elements
 			for (int i = 0; i < array.Length; i++)
 			{
-				object obj = InnerDeserialize(stream, null);
+				object obj = InnerDeserialize(stream, context);
 				array.SetValue(obj, indices);
 				IncrementArrayIndices(indices, array);
 			}

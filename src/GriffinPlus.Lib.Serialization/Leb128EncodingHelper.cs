@@ -63,7 +63,7 @@ namespace GriffinPlus.Lib.Serialization
 					value |= -(1 << (32 - 7)); // sign extend
 				}
 
-				if (value == 0 && (data & 0x40) == 0 || value == -1 && (data & 0x40) == 0x40)
+				if ((value == 0 && (data & 0x40) == 0) || (value == -1 && (data & 0x40) == 0x40))
 				{
 					more = false;
 				}
@@ -139,7 +139,7 @@ namespace GriffinPlus.Lib.Serialization
 				value >>= 7;
 				if (negative) value |= -(1 << (32 - 7)); // sign extend
 
-				if (value == 0 && (data & 0x40) == 0 || value == -1 && (data & 0x40) == 0x40)
+				if ((value == 0 && (data & 0x40) == 0) || (value == -1 && (data & 0x40) == 0x40))
 				{
 					more = false;
 				}
@@ -365,7 +365,7 @@ namespace GriffinPlus.Lib.Serialization
 				value >>= 7;
 				if (negative) value |= -((long)1 << (64 - 7)); // sign extend
 
-				if (value == 0 && (data & 0x40) == 0 || value == -1 && (data & 0x40) == 0x40)
+				if ((value == 0 && (data & 0x40) == 0) || (value == -1 && (data & 0x40) == 0x40))
 				{
 					more = false;
 				}
@@ -441,7 +441,7 @@ namespace GriffinPlus.Lib.Serialization
 				value >>= 7;
 				if (negative) value |= -((long)1 << (64 - 7)); // sign extend
 
-				if (value == 0 && (data & 0x40) == 0 || value == -1 && (data & 0x40) == 0x40)
+				if ((value == 0 && (data & 0x40) == 0) || (value == -1 && (data & 0x40) == 0x40))
 				{
 					more = false;
 				}

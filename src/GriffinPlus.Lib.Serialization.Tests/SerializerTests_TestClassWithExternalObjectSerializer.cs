@@ -82,7 +82,6 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				unchecked
 				{
 					int hashCode = Boolean.GetHashCode();
-					;
 					hashCode = (hashCode * 397) ^ Char.GetHashCode();
 					hashCode = (hashCode * 397) ^ SByte.GetHashCode();
 					hashCode = (hashCode * 397) ^ Byte.GetHashCode();

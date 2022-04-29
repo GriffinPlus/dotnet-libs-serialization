@@ -417,7 +417,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// encode the string
 			int valueByteCount = Encoding.UTF8.GetBytes(value, 0, value.Length, TempBuffer_Buffer, 6);
-			
+
 			// put the header with the payload type and the size of the encoded string in front of the encoded string
 			int headerLength = Leb128EncodingHelper.GetByteCount(valueByteCount) + 1;
 			TempBuffer_Buffer[6 - headerLength] = (byte)PayloadType.String;
@@ -456,7 +456,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a <see cref="System.Object"/> object.
 		/// </summary>
 		/// <param name="obj">Object to write.</param>
-		/// <param name="stream">Stream to write the string to.</param>
+		/// <param name="stream">Stream to write the object to.</param>
 		internal void WritePrimitive_Object(object obj, Stream stream)
 		{
 			stream.WriteByte((byte)PayloadType.Object);

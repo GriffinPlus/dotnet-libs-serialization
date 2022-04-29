@@ -681,14 +681,10 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			sLog.Write(LogLevel.Debug, "Scanning for custom serializers...");
 
-			string applicationBasePath = Path.GetFullPath(AppDomain.CurrentDomain.BaseDirectory);
 			foreach (var kvp in TypeInfo.TypesByAssembly)
 			{
-				var assembly = kvp.Key;
-				var types = kvp.Value;
-
 				// scan assembly for custom serializers
-				foreach (var type in types)
+				foreach (var type in kvp.Value)
 				{
 					try
 					{
@@ -731,7 +727,7 @@ namespace GriffinPlus.Lib.Serialization
 					// => add a serializer delegate that handles it
 					lock (sSync)
 					{
-						if (!sInternalObjectSerializerInfoByType.TryGetValue(type, out var serializerInfo))
+						if (!sInternalObjectSerializerInfoByType.ContainsKey(type))
 						{
 							var typeToInternalObjectSerializerInfo = new Dictionary<Type, InternalObjectSerializerInfo>(sInternalObjectSerializerInfoByType)
 							{
@@ -1514,7 +1510,6 @@ namespace GriffinPlus.Lib.Serialization
 			if (type.IsInstanceOfType(typeof(Type)))
 			{
 				SerializeTypeObject(stream, (Type)obj);
-				mSerializedObjectIdTable.Add(obj, mNextSerializedObjectId++);
 				return;
 			}
 
@@ -1568,6 +1563,9 @@ namespace GriffinPlus.Lib.Serialization
 
 			// serialize the decomposed type
 			WriteDecomposedType(stream, type);
+
+			// assign an object id to the type object to allow referencing it later on
+			mSerializedObjectIdTable.Add(type, mNextSerializedObjectId++);
 		}
 
 		/// <summary>
@@ -1873,7 +1871,6 @@ namespace GriffinPlus.Lib.Serialization
 
 		private static readonly Dictionary<PayloadType, DeserializerDelegate> sDeserializers = new Dictionary<PayloadType, DeserializerDelegate>();
 		private static          Dictionary<Type, EnumCasterDelegate>          sEnumCasters   = new Dictionary<Type, EnumCasterDelegate>();
-		private static          int                                           sEnumCasterId  = -1;
 
 		/// <summary>
 		/// Deserializes an object from a stream.
@@ -1961,8 +1958,6 @@ namespace GriffinPlus.Lib.Serialization
 		private static EnumCasterDelegate CreateEnumCaster(Type type)
 		{
 			// create a deserializer delegate that handles the specified type
-			int enumCaster_id = Interlocked.Increment(ref sEnumCasterId);
-			string name = "_enumCaster" + enumCaster_id;
 			Type[] parameterTypes = { typeof(long) };
 			var parameterExpression = parameterTypes.Select(Expression.Parameter).First();
 			Expression body = Expression.Convert(Expression.Convert(parameterExpression, type), typeof(Enum));

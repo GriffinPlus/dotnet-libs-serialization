@@ -17,7 +17,7 @@ namespace GriffinPlus.Lib.Serialization
 		internal ulong[]   TempBuffer_UInt64;
 		internal sbyte[]   TempBuffer_Int8;
 		internal short[]   TempBuffer_Int16;
-		internal int[]     TempBuffer_Int32 = new int[4]; // must always be 4 ints to work for decimal conversion
+		internal int[]     TempBuffer_Int32 = new int[4]; // must always be four 32-bit integers to work for decimal conversion
 		internal long[]    TempBuffer_Int64;
 		internal char[]    TempBuffer_Char;
 		internal float[]   TempBuffer_Single;

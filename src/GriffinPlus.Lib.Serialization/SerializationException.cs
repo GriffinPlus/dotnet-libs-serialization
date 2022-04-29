@@ -44,16 +44,6 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="info">The <see cref="SerializationInfo"/> that receives the serialized object data about the object.</param>
 		/// <param name="context">The <see cref="StreamingContext"/> that contains contextual information about the source or destination.</param>
 		protected SerializationException(SerializationInfo info, StreamingContext context) : base(info, context) { }
-
-		/// <summary>
-		/// Populates a <see cref="SerializationInfo"/> with the data needed to serialize the target object.
-		/// </summary>
-		/// <param name="info">The <see cref="SerializationInfo"/> that holds the serialized object data about the object.</param>
-		/// <param name="context">The <see cref="StreamingContext"/> that contains contextual information about the source or destination.</param>
-		public override void GetObjectData(SerializationInfo info, StreamingContext context)
-		{
-			base.GetObjectData(info, context);
-		}
 	}
 
 }
