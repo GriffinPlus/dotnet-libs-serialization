@@ -530,6 +530,24 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 		#endregion
 
+		#region Cyclic References
+
+		/// <summary>
+		/// Tests serializing and deserializing an array referencing itself.
+		/// </summary>
+		[Fact]
+		public void SerializeAndDeserialize_CyclicReference_ObjectArray()
+		{
+			object[] objects = new object[1];
+			objects[0] = objects;
+			object[] copy = (object[])SerializeAndDeserializeObject(objects);
+			Assert.NotNull(copy);
+			Assert.Equal(objects.Length, copy.Length);
+			Assert.Same(copy, copy[0]);
+		}
+
+		#endregion
+
 		#region Helpers
 
 		/// <summary>

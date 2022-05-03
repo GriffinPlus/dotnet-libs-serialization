@@ -91,6 +91,9 @@ namespace GriffinPlus.Lib.Serialization
 			int count = Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, array.Length);
 			stream.Write(TempBuffer_Buffer, 0, 1 + count);
 
+			// assign an object id to the array before serializing its elements
+			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
+
 			// write array data
 			foreach (string s in array)
 			{
@@ -107,8 +110,6 @@ namespace GriffinPlus.Lib.Serialization
 					WritePrimitive_String(s, stream);
 				}
 			}
-
-			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
 		}
 
 		/// <summary>
@@ -148,13 +149,15 @@ namespace GriffinPlus.Lib.Serialization
 			int count = Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, array.Length);
 			stream.Write(TempBuffer_Buffer, 0, 1 + count);
 
+			// assign an object id to the array before serializing its elements
+			// (elements may refer to the array)
+			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
+
 			// write array data
 			for (int i = 0; i < array.Length; i++)
 			{
 				InnerSerialize(stream, array.GetValue(i), null);
 			}
-
-			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
 		}
 
 		#endregion
@@ -242,18 +245,20 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read array.</returns>
 		private string[] ReadStringArray(Stream stream)
 		{
-			// read array length
+			// read array length and create an uninitialized array
 			int length = Leb128EncodingHelper.ReadInt32(stream);
-
-			// read array data
 			string[] array = new string[length];
+
+			// assign an object id to the array before deserializing its elements
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			// deserialize array elements
 			for (int i = 0; i < length; i++)
 			{
 				object obj = InnerDeserialize(stream, null);
 				array[i] = (string)obj;
 			}
 
-			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
 		}
 
@@ -294,17 +299,20 @@ namespace GriffinPlus.Lib.Serialization
 
 			var t = mCurrentDeserializedType.Type;
 
-			// read array length
+			// read array length and create an uninitialized array
 			int length = Leb128EncodingHelper.ReadInt32(stream);
+			var array = FastActivator.CreateArray(t, length);
+
+			// assign an object id to the array before deserializing its elements
+			// (elements may refer to the array)
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 
 			// read array elements
-			var array = FastActivator.CreateArray(t, length);
 			for (int i = 0; i < length; i++)
 			{
 				array.SetValue(InnerDeserialize(stream, context), i);
 			}
 
-			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
 		}
 
@@ -405,7 +413,10 @@ namespace GriffinPlus.Lib.Serialization
 				indices[i] = array.GetLowerBound(i);
 			}
 
-			// write array elements
+			// assign an object id to the array before serializing its elements
+			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
+
+			// serialize array elements
 			// ReSharper disable once ForCanBeConvertedToForeach
 			for (int i = 0; i < array.Length; i++)
 			{
@@ -429,8 +440,6 @@ namespace GriffinPlus.Lib.Serialization
 
 				IncrementArrayIndices(indices, array);
 			}
-
-			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
 		}
 
 		/// <summary>
@@ -507,6 +516,10 @@ namespace GriffinPlus.Lib.Serialization
 				indices[i] = array.GetLowerBound(i);
 			}
 
+			// assign an object id to the array before serializing its elements
+			// (elements may refer to the array)
+			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
+
 			// write array elements
 			// ReSharper disable once ForCanBeConvertedToForeach
 			for (int i = 0; i < array.Length; i++)
@@ -515,8 +528,6 @@ namespace GriffinPlus.Lib.Serialization
 				InnerSerialize(stream, obj, null);
 				IncrementArrayIndices(indices, array);
 			}
-
-			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
 		}
 
 		#endregion
@@ -613,6 +624,9 @@ namespace GriffinPlus.Lib.Serialization
 			// create an array of strings
 			var array = Array.CreateInstance(typeof(string), lengths, lowerBounds);
 
+			// assign an object id to the array before deserializing its elements
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
 			// read array elements
 			for (int i = 0; i < array.Length; i++)
 			{
@@ -621,7 +635,6 @@ namespace GriffinPlus.Lib.Serialization
 				IncrementArrayIndices(indices, array);
 			}
 
-			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
 		}
 
@@ -702,7 +715,6 @@ namespace GriffinPlus.Lib.Serialization
 			return array;
 		}
 
-
 		/// <summary>
 		/// Reads an array of objects (for arrays with non-zero-based indexing and/or multiple dimensions).
 		/// </summary>
@@ -729,6 +741,10 @@ namespace GriffinPlus.Lib.Serialization
 			// create an array with elements of the specified type
 			var array = Array.CreateInstance(type, lengths, lowerBounds);
 
+			// assign an object id to the array before deserializing its elements
+			// (elements may refer to the array)
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
 			// read array elements
 			for (int i = 0; i < array.Length; i++)
 			{
@@ -737,7 +753,6 @@ namespace GriffinPlus.Lib.Serialization
 				IncrementArrayIndices(indices, array);
 			}
 
-			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
 		}
 
