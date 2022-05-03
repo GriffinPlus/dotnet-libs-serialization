@@ -44,6 +44,7 @@ namespace GriffinPlus.Lib.Serialization
 		private readonly Dictionary<Type, uint>   mSerializedTypeIdTable      = new Dictionary<Type, uint>();
 		private readonly SerializerVersionTable   mSerializedTypeVersionTable = new SerializerVersionTable();
 		private readonly Dictionary<object, uint> mSerializedObjectIdTable    = new Dictionary<object, uint>(IdentityComparer<object>.Default);
+		private readonly HashSet<object>          mObjectsUnderSerialization  = new HashSet<object>(IdentityComparer<object>.Default);
 		private          uint                     mNextSerializedTypeId       = default;
 		private          uint                     mNextSerializedObjectId     = default;
 
@@ -1346,6 +1347,7 @@ namespace GriffinPlus.Lib.Serialization
 			mCurrentSerializedType = null;
 			mSerializedTypeIdTable.Clear();
 			mNextSerializedTypeId = 0;
+			mObjectsUnderSerialization.Clear();
 			ResetSerializerObjectTable();
 		}
 
@@ -1616,17 +1618,34 @@ namespace GriffinPlus.Lib.Serialization
 				obj,
 				context) =>
 			{
+				// abort, if the object to serialize is under serialization itself
+				if (serializer.mObjectsUnderSerialization.Contains(obj))
+					throw new CyclicDependencyDetectedException($"Detected a cyclic dependency to the object to serialize (type: {obj.GetType().FullName}).");
+
 				// determine the serializer version to use
 				if (!serializer.mSerializedTypeVersionTable.TryGet(type, out uint version))
 					HasInternalObjectSerializer(type, out version);
 
+				// write the header of the archive
 				serializer.WriteTypeMetadata(stream, type);
 				serializer.TempBuffer_Buffer[0] = (byte)PayloadType.ArchiveStart;
 				int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, version);
 				stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
 				var archive = new SerializerArchive(serializer, stream, type, version, context);
+
+				// get the delegate invoking the internal object serializer
 				var serialize = GetInternalObjectSerializerSerializeCaller(type);
-				serialize(obj as IInternalObjectSerializer, archive, version);
+
+				// serialize the object
+				serializer.mObjectsUnderSerialization.Add(obj);
+				try { serialize(obj as IInternalObjectSerializer, archive, version); }
+				finally { serializer.mObjectsUnderSerialization.Remove(obj); }
+
+				// assign an object id to the object to enable referencing it later on
+				if (!(obj is ValueType))
+					serializer.mSerializedObjectIdTable.Add(obj, serializer.mNextSerializedObjectId++);
+
+				// close the archive
 				archive.Close();
 				stream.WriteByte((byte)PayloadType.ArchiveEnd);
 			};
@@ -1713,6 +1732,10 @@ namespace GriffinPlus.Lib.Serialization
 				obj,
 				context) =>
 			{
+				// abort, if the object to serialize is under serialization itself
+				if (serializer.mObjectsUnderSerialization.Contains(obj))
+					throw new CyclicDependencyDetectedException($"Detected a cyclic dependency to the object to serialize (type: {obj.GetType().FullName}).");
+
 				// determine the serializer version to use
 				if (!serializer.mSerializedTypeVersionTable.TryGet(typeToSerialize, out uint version))
 					HasExternalObjectSerializer(typeToSerialize, out version);
@@ -1720,12 +1743,22 @@ namespace GriffinPlus.Lib.Serialization
 				// write type metadata
 				serializer.WriteTypeMetadata(stream, typeToSerialize);
 
-				// write serializer archive
+				// write header of the archive
 				serializer.TempBuffer_Buffer[0] = (byte)PayloadType.ArchiveStart;
 				int count = Leb128EncodingHelper.Write(serializer.TempBuffer_Buffer, 1, version);
 				stream.Write(serializer.TempBuffer_Buffer, 0, 1 + count);
 				var archive = new SerializerArchive(serializer, stream, typeToSerialize, version, context);
-				eos.Serialize(archive, version, obj);
+
+				// serialize the object using the external object serializer
+				serializer.mObjectsUnderSerialization.Add(obj);
+				try { eos.Serialize(archive, version, obj); }
+				finally { serializer.mObjectsUnderSerialization.Remove(obj); }
+
+				// assign an object id to the object to allow referencing it later on
+				if (!(obj is ValueType))
+					serializer.mSerializedObjectIdTable.Add(obj, serializer.mNextSerializedObjectId++);
+
+				// close the archive
 				archive.Close();
 				stream.WriteByte((byte)PayloadType.ArchiveEnd);
 			};
@@ -2162,6 +2195,10 @@ namespace GriffinPlus.Lib.Serialization
 				var archive = new SerializerArchive(this, stream, mCurrentDeserializedType.Type, deserializedVersion, context);
 				object obj = eosi.Serializer.Deserialize(archive);
 				archive.Close();
+
+				// assign an object id to the deserialized object, the serialization stream may refer to it later on
+				if (!(obj is ValueType))
+					mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, obj);
 
 				// read and check archive end
 				ReadAndCheckPayloadType(stream, PayloadType.ArchiveEnd);

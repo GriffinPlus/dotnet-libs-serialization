@@ -32,3 +32,10 @@ The library is tested automatically on the following frameworks and operating sy
 ## Versioning
 
 The library follows semantic versioning, so it should be safe to use higher versions of the library, as long as the major version number does not change.
+
+## Known Limitations
+
+### No support for cyclic dependencies
+
+The serializer will throw a `CyclicDependencyDetectedException` if it detects a cyclic dependency when serializing. If you really need cyclic dependencies in your type you can use a context object to pass references downstream.
+

@@ -546,6 +546,52 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			Assert.Same(copy, copy[0]);
 		}
 
+		/// <summary>
+		/// Tests detecting cyclic references when serializing using an internal object serializer.
+		/// The serializer should throw a <see cref="CyclicDependencyDetectedException"/> in this case.
+		/// </summary>
+		[Fact]
+		public void SerializeAndDeserialize_CyclicReference_InternalObjectSerializer()
+		{
+			// build object graph:
+			// 0 -> 1 -> 2
+			// ^---------+
+			var node0 = new GraphNodeWithInternalObjectSerializer("0");
+			var node1 = new GraphNodeWithInternalObjectSerializer("1");
+			var node2 = new GraphNodeWithInternalObjectSerializer("2");
+
+			node0.Next.Add(node1);
+			node1.Next.Add(node2);
+			node2.Next.Add(node0);
+
+			var stream = new MemoryStream();
+			var serializer = new Serializer();
+			Assert.Throws<CyclicDependencyDetectedException>(() => { serializer.Serialize(stream, node0, null); });
+		}
+
+		/// <summary>
+		/// Tests detecting cyclic references when serializing using an external object serializer.
+		/// The serializer should throw a <see cref="CyclicDependencyDetectedException"/> in this case.
+		/// </summary>
+		[Fact]
+		public void SerializeAndDeserialize_CyclicReference_ExternalObjectSerializer()
+		{
+			// build object graph:
+			// 0 -> 1 -> 2
+			// ^---------+
+			var node0 = new GraphNode("0");
+			var node1 = new GraphNode("1");
+			var node2 = new GraphNode("2");
+
+			node0.Next.Add(node1);
+			node1.Next.Add(node2);
+			node2.Next.Add(node0);
+
+			var stream = new MemoryStream();
+			var serializer = new Serializer();
+			Assert.Throws<CyclicDependencyDetectedException>(() => { serializer.Serialize(stream, node0, null); });
+		}
+
 		#endregion
 
 		#region Helpers
