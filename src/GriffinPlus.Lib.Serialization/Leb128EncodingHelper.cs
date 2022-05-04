@@ -3,6 +3,7 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+using System;
 using System.IO;
 
 namespace GriffinPlus.Lib.Serialization
@@ -13,6 +14,16 @@ namespace GriffinPlus.Lib.Serialization
 	/// </summary>
 	static class Leb128EncodingHelper
 	{
+		/// <summary>
+		/// Maximum number of bytes for encoding a signed or unsigned 32 bit integer value.
+		/// </summary>
+		public const int MaxBytesFor32BitValue = 5;
+
+		/// <summary>
+		/// Maximum number of bytes for encoding a signed or unsigned 64 bit integer value.
+		/// </summary>
+		public const int MaxBytesFor64BitValue = 10;
+
 		#region 32-Bit Signed Integer
 
 		/// <summary>
@@ -77,6 +88,42 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			return count;
+		}
+
+		/// <summary>
+		/// Writes a signed integer into the specified buffer using the SLEB128 encoding.
+		/// </summary>
+		/// <param name="buffer">Buffer to write the integer to.</param>
+		/// <param name="value">Integer to write.</param>
+		/// <returns>Number of bytes written.</returns>
+		public static int Write(Span<byte> buffer, int value)
+		{
+			bool more = true;
+			int offset = 0;
+			bool negative = value < 0;
+
+			while (more)
+			{
+				int data = value & 0x7F;
+				value >>= 7;
+				if (negative)
+				{
+					value |= -(1 << (32 - 7)); // sign extend
+				}
+
+				if ((value == 0 && (data & 0x40) == 0) || (value == -1 && (data & 0x40) == 0x40))
+				{
+					more = false;
+				}
+				else
+				{
+					data |= 0x80;
+				}
+
+				buffer[offset++] = (byte)data;
+			}
+
+			return offset;
 		}
 
 		/// <summary>
@@ -227,6 +274,27 @@ namespace GriffinPlus.Lib.Serialization
 			} while (value != 0);
 
 			return count;
+		}
+
+		/// <summary>
+		/// Writes an unsigned integer into the specified buffer using the ULEB128 encoding.
+		/// </summary>
+		/// <param name="buffer">Buffer to write the integer to.</param>
+		/// <param name="value">Integer to write.</param>
+		/// <returns>Number of bytes written.</returns>
+		public static int Write(Span<byte> buffer, uint value)
+		{
+			int offset = 0;
+
+			do
+			{
+				byte byteToWrite = (byte)(value & 0x7F);
+				buffer[offset] = value > 0x7F ? (byte)(byteToWrite | 0x80) : byteToWrite;
+				value >>= 7;
+				offset++;
+			} while (value != 0);
+
+			return offset;
 		}
 
 		/// <summary>
@@ -382,6 +450,39 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
+		/// Writes a signed integer into the specified buffer using the SLEB128 encoding.
+		/// </summary>
+		/// <param name="buffer">Buffer to write the integer to.</param>
+		/// <param name="value">Integer to write.</param>
+		/// <returns>Number of bytes written.</returns>
+		public static int Write(Span<byte> buffer, long value)
+		{
+			bool more = true;
+			int offset = 0;
+			bool negative = value < 0;
+
+			while (more)
+			{
+				long data = value & 0x7F;
+				value >>= 7;
+				if (negative) value |= -((long)1 << (64 - 7)); // sign extend
+
+				if ((value == 0 && (data & 0x40) == 0) || (value == -1 && (data & 0x40) == 0x40))
+				{
+					more = false;
+				}
+				else
+				{
+					data |= 0x80;
+				}
+
+				buffer[offset++] = (byte)data;
+			}
+
+			return offset;
+		}
+
+		/// <summary>
 		/// Reads a SLEB128 encoded signed integer from the specified byte array (max. 64 bit).
 		/// </summary>
 		/// <param name="array">Array containing a SLEB128 encoded integer.</param>
@@ -534,6 +635,27 @@ namespace GriffinPlus.Lib.Serialization
 			} while (value != 0);
 
 			return count;
+		}
+
+		/// <summary>
+		/// Writes an unsigned integer into the specified buffer using the ULEB128 encoding.
+		/// </summary>
+		/// <param name="buffer">Buffer to write the integer to.</param>
+		/// <param name="value">Integer to write.</param>
+		/// <returns>Number of bytes written.</returns>
+		public static int Write(Span<byte> buffer, ulong value)
+		{
+			int offset = 0;
+
+			do
+			{
+				byte byteToWrite = (byte)(value & 0x7F);
+				buffer[offset] = value > 0x7F ? (byte)(byteToWrite | 0x80) : byteToWrite;
+				value >>= 7;
+				offset++;
+			} while (value != 0);
+
+			return offset;
 		}
 
 		/// <summary>
