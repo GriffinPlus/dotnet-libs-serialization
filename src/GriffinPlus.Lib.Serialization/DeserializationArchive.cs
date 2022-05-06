@@ -272,7 +272,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			int readByte = mStream.ReadByte();
 			if (readByte < 0) throw new SerializationException("Stream ended unexpectedly.");
-			var payloadType = (PayloadType)readByte;
+			var payloadType = (PayloadType)(readByte & (int)PayloadType.TypeMask);
 			if (payloadType == PayloadType.BooleanFalse) return false;
 			if (payloadType == PayloadType.BooleanTrue) return true;
 			Debug.Fail("Unexpected payload type during deserialization.");
@@ -553,7 +553,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Reads the payload type from the stream and checks whether it matches the expected payload type.
 		/// </summary>
-		/// <param name="type">Type to check for.</param>
+		/// <param name="type">The expected payload type.</param>
 		/// <exception cref="SerializationException">Stream ended unexpectedly.</exception>
 		/// <exception cref="SerializationException">Specified payload type does not match the received payload type.</exception>
 		private void ReadAndCheckPayloadType(PayloadType type)
@@ -562,7 +562,8 @@ namespace GriffinPlus.Lib.Serialization
 
 			int readByte = mStream.ReadByte();
 			if (readByte < 0) throw new SerializationException("Stream ended unexpectedly.");
-			if (readByte != (int)type)
+			var payloadType = (PayloadType)(readByte & (int)PayloadType.TypeMask);
+			if (payloadType != type)
 			{
 				Debug.Fail("Unexpected payload type during deserialization.");
 				var trace = new StackTrace();

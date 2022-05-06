@@ -1433,6 +1433,11 @@ namespace GriffinPlus.Lib.Serialization
 			set => mUseTolerantDeserialization = value;
 		}
 
+		/// <summary>
+		/// Gets or sets a value determining whether to optimize for speed or for size when serializing.
+		/// </summary>
+		public SerializationOptimization SerializationOptimization { get; set; } = SerializationOptimization.Size;
+
 		#endregion
 
 		#region Serialization
@@ -2303,7 +2308,7 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			int readByte = stream.ReadByte();
 			if (readByte < 0) throw new SerializationException("Stream ended unexpectedly.");
-			if (readByte != (int)type)
+			if ((PayloadType)(readByte & (int)PayloadType.TypeMask) != type)
 			{
 				var trace = new StackTrace();
 				string error = $"Unexpected payload type during deserialization. Stack Trace:\n{trace}";
