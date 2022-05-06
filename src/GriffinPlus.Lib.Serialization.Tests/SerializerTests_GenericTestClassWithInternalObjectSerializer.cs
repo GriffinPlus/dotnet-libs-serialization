@@ -3,13 +3,14 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable NonReadonlyMemberInGetHashCode
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace GriffinPlus.Lib.Serialization.Tests
 {
@@ -46,7 +47,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			internal TestEnum_S64 Enum_S64                     { get; set; }
 			internal TestEnum_U64 Enum_U64                     { get; set; }
 			internal List<int>    SerializableObject           { get; set; }
-			internal byte[]       Buffer                       { get; set; }
+			internal byte[]       Buffer1                      { get; set; }
+			internal byte[]       Buffer2                      { get; set; }
 
 			public GenericTestClassWithInternalObjectSerializer()
 			{
@@ -77,7 +79,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				Enum_S64 = TestEnum_S64.B;
 				Enum_U64 = TestEnum_U64.B;
 				SerializableObject = new List<int> { 1, 2, 3, 4, 5 };
-				Buffer = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+				Buffer1 = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+				Buffer2 = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 			}
 
 			public unsafe GenericTestClassWithInternalObjectSerializer(DeserializationArchive archive)
@@ -112,9 +115,18 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					Enum_U64 = archive.ReadEnum<TestEnum_U64>();
 					SerializableObject = (List<int>)archive.ReadObject();
 
-					int bufferSize = archive.ReadInt32();
-					Buffer = new byte[bufferSize];
-					fixed (byte* pBuffer = &Buffer[0]) archive.ReadBuffer(new IntPtr(pBuffer), bufferSize);
+					// deserialize buffer via pointer
+					int buffer1Size = archive.ReadInt32();
+					Buffer1 = new byte[buffer1Size];
+					fixed (byte* pBuffer = &Buffer1[0]) archive.ReadBuffer(new IntPtr(pBuffer), buffer1Size);
+
+					// deserialize buffer via Stream
+					int buffer2Size = archive.ReadInt32();
+					var stream = archive.ReadStream();
+					Buffer2 = new byte[buffer2Size];
+					int readByteCount = stream.Read(Buffer2, 0, Buffer2.Length);
+					Debug.Assert(readByteCount == Buffer2.Length);
+					Debug.Assert(stream.Length == Buffer2.Length);
 				}
 				else
 				{
@@ -154,8 +166,13 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					archive.Write(Enum_U64);
 					archive.Write(SerializableObject);
 
-					archive.Write(Buffer.Length);
-					fixed (byte* pBuffer = &Buffer[0]) archive.Write(pBuffer, Buffer.Length);
+					// serialize buffer via pointer
+					archive.Write(Buffer1.Length);
+					fixed (byte* pBuffer = &Buffer1[0]) archive.Write(pBuffer, Buffer1.Length);
+
+					// serializer buffer via stream
+					archive.Write(Buffer2.Length);
+					archive.Write(new MemoryStream(Buffer2));
 				}
 				else
 				{
@@ -194,7 +211,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					hashCode = (hashCode * 397) ^ Enum_S64.GetHashCode();
 					hashCode = (hashCode * 397) ^ Enum_U64.GetHashCode();
 					hashCode = (hashCode * 397) ^ SerializableObject.GetHashCode();
-					hashCode = (hashCode * 397) ^ ByteArrayEqualityComparer.GetHashCode(Buffer);
+					hashCode = (hashCode * 397) ^ ByteArrayEqualityComparer.GetHashCode(Buffer1);
+					hashCode = (hashCode * 397) ^ ByteArrayEqualityComparer.GetHashCode(Buffer2);
 					return hashCode;
 				}
 			}
@@ -227,7 +245,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				       Enum_S64 == other.Enum_S64 &&
 				       Enum_U64 == other.Enum_U64 &&
 				       SerializableObject.SequenceEqual(other.SerializableObject) &&
-				       ByteArrayEqualityComparer.AreEqual(Buffer, other.Buffer);
+				       ByteArrayEqualityComparer.AreEqual(Buffer1, other.Buffer1) &&
+				       ByteArrayEqualityComparer.AreEqual(Buffer2, other.Buffer2);
 			}
 
 			public override bool Equals(object obj)

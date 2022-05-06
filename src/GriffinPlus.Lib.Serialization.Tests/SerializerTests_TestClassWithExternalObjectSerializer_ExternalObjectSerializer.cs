@@ -7,6 +7,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 
 namespace GriffinPlus.Lib.Serialization.Tests
 {
@@ -50,8 +52,13 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					archive.Write(other.Enum_U64);
 					archive.Write(other.SerializableObject);
 
-					archive.Write(other.Buffer.Length);
-					fixed (byte* pBuffer = &other.Buffer[0]) archive.Write(pBuffer, other.Buffer.Length);
+					// deserialize buffer via pointer
+					archive.Write(other.Buffer1.Length);
+					fixed (byte* pBuffer = &other.Buffer1[0]) archive.Write(pBuffer, other.Buffer1.Length);
+
+					// serializer buffer via stream
+					archive.Write(other.Buffer2.Length);
+					archive.Write(new MemoryStream(other.Buffer2));
 				}
 				else
 				{
@@ -93,9 +100,18 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					obj.Enum_U64 = archive.ReadEnum<TestEnum_U64>();
 					obj.SerializableObject = (List<int>)archive.ReadObject();
 
+					// deserialize buffer via pointer
 					int bufferSize = archive.ReadInt32();
-					obj.Buffer = new byte[bufferSize];
-					fixed (byte* pBuffer = &obj.Buffer[0]) archive.ReadBuffer(new IntPtr(pBuffer), bufferSize);
+					obj.Buffer1 = new byte[bufferSize];
+					fixed (byte* pBuffer = &obj.Buffer1[0]) archive.ReadBuffer(new IntPtr(pBuffer), bufferSize);
+
+					// deserialize buffer via Stream
+					int buffer2Size = archive.ReadInt32();
+					var stream = archive.ReadStream();
+					obj.Buffer2 = new byte[buffer2Size];
+					int readByteCount = stream.Read(obj.Buffer2, 0, obj.Buffer2.Length);
+					Debug.Assert(readByteCount == obj.Buffer2.Length);
+					Debug.Assert(stream.Length == obj.Buffer2.Length);
 				}
 				else
 				{
