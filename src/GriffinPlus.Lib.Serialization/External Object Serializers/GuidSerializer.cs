@@ -15,13 +15,13 @@ namespace GriffinPlus.Lib.Serialization
 	class GuidSerializer : IExternalObjectSerializer
 	{
 		/// <summary>
-		/// Serializes a GUID to a stream.
+		/// Serializes a <see cref="System.Guid"/>.
 		/// </summary>
 		/// <param name="archive">Archive to put the specified GUID into.</param>
-		/// <param name="version">Requested version when serializing the GUID.</param>
-		/// <param name="obj">Object to serialize (type System.Guid).</param>
+		/// <param name="version">Serializer version to use.</param>
+		/// <param name="obj">The <see cref="System.Guid"/> to serialize.</param>
 		/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
-		public void Serialize(SerializerArchive archive, uint version, object obj)
+		public void Serialize(SerializationArchive archive, uint version, object obj)
 		{
 			if (version == 1)
 			{
@@ -35,12 +35,12 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Deserializes a GUID from a stream.
+		/// Deserializes a <see cref="System.Guid"/>.
 		/// </summary>
 		/// <param name="archive">Archive containing the serialized GUID.</param>
-		/// <returns>Deserialized object (type System.Guid).</returns>
+		/// <returns>The deserialized <see cref="System.Guid"/>.</returns>
 		/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
-		public object Deserialize(SerializerArchive archive)
+		public object Deserialize(DeserializationArchive archive)
 		{
 			if (archive.Version == 1)
 			{

@@ -11,37 +11,15 @@ namespace GriffinPlus.Lib.Serialization
 
 	partial class Serializer
 	{
-		internal byte[]    TempBuffer_UInt8;
-		internal ushort[]  TempBuffer_UInt16;
-		internal uint[]    TempBuffer_UInt32;
-		internal ulong[]   TempBuffer_UInt64;
-		internal sbyte[]   TempBuffer_Int8;
-		internal short[]   TempBuffer_Int16;
-		internal int[]     TempBuffer_Int32 = new int[4]; // must always be four 32-bit integers to work for decimal conversion
-		internal long[]    TempBuffer_Int64;
-		internal char[]    TempBuffer_Char;
-		internal float[]   TempBuffer_Single;
-		internal double[]  TempBuffer_Double;
-		internal decimal[] TempBuffer_Decimal;
-		internal byte[]    TempBuffer_Buffer;
+		internal int[]  TempBuffer_Int32 = new int[4]; // must always be four 32-bit integers to work for decimal conversion
+		internal byte[] TempBuffer_Buffer;
 
 		/// <summary>
 		/// Allocates temporary buffers.
 		/// </summary>
 		private void AllocateTemporaryBuffers()
 		{
-			TempBuffer_UInt8 = ArrayPool<byte>.Shared.Rent(1);
-			TempBuffer_UInt16 = ArrayPool<ushort>.Shared.Rent(1);
-			TempBuffer_UInt32 = ArrayPool<uint>.Shared.Rent(1);
-			TempBuffer_UInt64 = ArrayPool<ulong>.Shared.Rent(1);
-			TempBuffer_Int8 = ArrayPool<sbyte>.Shared.Rent(1);
-			TempBuffer_Int16 = ArrayPool<short>.Shared.Rent(1);
 			// TempBuffer_Int32 = new int[4]; 
-			TempBuffer_Int64 = ArrayPool<long>.Shared.Rent(1);
-			TempBuffer_Char = ArrayPool<char>.Shared.Rent(1);
-			TempBuffer_Single = ArrayPool<float>.Shared.Rent(1);
-			TempBuffer_Double = ArrayPool<double>.Shared.Rent(1);
-			TempBuffer_Decimal = ArrayPool<decimal>.Shared.Rent(1);
 			TempBuffer_Buffer = ArrayPool<byte>.Shared.Rent(256); // resized on demand
 		}
 
@@ -50,18 +28,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		private void ReleaseTemporaryBuffers()
 		{
-			ReleaseBuffer(ref TempBuffer_UInt8);
-			ReleaseBuffer(ref TempBuffer_UInt16);
-			ReleaseBuffer(ref TempBuffer_UInt32);
-			ReleaseBuffer(ref TempBuffer_UInt64);
-			ReleaseBuffer(ref TempBuffer_Int8);
-			ReleaseBuffer(ref TempBuffer_Int16);
 			// ReleaseBuffer(ref TempBuffer_Int32);
-			ReleaseBuffer(ref TempBuffer_Int64);
-			ReleaseBuffer(ref TempBuffer_Char);
-			ReleaseBuffer(ref TempBuffer_Single);
-			ReleaseBuffer(ref TempBuffer_Double);
-			ReleaseBuffer(ref TempBuffer_Decimal);
 			ReleaseBuffer(ref TempBuffer_Buffer);
 		}
 

@@ -12,21 +12,21 @@ namespace GriffinPlus.Lib.Serialization
 	/// <remarks>
 	/// Classes providing persistence using the <see cref="Serializer"/> class must derive from this interface and
 	/// implement its <see cref="Serialize"/> method to write an instance of itself into an instance of the
-	/// <see cref="SerializerArchive"/> class. Deserialization requires a special constructor receiving an instance
-	/// of the <see cref="SerializerArchive"/> class as its argument. Due to the fact that constructors cannot be
+	/// <see cref="SerializationArchive"/> class. Deserialization requires a special constructor receiving an instance
+	/// of the <see cref="DeserializationArchive"/> class as its argument. Due to the fact that constructors cannot be
 	/// declared in interfaces you must take care for implementing the constructor on your own, otherwise deserialization
 	/// will fail.
 	/// </remarks>
 	public interface IInternalObjectSerializer
 	{
-		// public MyConstructor(SerializerArchive archive)
+		// public MyConstructor(SerializationArchive archive)
 
 		/// <summary>
 		/// Serializes the current object into a serializer archive.
 		/// </summary>
 		/// <param name="archive">Archive to serialize the current object into.</param>
 		/// <param name="version">Requested version of the current object to serialize.</param>
-		void Serialize(SerializerArchive archive, uint version);
+		void Serialize(SerializationArchive archive, uint version);
 	}
 
 }

@@ -14,7 +14,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[ExternalObjectSerializer(typeof(GraphNode), 1)]
 		public class GraphNode_ExternalObjectSerializer : IExternalObjectSerializer
 		{
-			public void Serialize(SerializerArchive archive, uint version, object obj)
+			public void Serialize(SerializationArchive archive, uint version, object obj)
 			{
 				var other = (GraphNode)obj;
 
@@ -29,7 +29,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				}
 			}
 
-			public object Deserialize(SerializerArchive archive)
+			public object Deserialize(DeserializationArchive archive)
 			{
 				var obj = new GraphNode();
 

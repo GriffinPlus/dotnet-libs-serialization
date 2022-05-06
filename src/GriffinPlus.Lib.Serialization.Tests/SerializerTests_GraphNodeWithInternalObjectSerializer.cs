@@ -16,7 +16,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			public GraphNodeWithInternalObjectSerializer(string name) : base(name) { }
 
-			public GraphNodeWithInternalObjectSerializer(SerializerArchive archive)
+			public GraphNodeWithInternalObjectSerializer(DeserializationArchive archive)
 			{
 				if (archive.Version == 1)
 				{
@@ -29,7 +29,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				}
 			}
 
-			void IInternalObjectSerializer.Serialize(SerializerArchive archive, uint version)
+			void IInternalObjectSerializer.Serialize(SerializationArchive archive, uint version)
 			{
 				if (version == 1)
 				{

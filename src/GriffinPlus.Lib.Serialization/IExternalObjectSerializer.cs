@@ -22,7 +22,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="archive">Archive to serialize the specified object to.</param>
 		/// <param name="version">Serializer version to use.</param>
 		/// <param name="obj">The object to serialize.</param>
-		void Serialize(SerializerArchive archive, uint version, object obj);
+		void Serialize(SerializationArchive archive, uint version, object obj);
 
 		/// <summary>
 		/// Deserializes an object from the specified archive.
@@ -30,10 +30,10 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="archive">Archive to deserialize the object from.</param>
 		/// <returns>Deserialized object.</returns>
 		/// <remarks>
-		/// The archive contains version information which may tell you how to deserialize it properly, if different
-		/// serializer versions are available.
+		/// The archive contains version information which may tell you how to deserialize it properly,
+		/// if different serializer versions are available.
 		/// </remarks>
-		object Deserialize(SerializerArchive archive);
+		object Deserialize(DeserializationArchive archive);
 	}
 
 }

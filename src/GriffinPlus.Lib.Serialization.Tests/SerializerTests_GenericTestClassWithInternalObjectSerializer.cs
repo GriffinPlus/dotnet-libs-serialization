@@ -80,7 +80,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				Buffer = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 			}
 
-			public unsafe GenericTestClassWithInternalObjectSerializer(SerializerArchive archive)
+			public unsafe GenericTestClassWithInternalObjectSerializer(DeserializationArchive archive)
 			{
 				if (archive.Version == 1)
 				{
@@ -122,7 +122,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				}
 			}
 
-			public unsafe void Serialize(SerializerArchive archive, uint version)
+			public unsafe void Serialize(SerializationArchive archive, uint version)
 			{
 				if (version == 1)
 				{
@@ -155,7 +155,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					archive.Write(SerializableObject);
 
 					archive.Write(Buffer.Length);
-					fixed (byte* pBuffer = &Buffer[0]) archive.Write(new IntPtr(pBuffer), Buffer.Length);
+					fixed (byte* pBuffer = &Buffer[0]) archive.Write(pBuffer, Buffer.Length);
 				}
 				else
 				{

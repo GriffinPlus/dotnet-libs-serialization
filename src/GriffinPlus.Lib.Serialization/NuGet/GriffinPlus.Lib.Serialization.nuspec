@@ -17,12 +17,19 @@
 				<dependency id="GriffinPlus.Lib.Common" version="[2.0.3,3)" include="all" />
 				<dependency id="GriffinPlus.Lib.FastActivator" version="[1.0.13,2)" include="all" />
 				<dependency id="GriffinPlus.Lib.Logging.Interface" version="[1.1.0,2)" include="all" />
+				<dependency id="System.Buffers" version="4.5.1" />
 				<dependency id="System.Memory" version="4.5.4" />
+			</group>
+			<group targetFramework="netstandard2.1">
+				<dependency id="GriffinPlus.Lib.Common" version="[2.0.3,3)" include="all" />
+				<dependency id="GriffinPlus.Lib.FastActivator" version="[1.0.13,2)" include="all" />
+				<dependency id="GriffinPlus.Lib.Logging.Interface" version="[1.1.0,2)" include="all" />
 			</group>
 			<group targetFramework="net461">
 				<dependency id="GriffinPlus.Lib.Common" version="[2.0.3,3)" include="all" />
 				<dependency id="GriffinPlus.Lib.FastActivator" version="[1.0.13,2)" include="all" />
 				<dependency id="GriffinPlus.Lib.Logging.Interface" version="[1.1.0,2)" include="all" />
+				<dependency id="System.Buffers" version="4.5.1" />
 				<dependency id="System.Memory" version="4.5.4" />
 			</group>
 			<group targetFramework="net5.0">
@@ -37,6 +44,9 @@
 		<file src="..\..\..\_build\.out\GriffinPlus.Lib.Serialization\AnyCPU.Release\netstandard2.0\GriffinPlus.Lib.Serialization.dll" target="lib\netstandard2.0" />
 		<file src="..\..\..\_build\.out\GriffinPlus.Lib.Serialization\AnyCPU.Release\netstandard2.0\GriffinPlus.Lib.Serialization.pdb" target="lib\netstandard2.0" />
 		<file src="..\..\..\_build\.out\GriffinPlus.Lib.Serialization\AnyCPU.Release\netstandard2.0\GriffinPlus.Lib.Serialization.xml" target="lib\netstandard2.0" />
+		<file src="..\..\..\_build\.out\GriffinPlus.Lib.Serialization\AnyCPU.Release\netstandard2.1\GriffinPlus.Lib.Serialization.dll" target="lib\netstandard2.1" />
+		<file src="..\..\..\_build\.out\GriffinPlus.Lib.Serialization\AnyCPU.Release\netstandard2.1\GriffinPlus.Lib.Serialization.pdb" target="lib\netstandard2.1" />
+		<file src="..\..\..\_build\.out\GriffinPlus.Lib.Serialization\AnyCPU.Release\netstandard2.1\GriffinPlus.Lib.Serialization.xml" target="lib\netstandard2.1" />
 		<file src="..\..\..\_build\.out\GriffinPlus.Lib.Serialization\AnyCPU.Release\net461\GriffinPlus.Lib.Serialization.dll" target="lib\net461" />
 		<file src="..\..\..\_build\.out\GriffinPlus.Lib.Serialization\AnyCPU.Release\net461\GriffinPlus.Lib.Serialization.pdb" target="lib\net461" />
 		<file src="..\..\..\_build\.out\GriffinPlus.Lib.Serialization\AnyCPU.Release\net461\GriffinPlus.Lib.Serialization.xml" target="lib\net461" />

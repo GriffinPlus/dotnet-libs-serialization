@@ -16,7 +16,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[ExternalObjectSerializer(typeof(TestClassWithExternalObjectSerializer), 1)]
 		public class TestClassWithGenericObjectSerializer_ExternalObjectSerializer : IExternalObjectSerializer
 		{
-			public unsafe void Serialize(SerializerArchive archive, uint version, object obj)
+			public unsafe void Serialize(SerializationArchive archive, uint version, object obj)
 			{
 				var other = (TestClassWithExternalObjectSerializer)obj;
 
@@ -51,7 +51,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					archive.Write(other.SerializableObject);
 
 					archive.Write(other.Buffer.Length);
-					fixed (byte* pBuffer = &other.Buffer[0]) archive.Write(new IntPtr(pBuffer), other.Buffer.Length);
+					fixed (byte* pBuffer = &other.Buffer[0]) archive.Write(pBuffer, other.Buffer.Length);
 				}
 				else
 				{
@@ -59,7 +59,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				}
 			}
 
-			public unsafe object Deserialize(SerializerArchive archive)
+			public unsafe object Deserialize(DeserializationArchive archive)
 			{
 				var obj = new TestClassWithExternalObjectSerializer();
 

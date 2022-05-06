@@ -12,9 +12,9 @@ namespace GriffinPlus.Lib.Serialization
 		/// Serializes an object to the specified archive using its internal object serializer.
 		/// </summary>
 		/// <param name="ios">The object to serialize (implements an internal object serializer).</param>
-		/// <param name="archive">Serializer archive to write to.</param>
+		/// <param name="archive">Serialization archive to write to.</param>
 		/// <param name="version">Serializer version to use when serializing the object.</param>
-		internal delegate void IosSerializeDelegate(IInternalObjectSerializer ios, SerializerArchive archive, uint version);
+		internal delegate void IosSerializeDelegate(IInternalObjectSerializer ios, SerializationArchive archive, uint version);
 	}
 
 }

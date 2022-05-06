@@ -22,7 +22,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				AnotherString = "The quick brown fox jumps over the lazy dog";
 			}
 
-			public TestClassWithInternalObjectSerializer_Derived(SerializerArchive archive) :
+			public TestClassWithInternalObjectSerializer_Derived(DeserializationArchive archive) :
 				base(archive.PrepareBaseArchive(typeof(TestClassWithInternalObjectSerializer)))
 			{
 				if (archive.Version == 1)
@@ -35,7 +35,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				}
 			}
 
-			public new void Serialize(SerializerArchive archive, uint version)
+			public new void Serialize(SerializationArchive archive, uint version)
 			{
 				archive.WriteBaseArchive(this, typeof(TestClassWithInternalObjectSerializer), null);
 

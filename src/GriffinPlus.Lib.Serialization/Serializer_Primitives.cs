@@ -4,8 +4,13 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Buffers;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
+#if NET5_0_OR_GREATER
+using System.Diagnostics;
+#endif
 
 namespace GriffinPlus.Lib.Serialization
 {
@@ -18,11 +23,13 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a <see cref="System.Boolean"/> value.
 		/// </summary>
 		/// <param name="value">Value to write.</param>
-		/// <param name="stream">Stream to write the value to.</param>
-		internal void WritePrimitive_Boolean(bool value, Stream stream)
+		/// <param name="writer">Buffer writer to write the value to.</param>
+		internal void WritePrimitive_Boolean(bool value, IBufferWriter<byte> writer)
 		{
-			stream.WriteByte((byte)PayloadType.Boolean);
-			stream.WriteByte((byte)(value ? 1 : 0));
+			var buffer = writer.GetSpan(2);
+			buffer[0] = (byte)PayloadType.Boolean;
+			buffer[1] = (byte)(value ? 1 : 0);
+			writer.Advance(2);
 		}
 
 		/// <summary>
@@ -45,12 +52,13 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a <see cref="System.Char"/> value.
 		/// </summary>
 		/// <param name="value">Value to write.</param>
-		/// <param name="stream">Stream to write the value to.</param>
-		internal void WritePrimitive_Char(char value, Stream stream)
+		/// <param name="writer">Buffer writer to write the value to.</param>
+		internal void WritePrimitive_Char(char value, IBufferWriter<byte> writer)
 		{
-			TempBuffer_Buffer[0] = (byte)PayloadType.Char;
-			int count = Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, (uint)value);
-			stream.Write(TempBuffer_Buffer, 0, 1 + count);
+			var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+			buffer[0] = (byte)PayloadType.Char;
+			int count = Leb128EncodingHelper.Write(buffer.Slice(1), (uint)value);
+			writer.Advance(1 + count);
 		}
 
 		/// <summary>
@@ -71,14 +79,22 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a <see cref="System.Decimal"/> value.
 		/// </summary>
 		/// <param name="value">Value to write.</param>
-		/// <param name="stream">Stream to write the value to.</param>
-		internal void WritePrimitive_Decimal(decimal value, Stream stream)
+		/// <param name="writer">Buffer writer to write the value to.</param>
+		internal void WritePrimitive_Decimal(decimal value, IBufferWriter<byte> writer)
 		{
-			const int elementSize = 16;
-			stream.WriteByte((byte)PayloadType.Decimal);
+			const int elementSize = sizeof(decimal);
+			var buffer = writer.GetSpan(1 + elementSize);
+			buffer[0] = (byte)PayloadType.Decimal;
+#if NET5_0_OR_GREATER
+			var intBuffer = MemoryMarshal.Cast<byte, int>(buffer.Slice(1));
+			decimal.TryGetBits(value, intBuffer, out int valuesWritten);
+			Debug.Assert(valuesWritten * sizeof(int) == elementSize);
+#else
 			int[] bits = decimal.GetBits(value);
 			Buffer.BlockCopy(bits, 0, TempBuffer_Buffer, 0, elementSize);
-			stream.Write(TempBuffer_Buffer, 0, elementSize);
+			TempBuffer_Buffer.AsSpan(0, elementSize).CopyTo(buffer.Slice(1));
+#endif
+			writer.Advance(1 + elementSize);
 		}
 
 		/// <summary>
@@ -88,7 +104,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read value.</returns>
 		internal decimal ReadPrimitive_Decimal(Stream stream)
 		{
-			const int elementSize = 16;
+			const int elementSize = sizeof(decimal);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
 			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
 			Buffer.BlockCopy(TempBuffer_Buffer, 0, TempBuffer_Int32, 0, elementSize);
@@ -103,14 +119,20 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a <see cref="System.Single"/> value.
 		/// </summary>
 		/// <param name="value">Value to write.</param>
-		/// <param name="stream">Stream to write the value to.</param>
-		internal void WritePrimitive_Single(float value, Stream stream)
+		/// <param name="writer">Buffer writer to write the value to.</param>
+		internal void WritePrimitive_Single(float value, IBufferWriter<byte> writer)
 		{
-			const int elementSize = 4;
-			stream.WriteByte((byte)PayloadType.Single);
-			TempBuffer_Single[0] = value;
-			Buffer.BlockCopy(TempBuffer_Single, 0, TempBuffer_Buffer, 0, elementSize);
-			stream.Write(TempBuffer_Buffer, 0, elementSize);
+			const int elementSize = sizeof(float);
+			var buffer = writer.GetSpan(1 + elementSize);
+			buffer[0] = (byte)PayloadType.Single;
+#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
+			BitConverter.TryWriteBytes(buffer.Slice(1), value);
+#else
+			Span<float> temp = stackalloc float[1];
+			temp[0] = value;
+			MemoryMarshal.Cast<float, byte>(temp).CopyTo(buffer.Slice(1));
+#endif
+			writer.Advance(1 + elementSize);
 		}
 
 		/// <summary>
@@ -120,7 +142,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read value.</returns>
 		internal float ReadPrimitive_Single(Stream stream)
 		{
-			const int elementSize = 4;
+			const int elementSize = sizeof(float);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
 			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
 			return BitConverter.ToSingle(TempBuffer_Buffer, 0);
@@ -134,14 +156,20 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a <see cref="System.Double"/> value.
 		/// </summary>
 		/// <param name="value">Value to write.</param>
-		/// <param name="stream">Stream to write the value to.</param>
-		internal void WritePrimitive_Double(double value, Stream stream)
+		/// <param name="writer">Buffer writer to write the value to.</param>
+		internal void WritePrimitive_Double(double value, IBufferWriter<byte> writer)
 		{
-			const int elementSize = 8;
-			stream.WriteByte((byte)PayloadType.Double);
-			TempBuffer_Double[0] = value;
-			Buffer.BlockCopy(TempBuffer_Double, 0, TempBuffer_Buffer, 0, elementSize);
-			stream.Write(TempBuffer_Buffer, 0, elementSize);
+			const int elementSize = sizeof(double);
+			var buffer = writer.GetSpan(1 + elementSize);
+			buffer[0] = (byte)PayloadType.Double;
+#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
+			BitConverter.TryWriteBytes(buffer.Slice(1), value);
+#else
+			Span<double> temp = stackalloc double[1];
+			temp[0] = value;
+			MemoryMarshal.Cast<double, byte>(temp).CopyTo(buffer.Slice(1));
+#endif
+			writer.Advance(1 + elementSize);
 		}
 
 		/// <summary>
@@ -151,7 +179,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read value.</returns>
 		internal double ReadPrimitive_Double(Stream stream)
 		{
-			const int elementSize = 8;
+			const int elementSize = sizeof(double);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
 			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
 			return BitConverter.ToDouble(TempBuffer_Buffer, 0);
@@ -165,12 +193,18 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a <see cref="System.SByte"/> value.
 		/// </summary>
 		/// <param name="value">Value to write.</param>
-		/// <param name="stream">Stream to write the value to.</param>
-		internal void WritePrimitive_SByte(sbyte value, Stream stream)
+		/// <param name="writer">Buffer writer to write the value to.</param>
+		internal void WritePrimitive_SByte(sbyte value, IBufferWriter<byte> writer)
 		{
-			TempBuffer_Buffer[0] = (byte)PayloadType.SByte;
-			int count = Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, value);
-			stream.Write(TempBuffer_Buffer, 0, 1 + count);
+			var buffer = writer.GetSpan(2);
+
+			unchecked
+			{
+				buffer[0] = (byte)PayloadType.SByte;
+				buffer[1] = (byte)value;
+			}
+
+			writer.Advance(2);
 		}
 
 		/// <summary>
@@ -180,7 +214,9 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read value.</returns>
 		internal sbyte ReadPrimitive_SByte(Stream stream)
 		{
-			return (sbyte)Leb128EncodingHelper.ReadInt32(stream);
+			int readByte = stream.ReadByte();
+			if (readByte < 0) throw new SerializationException("Unexpected end of stream.");
+			unchecked { return (sbyte)(byte)readByte; }
 		}
 
 		#endregion
@@ -191,12 +227,13 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a <see cref="System.Int16"/> value.
 		/// </summary>
 		/// <param name="value">Value to write.</param>
-		/// <param name="stream">Stream to write the value to.</param>
-		internal void WritePrimitive_Int16(short value, Stream stream)
+		/// <param name="writer">Buffer writer to write the value to.</param>
+		internal void WritePrimitive_Int16(short value, IBufferWriter<byte> writer)
 		{
-			TempBuffer_Buffer[0] = (byte)PayloadType.Int16;
-			int count = Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, value);
-			stream.Write(TempBuffer_Buffer, 0, 1 + count);
+			var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+			buffer[0] = (byte)PayloadType.Int16;
+			int count = Leb128EncodingHelper.Write(buffer.Slice(1), value);
+			writer.Advance(1 + count);
 		}
 
 		/// <summary>
@@ -217,12 +254,13 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a <see cref="System.Int32"/> value.
 		/// </summary>
 		/// <param name="value">Value to write.</param>
-		/// <param name="stream">Stream to write the value to.</param>
-		internal void WritePrimitive_Int32(int value, Stream stream)
+		/// <param name="writer">Buffer writer to write the value to.</param>
+		internal void WritePrimitive_Int32(int value, IBufferWriter<byte> writer)
 		{
-			TempBuffer_Buffer[0] = (byte)PayloadType.Int32;
-			int count = Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, value);
-			stream.Write(TempBuffer_Buffer, 0, 1 + count);
+			var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+			buffer[0] = (byte)PayloadType.Int32;
+			int count = Leb128EncodingHelper.Write(buffer.Slice(1), value);
+			writer.Advance(1 + count);
 		}
 
 		/// <summary>
@@ -243,12 +281,13 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a <see cref="System.Int64"/> value.
 		/// </summary>
 		/// <param name="value">Value to write.</param>
-		/// <param name="stream">Stream to write the value to.</param>
-		internal void WritePrimitive_Int64(long value, Stream stream)
+		/// <param name="writer">Buffer writer to write the value to.</param>
+		internal void WritePrimitive_Int64(long value, IBufferWriter<byte> writer)
 		{
-			TempBuffer_Buffer[0] = (byte)PayloadType.Int64;
-			int count = Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, value);
-			stream.Write(TempBuffer_Buffer, 0, 1 + count);
+			var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
+			buffer[0] = (byte)PayloadType.Int64;
+			int count = Leb128EncodingHelper.Write(buffer.Slice(1), value);
+			writer.Advance(1 + count);
 		}
 
 		/// <summary>
@@ -269,12 +308,13 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a <see cref="System.Byte"/> value.
 		/// </summary>
 		/// <param name="value">Value to write.</param>
-		/// <param name="stream">Stream to write the value to.</param>
-		internal void WritePrimitive_Byte(byte value, Stream stream)
+		/// <param name="writer">Buffer writer to write the value to.</param>
+		internal void WritePrimitive_Byte(byte value, IBufferWriter<byte> writer)
 		{
-			TempBuffer_Buffer[0] = (byte)PayloadType.Byte;
-			TempBuffer_Buffer[1] = value;
-			stream.Write(TempBuffer_Buffer, 0, 2);
+			var buffer = writer.GetSpan(2);
+			buffer[0] = (byte)PayloadType.Byte;
+			buffer[1] = value;
+			writer.Advance(2);
 		}
 
 		/// <summary>
@@ -297,12 +337,13 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a <see cref="System.UInt16"/> value.
 		/// </summary>
 		/// <param name="value">Value to write.</param>
-		/// <param name="stream">Stream to write the value to.</param>
-		internal void WritePrimitive_UInt16(ushort value, Stream stream)
+		/// <param name="writer">Buffer writer to write the value to.</param>
+		internal void WritePrimitive_UInt16(ushort value, IBufferWriter<byte> writer)
 		{
-			TempBuffer_Buffer[0] = (byte)PayloadType.UInt16;
-			int count = Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, (uint)value);
-			stream.Write(TempBuffer_Buffer, 0, 1 + count);
+			var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+			buffer[0] = (byte)PayloadType.UInt16;
+			int count = Leb128EncodingHelper.Write(buffer.Slice(1), value);
+			writer.Advance(1 + count);
 		}
 
 		/// <summary>
@@ -323,12 +364,13 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a <see cref="System.UInt32"/> value.
 		/// </summary>
 		/// <param name="value">Value to write.</param>
-		/// <param name="stream">Stream to write the value to.</param>
-		internal void WritePrimitive_UInt32(uint value, Stream stream)
+		/// <param name="writer">Buffer writer to write the value to.</param>
+		internal void WritePrimitive_UInt32(uint value, IBufferWriter<byte> writer)
 		{
-			TempBuffer_Buffer[0] = (byte)PayloadType.UInt32;
-			int count = Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, value);
-			stream.Write(TempBuffer_Buffer, 0, 1 + count);
+			var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+			buffer[0] = (byte)PayloadType.UInt32;
+			int count = Leb128EncodingHelper.Write(buffer.Slice(1), value);
+			writer.Advance(1 + count);
 		}
 
 		/// <summary>
@@ -349,12 +391,13 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a <see cref="System.UInt64"/> value.
 		/// </summary>
 		/// <param name="value">Value to write.</param>
-		/// <param name="stream">Stream to write the value to.</param>
-		internal void WritePrimitive_UInt64(ulong value, Stream stream)
+		/// <param name="writer">Buffer writer to write the value to.</param>
+		internal void WritePrimitive_UInt64(ulong value, IBufferWriter<byte> writer)
 		{
-			TempBuffer_Buffer[0] = (byte)PayloadType.UInt64;
-			int count = Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, value);
-			stream.Write(TempBuffer_Buffer, 0, 1 + count);
+			var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
+			buffer[0] = (byte)PayloadType.UInt64;
+			int count = Leb128EncodingHelper.Write(buffer.Slice(1), value);
+			writer.Advance(1 + count);
 		}
 
 		/// <summary>
@@ -375,14 +418,20 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a <see cref="System.DateTime"/> object.
 		/// </summary>
 		/// <param name="value">DateTime object to write.</param>
-		/// <param name="stream">Stream to write the <see cref="System.DateTime"/> object to.</param>
-		internal void WritePrimitive_DateTime(DateTime value, Stream stream)
+		/// <param name="writer">Buffer writer to write the <see cref="System.DateTime"/> object to.</param>
+		internal void WritePrimitive_DateTime(DateTime value, IBufferWriter<byte> writer)
 		{
-			const int elementSize = 8;
-			stream.WriteByte((byte)PayloadType.DateTime);
-			TempBuffer_Int64[0] = value.ToBinary();
-			Buffer.BlockCopy(TempBuffer_Int64, 0, TempBuffer_Buffer, 0, elementSize);
-			stream.Write(TempBuffer_Buffer, 0, elementSize);
+			const int elementSize = sizeof(long); // binary representation of a DateTime
+			var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
+			buffer[0] = (byte)PayloadType.DateTime;
+#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
+			BitConverter.TryWriteBytes(buffer.Slice(1), value.ToBinary());
+#else
+			Span<long> temp = stackalloc long[1];
+			temp[0] = value.ToBinary();
+			MemoryMarshal.Cast<long, byte>(temp).CopyTo(buffer.Slice(1));
+#endif
+			writer.Advance(1 + elementSize);
 		}
 
 		/// <summary>
@@ -392,7 +441,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read <see cref="System.DateTime"/> object.</returns>
 		internal DateTime ReadPrimitive_DateTime(Stream stream)
 		{
-			const int elementSize = 8;
+			const int elementSize = sizeof(long); // binary representation of a DateTime
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
 			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
 			long value = BitConverter.ToInt64(TempBuffer_Buffer, 0);
@@ -407,24 +456,25 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a <see cref="System.String"/> object.
 		/// </summary>
 		/// <param name="value">String to write.</param>
-		/// <param name="stream">Stream to write the string to.</param>
-		internal void WritePrimitive_String(string value, Stream stream)
+		/// <param name="writer">Buffer writer to write the string to.</param>
+		internal void WritePrimitive_String(string value, IBufferWriter<byte> writer)
 		{
 			// resize temporary buffer for the encoding the string
-			// (reserve max. expected bytes for the string + max. 5 bytes of LEB128 encoded 32 bit integer + 1 byte for payload type)
-			int size = Encoding.UTF8.GetMaxByteCount(value.Length) + 6;
+			int size = Encoding.UTF8.GetMaxByteCount(value.Length);
 			EnsureTemporaryByteBufferSize(size);
 
 			// encode the string
-			int valueByteCount = Encoding.UTF8.GetBytes(value, 0, value.Length, TempBuffer_Buffer, 6);
+			int valueByteCount = Encoding.UTF8.GetBytes(value, 0, value.Length, TempBuffer_Buffer, 0);
 
-			// put the header with the payload type and the size of the encoded string in front of the encoded string
-			int headerLength = Leb128EncodingHelper.GetByteCount(valueByteCount) + 1;
-			TempBuffer_Buffer[6 - headerLength] = (byte)PayloadType.String;
-			Leb128EncodingHelper.Write(TempBuffer_Buffer, 7 - headerLength, valueByteCount);
+			// write the encoded string
+			int maxSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue + valueByteCount;
+			var buffer = writer.GetSpan(maxSize);
+			buffer[0] = (byte)PayloadType.String;
+			int headerSize = 1 + Leb128EncodingHelper.Write(buffer.Slice(1), valueByteCount);
+			TempBuffer_Buffer.AsSpan().Slice(0, valueByteCount).CopyTo(buffer.Slice(headerSize));
+			writer.Advance(headerSize + valueByteCount);
 
-			// write the sequence to the stream
-			stream.Write(TempBuffer_Buffer, 6 - headerLength, headerLength + valueByteCount);
+			// assign an object id to the serialized string
 			mSerializedObjectIdTable.Add(value, mNextSerializedObjectId++);
 		}
 
@@ -456,10 +506,12 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a <see cref="System.Object"/> object.
 		/// </summary>
 		/// <param name="obj">Object to write.</param>
-		/// <param name="stream">Stream to write the object to.</param>
-		internal void WritePrimitive_Object(object obj, Stream stream)
+		/// <param name="writer">Buffer writer to write the object to.</param>
+		internal void WritePrimitive_Object(object obj, IBufferWriter<byte> writer)
 		{
-			stream.WriteByte((byte)PayloadType.Object);
+			var buffer = writer.GetSpan(1);
+			buffer[0] = (byte)PayloadType.Object;
+			writer.Advance(1);
 			mSerializedObjectIdTable.Add(obj, mNextSerializedObjectId++);
 		}
 

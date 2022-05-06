@@ -15,9 +15,9 @@ namespace GriffinPlus.Lib.Serialization
 {
 
 	/// <summary>
-	/// Archive providing support for serialization/deserialization of classes using the <see cref="Serializer"/> class.
+	/// Archive providing support for the deserialization of classes using the <see cref="Serializer"/> class.
 	/// </summary>
-	public class SerializerArchive
+	public class DeserializationArchive
 	{
 		#region Constants
 
@@ -31,7 +31,7 @@ namespace GriffinPlus.Lib.Serialization
 
 		#region Class Variables
 
-		private static readonly LogWriter sLog = LogWriter.Get<SerializerArchive>();
+		private static readonly LogWriter sLog = LogWriter.Get<DeserializationArchive>();
 
 		#endregion
 
@@ -46,14 +46,14 @@ namespace GriffinPlus.Lib.Serialization
 		#region Construction
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="SerializerArchive"/> class.
+		/// Initializes a new instance of the <see cref="DeserializationArchive"/> class.
 		/// </summary>
 		/// <param name="serializer">The executing serializer.</param>
-		/// <param name="stream">Stream to write to/read from.</param>
+		/// <param name="stream">Stream containing the serialized archive.</param>
 		/// <param name="type">Type the archive stores data from (used to instantiate the right class during deserialization).</param>
 		/// <param name="version">Version of the type the archive contains data from.</param>
 		/// <param name="context">User-specific context object.</param>
-		internal SerializerArchive(
+		internal DeserializationArchive(
 			Serializer serializer,
 			Stream     stream,
 			Type       type,
@@ -77,7 +77,7 @@ namespace GriffinPlus.Lib.Serialization
 		public uint Version { get; }
 
 		/// <summary>
-		/// Gets the type of the struct/class the archive contains data from.
+		/// Gets the type the archive contains data from.
 		/// </summary>
 		public Type DataType { get; }
 
@@ -92,26 +92,7 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 
-		#region Internal Properties
-
-		/// <summary>
-		/// Gets the type the current archive contains data from.
-		/// </summary>
-		internal Type Type => DataType;
-
-		#endregion
-
 		#region System.SByte
-
-		/// <summary>
-		/// Writes a <see cref="System.SByte"/> value to the archive.
-		/// </summary>
-		/// <param name="value">Value to write to the archive.</param>
-		public void Write(sbyte value)
-		{
-			CloseArchiveStream();
-			mSerializer.WritePrimitive_SByte(value, mStream);
-		}
 
 		/// <summary>
 		/// Reads a <see cref="System.SByte"/> value from the archive.
@@ -129,16 +110,6 @@ namespace GriffinPlus.Lib.Serialization
 		#region System.Int16
 
 		/// <summary>
-		/// Writes a <see cref="System.Int16"/> value to the archive.
-		/// </summary>
-		/// <param name="value">Value to write to the archive.</param>
-		public void Write(short value)
-		{
-			CloseArchiveStream();
-			mSerializer.WritePrimitive_Int16(value, mStream);
-		}
-
-		/// <summary>
 		/// Reads a<see cref="System.Int16"/> value from the archive.
 		/// </summary>
 		/// <returns>The read value.</returns>
@@ -152,16 +123,6 @@ namespace GriffinPlus.Lib.Serialization
 		#endregion
 
 		#region System.Int32
-
-		/// <summary>
-		/// Writes a <see cref="System.Int32"/> value to the archive.
-		/// </summary>
-		/// <param name="value">Value to write to the archive.</param>
-		public void Write(int value)
-		{
-			CloseArchiveStream();
-			mSerializer.WritePrimitive_Int32(value, mStream);
-		}
 
 		/// <summary>
 		/// Reads a <see cref="System.Int32"/> value from the archive.
@@ -179,16 +140,6 @@ namespace GriffinPlus.Lib.Serialization
 		#region System.Int64
 
 		/// <summary>
-		/// Writes a <see cref="System.Int64"/> value to the archive.
-		/// </summary>
-		/// <param name="value">Value to write to the archive.</param>
-		public void Write(long value)
-		{
-			CloseArchiveStream();
-			mSerializer.WritePrimitive_Int64(value, mStream);
-		}
-
-		/// <summary>
 		/// Reads a <see cref="System.Int64"/> value from the archive.
 		/// </summary>
 		/// <returns>The read value.</returns>
@@ -202,16 +153,6 @@ namespace GriffinPlus.Lib.Serialization
 		#endregion
 
 		#region System.Byte
-
-		/// <summary>
-		/// Writes a <see cref="System.Byte"/> value to the archive.
-		/// </summary>
-		/// <param name="value">Value to write to the archive.</param>
-		public void Write(byte value)
-		{
-			CloseArchiveStream();
-			mSerializer.WritePrimitive_Byte(value, mStream);
-		}
 
 		/// <summary>
 		/// Reads a <see cref="System.Byte"/> value from the archive.
@@ -229,16 +170,6 @@ namespace GriffinPlus.Lib.Serialization
 		#region System.UInt16
 
 		/// <summary>
-		/// Writes a <see cref="System.UInt16"/> value to the archive.
-		/// </summary>
-		/// <param name="value">Value to write to the archive.</param>
-		public void Write(ushort value)
-		{
-			CloseArchiveStream();
-			mSerializer.WritePrimitive_UInt16(value, mStream);
-		}
-
-		/// <summary>
 		/// Reads a <see cref="System.UInt16"/> value from the archive.
 		/// </summary>
 		/// <returns>The read value.</returns>
@@ -252,16 +183,6 @@ namespace GriffinPlus.Lib.Serialization
 		#endregion
 
 		#region System.UInt32
-
-		/// <summary>
-		/// Writes a <see cref="System.UInt32"/> value to the archive.
-		/// </summary>
-		/// <param name="value">Value to write to the archive.</param>
-		public void Write(uint value)
-		{
-			CloseArchiveStream();
-			mSerializer.WritePrimitive_UInt32(value, mStream);
-		}
 
 		/// <summary>
 		/// Reads a <see cref="System.UInt32"/> value from the archive.
@@ -279,16 +200,6 @@ namespace GriffinPlus.Lib.Serialization
 		#region System.UInt64
 
 		/// <summary>
-		/// Writes a <see cref="System.UInt64"/> value to the archive.
-		/// </summary>
-		/// <param name="value">Value to write to the archive.</param>
-		public void Write(ulong value)
-		{
-			CloseArchiveStream();
-			mSerializer.WritePrimitive_UInt64(value, mStream);
-		}
-
-		/// <summary>
 		/// Reads a <see cref="System.UInt64"/> value from the archive.
 		/// </summary>
 		/// <returns>The read value.</returns>
@@ -302,16 +213,6 @@ namespace GriffinPlus.Lib.Serialization
 		#endregion
 
 		#region System.Enum
-
-		/// <summary>
-		/// Writes an enumeration value to the archive.
-		/// </summary>
-		/// <param name="value">Value to write to the archive.</param>
-		public void Write(Enum value)
-		{
-			CloseArchiveStream();
-			mSerializer.InnerSerialize(mStream, value, null);
-		}
 
 		/// <summary>
 		/// Reads an enumeration value from the archive.
@@ -361,16 +262,6 @@ namespace GriffinPlus.Lib.Serialization
 		#region System.Boolean
 
 		/// <summary>
-		/// Writes a <see cref="System.Boolean"/> value to the archive.
-		/// </summary>
-		/// <param name="value">Value to write to the archive.</param>
-		public void Write(bool value)
-		{
-			CloseArchiveStream();
-			mSerializer.WritePrimitive_Boolean(value, mStream);
-		}
-
-		/// <summary>
 		/// Reads a <see cref="System.Boolean"/> value from the archive.
 		/// </summary>
 		/// <returns>The read value.</returns>
@@ -384,16 +275,6 @@ namespace GriffinPlus.Lib.Serialization
 		#endregion
 
 		#region System.Char
-
-		/// <summary>
-		/// Writes a <see cref="System.Char"/> value to the archive.
-		/// </summary>
-		/// <param name="value">Value to write to the archive.</param>
-		public void Write(char value)
-		{
-			CloseArchiveStream();
-			mSerializer.WritePrimitive_Char(value, mStream);
-		}
 
 		/// <summary>
 		/// Reads a <see cref="System.Char"/> value from the archive.
@@ -411,16 +292,6 @@ namespace GriffinPlus.Lib.Serialization
 		#region System.Decimal
 
 		/// <summary>
-		/// Writes a <see cref="System.Decimal"/> value to the archive.
-		/// </summary>
-		/// <param name="value">Value to write to the archive.</param>
-		public void Write(decimal value)
-		{
-			CloseArchiveStream();
-			mSerializer.WritePrimitive_Decimal(value, mStream);
-		}
-
-		/// <summary>
 		/// Reads a <see cref="System.Decimal"/> value from the archive.
 		/// </summary>
 		/// <returns>The read value.</returns>
@@ -434,16 +305,6 @@ namespace GriffinPlus.Lib.Serialization
 		#endregion
 
 		#region System.Single
-
-		/// <summary>
-		/// Writes a <see cref="System.Single"/> value to the archive.
-		/// </summary>
-		/// <param name="value">Value to write to the archive.</param>
-		public void Write(float value)
-		{
-			CloseArchiveStream();
-			mSerializer.WritePrimitive_Single(value, mStream);
-		}
 
 		/// <summary>
 		/// Reads a <see cref="System.Single"/> value from the archive.
@@ -461,16 +322,6 @@ namespace GriffinPlus.Lib.Serialization
 		#region System.Double
 
 		/// <summary>
-		/// Writes a <see cref="System.Double"/> value to the archive.
-		/// </summary>
-		/// <param name="value">Value to write to the archive.</param>
-		public void Write(double value)
-		{
-			CloseArchiveStream();
-			mSerializer.WritePrimitive_Double(value, mStream);
-		}
-
-		/// <summary>
 		/// Reads a <see cref="System.Double"/> value from the archive.
 		/// </summary>
 		/// <returns>The read value.</returns>
@@ -484,17 +335,6 @@ namespace GriffinPlus.Lib.Serialization
 		#endregion
 
 		#region System.String
-
-		/// <summary>
-		/// Writes a <see cref="System.String"/> object to the archive.
-		/// </summary>
-		/// <param name="value">String to write to the archive.</param>
-		public void Write(string value)
-		{
-			// use the serializer to ensure already serialized strings are handled properly
-			CloseArchiveStream();
-			mSerializer.InnerSerialize(mStream, value, null);
-		}
 
 		/// <summary>
 		/// Reads a <see cref="System.String"/> object from the archive.
@@ -514,17 +354,6 @@ namespace GriffinPlus.Lib.Serialization
 		#region System.Type
 
 		/// <summary>
-		/// Writes a <see cref="System.Type"/> object to the archive.
-		/// </summary>
-		/// <param name="value">Type to write to the archive.</param>
-		public void Write(Type value)
-		{
-			// use the serializer to ensure already serialized types are handled properly
-			CloseArchiveStream();
-			mSerializer.InnerSerialize(mStream, value, null);
-		}
-
-		/// <summary>
 		/// Reads a <see cref="System.Type"/> object from the archive.
 		/// </summary>
 		/// <returns>Read type.</returns>
@@ -542,16 +371,6 @@ namespace GriffinPlus.Lib.Serialization
 		#region System.DateTime
 
 		/// <summary>
-		/// Writes a <see cref="System.DateTime"/> value to the archive.
-		/// </summary>
-		/// <param name="value">Value to write to the archive.</param>
-		public void Write(DateTime value)
-		{
-			CloseArchiveStream();
-			mSerializer.WritePrimitive_DateTime(value, mStream);
-		}
-
-		/// <summary>
 		/// Reads a <see cref="System.DateTime"/> value from the archive.
 		/// </summary>
 		/// <returns>The read value.</returns>
@@ -565,27 +384,6 @@ namespace GriffinPlus.Lib.Serialization
 		#endregion
 
 		#region System.Object
-
-		/// <summary>
-		/// Writes an object to the archive.
-		/// </summary>
-		/// <param name="obj">Object to write to the archive.</param>
-		public void Write(object obj)
-		{
-			CloseArchiveStream();
-			mSerializer.InnerSerialize(mStream, obj, null);
-		}
-
-		/// <summary>
-		/// Writes an object to the archive.
-		/// </summary>
-		/// <param name="obj">Object to write to the archive.</param>
-		/// <param name="context">Context object to pass to the serializer via the serializer archive.</param>
-		public void Write(object obj, object context)
-		{
-			CloseArchiveStream();
-			mSerializer.InnerSerialize(mStream, obj, context);
-		}
 
 		/// <summary>
 		/// Reads an object from the archive.
@@ -607,10 +405,10 @@ namespace GriffinPlus.Lib.Serialization
 		/// Prepares an archive for deserializing the base class of a serializable class.
 		/// </summary>
 		/// <param name="type">Base class type.</param>
-		/// <returns>Serializer archive for the base class.</returns>
+		/// <returns>Deserialization archive for the base class.</returns>
 		/// <exception cref="ArgumentException">Type is not serializable.</exception>
 		/// <exception cref="SerializationException">Archive does not contain an archive for the specified class.</exception>
-		public SerializerArchive PrepareBaseArchive(Type type)
+		public DeserializationArchive PrepareBaseArchive(Type type)
 		{
 			return PrepareBaseArchive(type, Context);
 		}
@@ -620,10 +418,10 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		/// <param name="type">Base class type.</param>
 		/// <param name="context">Context object to pass to the serializer of the base class.</param>
-		/// <returns>Serializer archive for the base class.</returns>
+		/// <returns>Deserialization archive for the base class.</returns>
 		/// <exception cref="ArgumentException">Type is not serializable.</exception>
 		/// <exception cref="SerializationException">Archive does not contain an archive for the specified class.</exception>
-		public SerializerArchive PrepareBaseArchive(Type type, object context)
+		public DeserializationArchive PrepareBaseArchive(Type type, object context)
 		{
 			// read payload type (expecting a base class archive)
 			ReadAndCheckPayloadType(PayloadType.BaseArchiveStart);
@@ -643,115 +441,12 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			// version is ok, create archive...
-			return new SerializerArchive(mSerializer, mStream, type, deserializedVersion, context);
-		}
-
-		/// <summary>
-		/// Opens a base archive and calls the serializer of the specified type (for base class serialization).
-		/// </summary>
-		/// <param name="obj">Object to serialize.</param>
-		/// <param name="type">Type of the base class to serialize.</param>
-		/// <param name="context">Context object to pass to the serializer of the base class.</param>
-		/// <exception cref="ArgumentException">Specified type is not serializable.</exception>
-		public void WriteBaseArchive(object obj, Type type, object context = null)
-		{
-			CloseArchiveStream();
-
-			// ensure the specified type is the type of the specified object or the type of one of its base classes
-			if (obj.GetType().IsAssignableFrom(type))
-				throw new ArgumentException("Specified type is neither the type of the specified object nor the type of one of its base classes.");
-
-			// try external object serializer
-			var eos = Serializer.GetExternalObjectSerializer(type, out uint version);
-			if (eos != null)
-			{
-				// consider serializer version overrides...
-				if (mSerializer.GetSerializerVersionOverride(type, out uint versionOverride))
-					version = versionOverride;
-
-				// write base archive header
-				byte[] buffer = mSerializer.TempBuffer_Buffer;
-				buffer[0] = (byte)PayloadType.BaseArchiveStart;
-				int count = Leb128EncodingHelper.Write(buffer, 1, version);
-				mStream.Write(buffer, 0, 1 + count);
-
-				// serialize object
-				var archive = new SerializerArchive(mSerializer, mStream, type, version, context);
-				eos.Serialize(archive, version, obj);
-				archive.Close();
-				return;
-			}
-
-			// try internal object serializer
-			var ios = Serializer.GetInternalObjectSerializer(obj, type, out version);
-			if (ios != null)
-			{
-				// consider serializer version overrides...
-				if (mSerializer.GetSerializerVersionOverride(type, out uint versionOverride))
-					version = versionOverride;
-
-				// write base archive header
-				byte[] buffer = mSerializer.TempBuffer_Buffer;
-				buffer[0] = (byte)PayloadType.BaseArchiveStart;
-				int count = Leb128EncodingHelper.Write(buffer, 1, version);
-				mStream.Write(buffer, 0, 1 + count);
-
-				// call the Serialize() method of the base class
-				var archive = new SerializerArchive(mSerializer, mStream, type, version, context);
-				var serializeDelegate = Serializer.GetInternalObjectSerializerSerializeCaller(type);
-				serializeDelegate(ios, archive, version);
-				archive.Close();
-				return;
-			}
-
-			// specified type is not serializable...
-			throw new ArgumentException($"Specified type ({type.FullName}) is not serializable.", nameof(type));
+			return new DeserializationArchive(mSerializer, mStream, type, deserializedVersion, context);
 		}
 
 		#endregion
 
 		#region Buffer
-
-		/// <summary>
-		/// Writes a buffer to the archive.
-		/// </summary>
-		/// <param name="p">Pointer to the beginning of the buffer.</param>
-		/// <param name="count">Number of bytes to write.</param>
-		public unsafe void Write(IntPtr p, long count)
-		{
-			CloseArchiveStream();
-
-			// write payload type and size of the following buffer
-			mSerializer.TempBuffer_Buffer[0] = (byte)PayloadType.Buffer;
-			int writtenBytes = Leb128EncodingHelper.Write(mSerializer.TempBuffer_Buffer, 1, count);
-			mStream.Write(mSerializer.TempBuffer_Buffer, 0, writtenBytes + 1);
-
-			if (mStream is MemoryBlockStream mbs)
-			{
-				// the MemoryBlockStream provides a direct way to write to the underlying buffer more efficiently
-				while (count > 0)
-				{
-					int bytesToCopy = (int)Math.Min(count, int.MaxValue);
-					mbs.Write(new ReadOnlySpan<byte>(p.ToPointer(), bytesToCopy));
-					count -= bytesToCopy;
-					p += bytesToCopy;
-				}
-			}
-			else
-			{
-				// some other stream
-				// => copying data to a temporary buffer is needed before passing it to the stream
-				mSerializer.EnsureTemporaryByteBufferSize(TempBufferMaxSize);
-				while (count > 0)
-				{
-					int bytesToCopy = (int)Math.Min(count, mSerializer.TempBuffer_Buffer.Length);
-					Marshal.Copy(p, mSerializer.TempBuffer_Buffer, 0, bytesToCopy);
-					mStream.Write(mSerializer.TempBuffer_Buffer, 0, bytesToCopy);
-					count -= bytesToCopy;
-					p += bytesToCopy;
-				}
-			}
-		}
 
 		/// <summary>
 		/// Reads a buffer from the archive.
@@ -825,74 +520,6 @@ namespace GriffinPlus.Lib.Serialization
 		#endregion
 
 		#region Stream
-
-		/// <summary>
-		/// Writes the contents of a stream to the archive (from the current position up to the end of the stream).
-		/// </summary>
-		/// <param name="s">Stream to write.</param>
-		public void Write(Stream s)
-		{
-			CloseArchiveStream();
-
-			if (s.CanSeek)
-			{
-				// stream can seek
-				// => stream is usable without additional preparation
-				WriteInternal(s);
-			}
-			else
-			{
-				// stream cannot seek
-				// => read data into memory to make it seekable
-				using (var bufferStream = new MemoryBlockStream())
-				{
-					// read stream into temporary buffer
-					mSerializer.EnsureTemporaryByteBufferSize(TempBufferMaxSize);
-					while (true)
-					{
-						int bytesRead = s.Read(mSerializer.TempBuffer_Buffer, 0, mSerializer.TempBuffer_Buffer.Length);
-						if (bytesRead == 0) break;
-						bufferStream.Write(mSerializer.TempBuffer_Buffer, 0, bytesRead);
-					}
-
-					bufferStream.Position = 0;
-					WriteInternal(bufferStream);
-				}
-			}
-		}
-
-		/// <summary>
-		/// Internal method handling writing the content of a stream.
-		/// </summary>
-		/// <param name="stream">Stream containing data to write (must be seekable).</param>
-		private void WriteInternal(Stream stream)
-		{
-			CloseArchiveStream();
-
-			// write payload type and size of the following buffer
-			long count = stream.Length;
-			mSerializer.TempBuffer_Buffer[0] = (byte)PayloadType.Buffer;
-			int writtenBytes = Leb128EncodingHelper.Write(mSerializer.TempBuffer_Buffer, 1, count);
-			mStream.Write(mSerializer.TempBuffer_Buffer, 0, writtenBytes + 1);
-
-			if (mStream is MemoryBlockStream mbs)
-			{
-				// the MemoryBlockStream provides a direct way to write to the underlying buffer more efficiently
-				mbs.Write(stream);
-			}
-			else
-			{
-				// some other stream
-				// => copying data to a temporary buffer is needed before passing it to the stream
-				mSerializer.EnsureTemporaryByteBufferSize(TempBufferMaxSize);
-				while (true)
-				{
-					int bytesRead = stream.Read(mSerializer.TempBuffer_Buffer, 0, mSerializer.TempBuffer_Buffer.Length);
-					if (bytesRead == 0) break;
-					mStream.Write(mSerializer.TempBuffer_Buffer, 0, bytesRead);
-				}
-			}
-		}
 
 		/// <summary>
 		/// Reads a byte buffer using a stream.

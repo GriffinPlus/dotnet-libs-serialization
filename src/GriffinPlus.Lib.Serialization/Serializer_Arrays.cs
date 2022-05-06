@@ -4,8 +4,9 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using System;
-using System.Diagnostics;
+using System.Buffers;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace GriffinPlus.Lib.Serialization
 {
@@ -18,38 +19,65 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes an array of <see cref="System.Byte"/> values (for arrays with zero-based indexing).
 		/// </summary>
 		/// <param name="array">Array to write.</param>
-		/// <param name="stream">Stream to write the array to.</param>
-		private void WriteArrayOfByte(byte[] array, Stream stream)
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private void WriteArrayOfByte(byte[] array, IBufferWriter<byte> writer)
 		{
-			TempBuffer_Buffer[0] = (byte)PayloadType.ArrayOfByte;
-			int count = Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, array.Length);
-			stream.Write(TempBuffer_Buffer, 0, 1 + count);
-			stream.Write(array, 0, array.Length);
+			// write payload type and array length
+			int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+			var buffer = writer.GetSpan(maxBufferSize);
+			int bufferIndex = 0;
+			buffer[bufferIndex++] = (byte)PayloadType.ArrayOfByte;
+			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
+			writer.Advance(bufferIndex);
+
+			// write array elements
+			int fromIndex = 0;
+			while (fromIndex < array.Length)
+			{
+				int bytesToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize);
+				buffer = writer.GetSpan(bytesToCopy);
+				array.AsSpan(fromIndex, bytesToCopy).CopyTo(buffer);
+				writer.Advance(bytesToCopy);
+				fromIndex += bytesToCopy;
+			}
+
 			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
 		}
 
 		/// <summary>
 		/// Writes an array of primitive value types (for arrays with zero-based indexing).
 		/// </summary>
-		/// <param name="type">Payload type corresponding to the type of the array.</param>
+		/// <typeparam name="TElement">Type of an array element.</typeparam>
+		/// <param name="payloadType">Payload type corresponding to the type of the array.</param>
 		/// <param name="array">Array to write.</param>
 		/// <param name="elementSize">Size of an array element.</param>
-		/// <param name="stream">Stream to write the array to.</param>
-		private void WriteArrayOfPrimitives(
-			PayloadType type,
-			Array       array,
-			int         elementSize,
-			Stream      stream)
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private void WriteArrayOfPrimitives<TElement>(
+			PayloadType         payloadType,
+			TElement[]          array,
+			int                 elementSize,
+			IBufferWriter<byte> writer) where TElement : struct
 		{
-			int length = array.Length;
-			int sizeByteCount = Leb128EncodingHelper.GetByteCount(length);
-			int size = 1 + sizeByteCount + length * elementSize;
-			EnsureTemporaryByteBufferSize(size);
-			TempBuffer_Buffer[0] = (byte)type;
-			Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, length);
-			int index = 1 + sizeByteCount;
-			Buffer.BlockCopy(array, 0, TempBuffer_Buffer, index, length * elementSize);
-			stream.Write(TempBuffer_Buffer, 0, size);
+			// write payload type and array length
+			int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+			var buffer = writer.GetSpan(maxBufferSize);
+			int bufferIndex = 0;
+			buffer[bufferIndex++] = (byte)payloadType;
+			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
+			writer.Advance(bufferIndex);
+
+			// write array elements
+			int fromIndex = 0;
+			while (fromIndex < array.Length)
+			{
+				int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+				int bytesToCopy = elementsToCopy * elementSize;
+				buffer = writer.GetSpan(bytesToCopy);
+				MemoryMarshal.Cast<TElement, byte>(array.AsSpan(fromIndex, elementsToCopy)).CopyTo(buffer);
+				writer.Advance(bytesToCopy);
+				fromIndex += elementsToCopy;
+			}
+
 			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
 		}
 
@@ -57,25 +85,44 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes an array of <see cref="System.Decimal"/> values (for arrays with zero-based indexing).
 		/// </summary>
 		/// <param name="array">Array to write.</param>
-		/// <param name="stream">Stream to write the array to.</param>
-		private void WriteArrayOfDecimal(decimal[] array, Stream stream)
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private void WriteArrayOfDecimal(decimal[] array, IBufferWriter<byte> writer)
 		{
 			const int elementSize = 16;
 
-			int length = array.Length;
-			int sizeByteCount = Leb128EncodingHelper.GetByteCount(length);
-			int size = 1 + sizeByteCount + length * elementSize;
-			EnsureTemporaryByteBufferSize(size);
-			TempBuffer_Buffer[0] = (byte)PayloadType.ArrayOfDecimal;
-			int index = Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, length) + 1;
-			for (int i = 0; i < length; i++)
+			// write payload type and array length
+			int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+			var buffer = writer.GetSpan(maxBufferSize);
+			int bufferIndex = 0;
+			buffer[bufferIndex++] = (byte)PayloadType.ArrayOfDecimal;
+			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
+			writer.Advance(bufferIndex);
+
+			// write array elements
+			int fromIndex = 0;
+			while (fromIndex < array.Length)
 			{
-				int[] bits = decimal.GetBits(array[i]);
-				Buffer.BlockCopy(bits, 0, TempBuffer_Buffer, index, elementSize);
-				index += elementSize;
+				int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+				int bytesToCopy = elementsToCopy * elementSize;
+				buffer = writer.GetSpan(bytesToCopy);
+
+#if NET5_0_OR_GREATER
+				var intBuffer = MemoryMarshal.Cast<byte, int>(buffer);
+				for (int i = 0; i < elementsToCopy; i++)
+				{
+					decimal.GetBits(array[fromIndex++], intBuffer.Slice(4 * i, 4));
+				}
+#else
+				for (int i = 0; i < elementsToCopy; i++)
+				{
+					int[] bits = decimal.GetBits(array[fromIndex++]);
+					MemoryMarshal.Cast<int, byte>(bits.AsSpan()).CopyTo(buffer.Slice(i * elementSize));
+				}
+#endif
+
+				writer.Advance(bytesToCopy);
 			}
 
-			stream.Write(TempBuffer_Buffer, 0, index);
 			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
 		}
 
@@ -83,31 +130,36 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes an array of <see cref="System.String"/> values (for arrays with zero-based indexing).
 		/// </summary>
 		/// <param name="array">Array to write.</param>
-		/// <param name="stream">Stream to write the array to.</param>
-		private void WriteArrayOfString(string[] array, Stream stream)
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private void WriteArrayOfString(string[] array, IBufferWriter<byte> writer)
 		{
-			// write type and array length
-			TempBuffer_Buffer[0] = (byte)PayloadType.ArrayOfString;
-			int count = Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, array.Length);
-			stream.Write(TempBuffer_Buffer, 0, 1 + count);
+			// write payload type and array length
+			int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+			var buffer = writer.GetSpan(maxBufferSize);
+			int bufferIndex = 0;
+			buffer[bufferIndex++] = (byte)PayloadType.ArrayOfString;
+			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
+			writer.Advance(bufferIndex);
 
 			// assign an object id to the array before serializing its elements
 			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
 
-			// write array data
+			// write array elements
 			foreach (string s in array)
 			{
 				if (s == null)
 				{
-					stream.WriteByte((byte)PayloadType.NullReference);
+					buffer = writer.GetSpan(1);
+					buffer[0] = (byte)PayloadType.NullReference;
+					writer.Advance(1);
 				}
 				else if (mSerializedObjectIdTable.TryGetValue(s, out uint id))
 				{
-					SerializeObjectId(stream, id);
+					SerializeObjectId(writer, id);
 				}
 				else
 				{
-					WritePrimitive_String(s, stream);
+					WritePrimitive_String(s, writer);
 				}
 			}
 		}
@@ -116,21 +168,52 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes an array of <see cref="System.DateTime"/> values (for arrays with zero-based indexing).
 		/// </summary>
 		/// <param name="array">Array to write.</param>
-		/// <param name="stream">Stream to write the array to.</param>
-		private void WriteArrayOfDateTime(DateTime[] array, Stream stream)
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private void WriteArrayOfDateTime(DateTime[] array, IBufferWriter<byte> writer)
 		{
 			const int elementSize = 8;
 
-			int index = PrepareArrayBuffer(PayloadType.ArrayOfDateTime, array.Length, elementSize, out int size);
+			// write payload type and array length
+			int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+			var buffer = writer.GetSpan(maxBufferSize);
+			int bufferIndex = 0;
+			buffer[bufferIndex++] = (byte)PayloadType.ArrayOfDateTime;
+			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
+			writer.Advance(bufferIndex);
 
-			foreach (var dt in array)
+			// write array elements
+			int fromIndex = 0;
+#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
+			while (fromIndex < array.Length)
 			{
-				TempBuffer_Int64[0] = dt.ToBinary();
-				Buffer.BlockCopy(TempBuffer_Int64, 0, TempBuffer_Buffer, index, elementSize);
-				index += elementSize;
-			}
+				int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+				int bytesToCopy = elementsToCopy * elementSize;
+				buffer = writer.GetSpan(bytesToCopy);
+				var intBuffer = MemoryMarshal.Cast<byte, int>(buffer);
+				for (int i = 0; i < elementsToCopy; i++)
+				{
+					BitConverter.TryWriteBytes(buffer.Slice(i * elementSize), array[fromIndex++].ToBinary());
+				}
 
-			stream.Write(TempBuffer_Buffer, 0, size);
+				writer.Advance(bytesToCopy);
+			}
+#else
+			Span<long> temp = stackalloc long[1];
+			while (fromIndex < array.Length)
+			{
+				int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+				int bytesToCopy = elementsToCopy * elementSize;
+				buffer = writer.GetSpan(bytesToCopy);
+				for (int i = 0; i < elementsToCopy; i++)
+				{
+					temp[0] = array[fromIndex++].ToBinary();
+					MemoryMarshal.Cast<long, byte>(temp).CopyTo(buffer.Slice(i * elementSize));
+				}
+
+				writer.Advance(bytesToCopy);
+			}
+#endif
+
 			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
 		}
 
@@ -138,25 +221,27 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes an array of objects (for arrays with zero-based indexing).
 		/// </summary>
 		/// <param name="array">Array to write.</param>
-		/// <param name="stream">Stream to write the array to.</param>
-		private void WriteArrayOfObjects(Array array, Stream stream)
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private void WriteArrayOfObjects(Array array, IBufferWriter<byte> writer)
 		{
-			// write type metadata
-			WriteTypeMetadata(stream, array.GetType().GetElementType());
+			// write element type
+			WriteTypeMetadata(writer, array.GetType().GetElementType());
 
-			// write type and array length
-			TempBuffer_Buffer[0] = (byte)PayloadType.ArrayOfObjects;
-			int count = Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, array.Length);
-			stream.Write(TempBuffer_Buffer, 0, 1 + count);
+			// write payload type and array length
+			int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+			var buffer = writer.GetSpan(maxBufferSize);
+			int bufferIndex = 0;
+			buffer[bufferIndex++] = (byte)PayloadType.ArrayOfObjects;
+			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
+			writer.Advance(bufferIndex);
 
 			// assign an object id to the array before serializing its elements
-			// (elements may refer to the array)
 			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
 
-			// write array data
+			// write array elements
 			for (int i = 0; i < array.Length; i++)
 			{
-				InnerSerialize(stream, array.GetValue(i), null);
+				InnerSerialize(writer, array.GetValue(i), null);
 			}
 		}
 
@@ -174,7 +259,7 @@ namespace GriffinPlus.Lib.Serialization
 			// read array length
 			int length = Leb128EncodingHelper.ReadInt32(stream);
 
-			// read array data
+			// read array elements
 			byte[] array = new byte[length];
 			int bytesRead = stream.Read(array, 0, length);
 			if (bytesRead < length) throw new SerializationException("Unexpected end of stream.");
@@ -195,7 +280,7 @@ namespace GriffinPlus.Lib.Serialization
 			int length = Leb128EncodingHelper.ReadInt32(stream);
 			int size = length * elementSize;
 
-			// read array data
+			// read array elements
 			var array = FastActivator.CreateArray(type, length);
 			EnsureTemporaryByteBufferSize(size);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
@@ -219,12 +304,12 @@ namespace GriffinPlus.Lib.Serialization
 			int length = Leb128EncodingHelper.ReadInt32(stream);
 			int size = length * elementSize;
 
-			// read data from stream
+			// read array elements into temporary buffer
 			EnsureTemporaryByteBufferSize(size);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
 
-			// read array data
+			// convert elements to decimal
 			decimal[] array = new decimal[length];
 			int index = 0;
 			for (int i = 0; i < length; i++)
@@ -323,32 +408,47 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Writes an array of primitive value types (for arrays with non-zero-based indexing and/or multiple dimensions).
 		/// </summary>
-		/// <param name="type">Payload type corresponding to the type of the array.</param>
+		/// <param name="payloadType">Payload type corresponding to the type of the array.</param>
 		/// <param name="array">Array to write.</param>
 		/// <param name="elementSize">Size of an array element.</param>
-		/// <param name="stream">Stream to write the array to.</param>
-		private void WriteMultidimensionalArrayOfPrimitives(
-			PayloadType type,
-			Array       array,
-			int         elementSize,
-			Stream      stream)
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private unsafe void WriteMultidimensionalArrayOfPrimitives(
+			PayloadType         payloadType,
+			Array               array,
+			int                 elementSize,
+			IBufferWriter<byte> writer)
 		{
-			int totalCount = 1;
-			stream.WriteByte((byte)type);                   // payload type
-			Leb128EncodingHelper.Write(stream, array.Rank); // number of dimensions
+			// write payload type and array dimensions
+			int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
+			var buffer = writer.GetSpan(maxBufferSize);
+			int bufferIndex = 0;
+			buffer[bufferIndex++] = (byte)payloadType;
+			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
 			for (int i = 0; i < array.Rank; i++)
 			{
 				// ...dimension information...
-				Leb128EncodingHelper.Write(stream, array.GetLowerBound(i)); // lower bound of the dimension
+				int lowerBound = array.GetLowerBound(i);
 				int count = array.GetLength(i);
-				Leb128EncodingHelper.Write(stream, count); // number of elements in the dimension
-				totalCount *= count;
+				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
 			}
 
-			int size = totalCount * elementSize;
-			EnsureTemporaryByteBufferSize(size);
-			Buffer.BlockCopy(array, 0, TempBuffer_Buffer, 0, size);
-			stream.Write(TempBuffer_Buffer, 0, size);
+			writer.Advance(bufferIndex);
+
+			// write array elements
+			int fromIndex = 0;
+			while (fromIndex < array.Length)
+			{
+				int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+				int bytesToCopy = elementsToCopy * elementSize;
+				buffer = writer.GetSpan(bytesToCopy);
+				var arrayGcHandle = GCHandle.Alloc(array);
+				var pSource = Marshal.UnsafeAddrOfPinnedArrayElement(array, fromIndex);
+				new Span<byte>(pSource.ToPointer(), bytesToCopy).CopyTo(buffer);
+				arrayGcHandle.Free();
+				writer.Advance(bytesToCopy);
+				fromIndex += elementsToCopy;
+			}
 
 			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
 		}
@@ -357,61 +457,83 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes an array of <see cref="System.Decimal"/> (for arrays with non-zero-based indexing and/or multiple dimensions).
 		/// </summary>
 		/// <param name="array">Array to write.</param>
-		/// <param name="stream">Stream to write the array to.</param>
-		private void WriteMultidimensionalArrayOfDecimal(Array array, Stream stream)
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private void WriteMultidimensionalArrayOfDecimal(Array array, IBufferWriter<byte> writer)
 		{
 			const int elementSize = 16;
 
-			stream.WriteByte((byte)PayloadType.MultidimensionalArrayOfDecimal); // payload type
-			Leb128EncodingHelper.Write(stream, array.Rank);                     // number of dimensions
+			// write payload type and array dimensions
+			int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
+			var buffer = writer.GetSpan(maxBufferSize);
+			int bufferIndex = 0;
+			buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfDecimal;
+			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
 			int[] indices = new int[array.Rank];
 			for (int i = 0; i < array.Rank; i++)
 			{
 				// ...dimension information...
 				indices[i] = array.GetLowerBound(i);
-				Leb128EncodingHelper.Write(stream, indices[i]); // lower bound of the dimension
 				int count = array.GetLength(i);
-				Leb128EncodingHelper.Write(stream, count); // number of elements in the dimension
+				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), indices[i]); // lower bound of the dimension
+				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
 			}
 
+			writer.Advance(bufferIndex);
+
 			// write array elements
-			// ReSharper disable once ForCanBeConvertedToForeach
-			for (int i = 0; i < array.Length; i++)
+			int remaining = array.Length;
+			while (remaining > 0)
 			{
-				Debug.Assert(array != null, nameof(array) + " != null");
-				decimal value = (decimal)array.GetValue(indices);
-				int[] bits = decimal.GetBits(value);
-				Buffer.BlockCopy(bits, 0, TempBuffer_Buffer, 0, elementSize);
-				stream.Write(TempBuffer_Buffer, 0, elementSize);
-				IncrementArrayIndices(indices, array);
+				int elementsToCopy = Math.Min(remaining, MaxChunkSize / elementSize);
+				int bytesToCopy = elementsToCopy * elementSize;
+				buffer = writer.GetSpan(bytesToCopy);
+				bufferIndex = 0;
+				for (int i = 0; i < elementsToCopy; i++)
+				{
+					// ReSharper disable once PossibleNullReferenceException
+					decimal value = (decimal)array.GetValue(indices);
+#if NET5_0_OR_GREATER
+					var intBuffer = MemoryMarshal.Cast<byte, int>(buffer.Slice(bufferIndex));
+					decimal.GetBits(value, intBuffer);
+#else
+					int[] bits = decimal.GetBits(value);
+					MemoryMarshal.Cast<int, byte>(bits).CopyTo(buffer.Slice(bufferIndex));
+#endif
+					IncrementArrayIndices(indices, array);
+					bufferIndex += elementSize;
+				}
+
+				writer.Advance(bytesToCopy);
+				remaining -= elementsToCopy;
 			}
 
 			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
 		}
 
 		/// <summary>
-		/// Writes a multidimensional array of <see cref="System.String"/> to a stream  (for arrays with non-zero-based indexing and/or multiple dimensions).
+		/// Writes a multidimensional array of <see cref="System.String"/> to a stream (for arrays with non-zero-based indexing and/or multiple dimensions).
 		/// </summary>
 		/// <param name="array">Array to serialize.</param>
-		/// <param name="stream">Stream to serialize the array to.</param>
-		private void WriteMultidimensionalArrayOfString(Array array, Stream stream)
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private void WriteMultidimensionalArrayOfString(Array array, IBufferWriter<byte> writer)
 		{
-			stream.WriteByte((byte)PayloadType.MultidimensionalArrayOfString); // payload type
-			Leb128EncodingHelper.Write(stream, array.Rank);                    // number of dimensions
-			for (int i = 0; i < array.Rank; i++)
-			{
-				// ...dimension information...
-				Leb128EncodingHelper.Write(stream, array.GetLowerBound(i)); // lower bound of the dimension
-				int count = array.GetLength(i);
-				Leb128EncodingHelper.Write(stream, count); // number of elements in the dimension
-			}
-
-			// prepare indexing array
+			// write payload type and array dimensions
+			int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
+			var buffer = writer.GetSpan(maxBufferSize);
+			int bufferIndex = 0;
+			buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfString;
+			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
 			int[] indices = new int[array.Rank];
 			for (int i = 0; i < array.Rank; i++)
 			{
+				// ...dimension information...
 				indices[i] = array.GetLowerBound(i);
+				int count = array.GetLength(i);
+				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), indices[i]); // lower bound of the dimension
+				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
 			}
+
+			writer.Advance(bufferIndex);
 
 			// assign an object id to the array before serializing its elements
 			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
@@ -426,16 +548,18 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					if (mSerializedObjectIdTable.TryGetValue(s, out uint id))
 					{
-						SerializeObjectId(stream, id);
+						SerializeObjectId(writer, id);
 					}
 					else
 					{
-						WritePrimitive_String(s, stream);
+						WritePrimitive_String(s, writer);
 					}
 				}
 				else
 				{
-					stream.WriteByte((byte)PayloadType.NullReference);
+					buffer = writer.GetSpan(1);
+					buffer[0] = (byte)PayloadType.NullReference;
+					writer.Advance(1);
 				}
 
 				IncrementArrayIndices(indices, array);
@@ -446,75 +570,87 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a multidimensional array of <see cref="System.DateTime"/> to a stream (for arrays with non-zero-based indexing and/or multiple dimensions).
 		/// </summary>
 		/// <param name="array">Array to serialize.</param>
-		/// <param name="stream">Stream to serialize the array to.</param>
-		private void WriteMultidimensionalArrayOfDateTime(Array array, Stream stream)
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private void WriteMultidimensionalArrayOfDateTime(Array array, IBufferWriter<byte> writer)
 		{
-			const int elementSize = 8;
-
-			int totalCount = 1;
-			stream.WriteByte((byte)PayloadType.MultidimensionalArrayOfDateTime); // payload type
-			Leb128EncodingHelper.Write(stream, array.Rank);                      // number of dimensions
-			for (int i = 0; i < array.Rank; i++)
-			{
-				// ...dimension information...
-				Leb128EncodingHelper.Write(stream, array.GetLowerBound(i)); // lower bound of the dimension
-				int count = array.GetLength(i);
-				Leb128EncodingHelper.Write(stream, count); // number of elements in the dimension
-				totalCount *= count;
-			}
-
-			// prepare indexing array
+			// write payload type and array dimensions
+			int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
+			var buffer = writer.GetSpan(maxBufferSize);
+			int bufferIndex = 0;
+			buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfDateTime;
+			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
 			int[] indices = new int[array.Rank];
 			for (int i = 0; i < array.Rank; i++)
 			{
+				// ...dimension information...
 				indices[i] = array.GetLowerBound(i);
+				int count = array.GetLength(i);
+				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), indices[i]); // lower bound of the dimension
+				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
 			}
 
-			// resize temporary buffer, if necessary
-			int size = totalCount * elementSize;
-			EnsureTemporaryByteBufferSize(size);
+			writer.Advance(bufferIndex);
 
-			// convert array elements
-			for (int i = 0; i < array.Length; i++)
-			{
-				var dt = (DateTime)array.GetValue(indices);
-				TempBuffer_Int64[0] = dt.ToBinary();
-				Buffer.BlockCopy(TempBuffer_Int64, 0, TempBuffer_Buffer, i * elementSize, elementSize);
-				IncrementArrayIndices(indices, array);
-			}
-
-			// write to stream
-			stream.Write(TempBuffer_Buffer, 0, size);
+			// assign an object id to the array
 			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
+
+			// write array elements
+			const int elementSize = 8;
+			int remaining = array.Length;
+			Span<long> temp = stackalloc long[1];
+			while (remaining > 0)
+			{
+				int elementsToCopy = Math.Min(remaining, MaxChunkSize / elementSize);
+				int bytesToCopy = elementsToCopy * elementSize;
+				buffer = writer.GetSpan(bytesToCopy);
+				bufferIndex = 0;
+				for (int i = 0; i < elementsToCopy; i++)
+				{
+					// ReSharper disable once PossibleNullReferenceException
+					var dt = (DateTime)array.GetValue(indices);
+
+#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
+					BitConverter.TryWriteBytes(buffer.Slice(bufferIndex), dt.ToBinary());
+#else
+					temp[0] = dt.ToBinary();
+					MemoryMarshal.Cast<long, byte>(temp).CopyTo(buffer.Slice(bufferIndex));
+#endif
+					IncrementArrayIndices(indices, array);
+					bufferIndex += elementSize;
+				}
+
+				writer.Advance(bytesToCopy);
+				remaining -= elementsToCopy;
+			}
 		}
 
 		/// <summary>
 		/// Writes a multidimensional array of objects (for arrays with non-zero-based indexing and/or multiple dimensions).
 		/// </summary>
 		/// <param name="array">Array to serialize.</param>
-		/// <param name="stream">Stream to serialize the array to.</param>
-		private void WriteMultidimensionalArrayOfObjects(Array array, Stream stream)
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private void WriteMultidimensionalArrayOfObjects(Array array, IBufferWriter<byte> writer)
 		{
 			// write type metadata
-			WriteTypeMetadata(stream, array.GetType().GetElementType());
+			WriteTypeMetadata(writer, array.GetType().GetElementType());
 
-			// write header
-			stream.WriteByte((byte)PayloadType.MultidimensionalArrayOfObjects); // payload type
-			Leb128EncodingHelper.Write(stream, array.Rank);                     // number of dimensions
-			for (int i = 0; i < array.Rank; i++)
-			{
-				// ...dimension information...
-				Leb128EncodingHelper.Write(stream, array.GetLowerBound(i)); // lower bound of the dimension
-				int count = array.GetLength(i);
-				Leb128EncodingHelper.Write(stream, count); // number of elements in the dimension
-			}
-
-			// prepare indexing array
+			// write payload type and array dimensions
+			int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
+			var buffer = writer.GetSpan(maxBufferSize);
+			int bufferIndex = 0;
+			buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfObjects;
+			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
 			int[] indices = new int[array.Rank];
 			for (int i = 0; i < array.Rank; i++)
 			{
+				// ...dimension information...
 				indices[i] = array.GetLowerBound(i);
+				int count = array.GetLength(i);
+				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), indices[i]); // lower bound of the dimension
+				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
 			}
+
+			writer.Advance(bufferIndex);
 
 			// assign an object id to the array before serializing its elements
 			// (elements may refer to the array)
@@ -525,7 +661,7 @@ namespace GriffinPlus.Lib.Serialization
 			for (int i = 0; i < array.Length; i++)
 			{
 				object obj = array.GetValue(indices);
-				InnerSerialize(stream, obj, null);
+				InnerSerialize(writer, obj, null);
 				IncrementArrayIndices(indices, array);
 			}
 		}
@@ -759,29 +895,6 @@ namespace GriffinPlus.Lib.Serialization
 		#endregion
 
 		#region Helpers
-
-		/// <summary>
-		/// Prepares a buffer for array serialization
-		/// (initializes the payload type, the length field and reserves space for the value).
-		/// </summary>
-		/// <param name="type">Type of the payload.</param>
-		/// <param name="length">Length of the array (in elements).</param>
-		/// <param name="elementSize">Size of an element (in bytes).</param>
-		/// <param name="size">Receives the number of valid bytes in <see cref="TempBuffer_Buffer"/>.</param>
-		/// <returns>Index in the returned buffer where the array data part begins.</returns>
-		private int PrepareArrayBuffer(
-			PayloadType type,
-			int         length,
-			int         elementSize,
-			out int     size)
-		{
-			int sizeByteCount = Leb128EncodingHelper.GetByteCount(length);
-			size = 1 + sizeByteCount + length * elementSize;
-			EnsureTemporaryByteBufferSize(size);
-			TempBuffer_Buffer[0] = (byte)type;
-			Leb128EncodingHelper.Write(TempBuffer_Buffer, 1, length);
-			return 1 + sizeByteCount;
-		}
 
 		/// <summary>
 		/// Increments a multidimensional array indexing vector.

@@ -10,19 +10,19 @@ namespace GriffinPlus.Lib.Serialization
 {
 
 	/// <summary>
-	/// External object serializer for generic lists (type <see cref="System.Collections.Generic.List{T}"/>).
+	/// External object serializer for generic lists (type <see cref="List{T}"/>).
 	/// </summary>
 	[ExternalObjectSerializer(typeof(List<>), 1)]
 	class ListTSerializer : IExternalObjectSerializer
 	{
 		/// <summary>
-		/// Serializes a generic list to a stream.
+		/// Serializes a <see cref="List{T}"/>.
 		/// </summary>
-		/// <param name="archive">Archive to put the specified list into.</param>
+		/// <param name="archive">Archive to serialize the specified list into.</param>
 		/// <param name="version">Serializer version to use.</param>
-		/// <param name="obj">List to serialize.</param>
+		/// <param name="obj">The list to serialize.</param>
 		/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
-		public void Serialize(SerializerArchive archive, uint version, object obj)
+		public void Serialize(SerializationArchive archive, uint version, object obj)
 		{
 			if (version == 1)
 			{
@@ -41,12 +41,12 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Deserializes a generic list from a stream.
+		/// Deserializes a <see cref="List{T}"/>.
 		/// </summary>
-		/// <param name="archive">Archive containing a serialized generic list object.</param>
-		/// <returns>Deserialized list.</returns>
+		/// <param name="archive">Archive containing a serialized <see cref="List{T}"/> object.</param>
+		/// <returns>The deserialized <see cref="List{T}"/>.</returns>
 		/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
-		public object Deserialize(SerializerArchive archive)
+		public object Deserialize(DeserializationArchive archive)
 		{
 			if (archive.Version == 1)
 			{
@@ -55,7 +55,7 @@ namespace GriffinPlus.Lib.Serialization
 				int count = archive.ReadInt32();
 
 				// read elements from the archive and put them into the list
-				var collection = (IList)FastActivator.CreateInstance(archive.Type, count);
+				var collection = (IList)FastActivator.CreateInstance(archive.DataType, count);
 				for (int i = 0; i < count; i++)
 				{
 					object obj = archive.ReadObject(archive.Context);
