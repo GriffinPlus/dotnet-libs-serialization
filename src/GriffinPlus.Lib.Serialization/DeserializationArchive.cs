@@ -268,8 +268,18 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
 		public bool ReadBoolean()
 		{
-			ReadAndCheckPayloadType(PayloadType.Boolean);
-			return mSerializer.ReadPrimitive_Boolean(mStream);
+			CloseArchiveStream();
+
+			int readByte = mStream.ReadByte();
+			if (readByte < 0) throw new SerializationException("Stream ended unexpectedly.");
+			var payloadType = (PayloadType)readByte;
+			if (payloadType == PayloadType.BooleanFalse) return false;
+			if (payloadType == PayloadType.BooleanTrue) return true;
+			Debug.Fail("Unexpected payload type during deserialization.");
+			var trace = new StackTrace();
+			string error = $"Unexpected payload type during deserialization. Stack Trace:\n{trace}";
+			sLog.Write(LogLevel.Error, error);
+			throw new SerializationException(error);
 		}
 
 		#endregion

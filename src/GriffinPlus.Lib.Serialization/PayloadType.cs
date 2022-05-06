@@ -29,7 +29,8 @@ namespace GriffinPlus.Lib.Serialization
 		Buffer,
 
 		// primitive Types
-		Boolean,
+		BooleanFalse,
+		BooleanTrue,
 		Char,
 		SByte,
 		Int16,

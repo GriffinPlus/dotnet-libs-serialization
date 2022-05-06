@@ -26,22 +26,9 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="writer">Buffer writer to write the value to.</param>
 		internal void WritePrimitive_Boolean(bool value, IBufferWriter<byte> writer)
 		{
-			var buffer = writer.GetSpan(2);
-			buffer[0] = (byte)PayloadType.Boolean;
-			buffer[1] = (byte)(value ? 1 : 0);
-			writer.Advance(2);
-		}
-
-		/// <summary>
-		/// Reads a <see cref="System.Boolean"/> value.
-		/// </summary>
-		/// <param name="stream">Stream to read the value from.</param>
-		/// <returns>The read value.</returns>
-		internal bool ReadPrimitive_Boolean(Stream stream)
-		{
-			int readByte = stream.ReadByte();
-			if (readByte < 0) throw new SerializationException("Unexpected end of stream.");
-			return readByte != 0;
+			var buffer = writer.GetSpan(1);
+			buffer[0] = (byte)(value ? PayloadType.BooleanTrue : PayloadType.BooleanFalse);
+			writer.Advance(1);
 		}
 
 		#endregion

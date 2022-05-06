@@ -19,7 +19,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InternalObjectSerializer(1)]
 		public class TestClassWithInternalObjectSerializer : IInternalObjectSerializer
 		{
-			internal bool         Boolean                      { get; set; }
+			internal bool         BooleanFalse                 { get; set; }
+			internal bool         BooleanTrue                  { get; set; }
 			internal char         Char                         { get; set; }
 			internal sbyte        SByte                        { get; set; }
 			internal byte         Byte                         { get; set; }
@@ -51,7 +52,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 			public TestClassWithInternalObjectSerializer()
 			{
-				Boolean = true;
+				BooleanFalse = false;
+				BooleanTrue = true;
 				Char = 'X';
 				SByte = 1;
 				Byte = 2;
@@ -86,7 +88,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			{
 				if (archive.Version == 1)
 				{
-					Boolean = archive.ReadBoolean();
+					BooleanFalse = archive.ReadBoolean();
+					BooleanTrue = archive.ReadBoolean();
 					Char = archive.ReadChar();
 					SByte = archive.ReadSByte();
 					Byte = archive.ReadByte();
@@ -137,7 +140,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			{
 				if (version == 1)
 				{
-					archive.Write(Boolean);
+					archive.Write(BooleanFalse);
+					archive.Write(BooleanTrue);
 					archive.Write(Char);
 					archive.Write(SByte);
 					archive.Write(Byte);
@@ -183,7 +187,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			{
 				unchecked
 				{
-					int hashCode = Boolean.GetHashCode();
+					int hashCode = BooleanFalse.GetHashCode();
+					hashCode = (hashCode * 397) ^ BooleanTrue.GetHashCode();
 					hashCode = (hashCode * 397) ^ Char.GetHashCode();
 					hashCode = (hashCode * 397) ^ SByte.GetHashCode();
 					hashCode = (hashCode * 397) ^ Byte.GetHashCode();
@@ -217,7 +222,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 			protected bool Equals(TestClassWithInternalObjectSerializer other)
 			{
-				return Boolean == other.Boolean &&
+				return BooleanFalse == other.BooleanFalse &&
+				       BooleanTrue == other.BooleanTrue &&
 				       Char == other.Char &&
 				       SByte == other.SByte &&
 				       Byte == other.Byte &&
@@ -255,3 +261,4 @@ namespace GriffinPlus.Lib.Serialization.Tests
 	}
 
 }
+

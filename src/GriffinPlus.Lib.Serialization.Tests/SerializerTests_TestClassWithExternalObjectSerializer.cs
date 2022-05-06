@@ -16,7 +16,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 	{
 		public class TestClassWithExternalObjectSerializer
 		{
-			internal bool         Boolean                      { get; set; }
+			internal bool         BooleanFalse                 { get; set; }
+			internal bool         BooleanTrue                  { get; set; }
 			internal char         Char                         { get; set; }
 			internal sbyte        SByte                        { get; set; }
 			internal byte         Byte                         { get; set; }
@@ -48,7 +49,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 			public TestClassWithExternalObjectSerializer()
 			{
-				Boolean = true;
+				BooleanFalse = false;
+				BooleanTrue = true;
 				Char = 'X';
 				SByte = 1;
 				Byte = 2;
@@ -83,7 +85,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			{
 				unchecked
 				{
-					int hashCode = Boolean.GetHashCode();
+					int hashCode = BooleanFalse.GetHashCode();
+					hashCode = (hashCode * 397) ^ BooleanTrue.GetHashCode();
 					hashCode = (hashCode * 397) ^ Char.GetHashCode();
 					hashCode = (hashCode * 397) ^ SByte.GetHashCode();
 					hashCode = (hashCode * 397) ^ Byte.GetHashCode();
@@ -118,7 +121,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 			protected bool Equals(TestClassWithExternalObjectSerializer other)
 			{
-				return Boolean == other.Boolean &&
+				return BooleanFalse == other.BooleanFalse &&
+				       BooleanTrue == other.BooleanTrue &&
 				       Char == other.Char &&
 				       SByte == other.SByte &&
 				       Byte == other.Byte &&

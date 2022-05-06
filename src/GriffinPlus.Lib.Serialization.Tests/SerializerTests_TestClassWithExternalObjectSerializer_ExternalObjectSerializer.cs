@@ -24,7 +24,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 				if (version == 1)
 				{
-					archive.Write(other.Boolean);
+					archive.Write(other.BooleanFalse);
+					archive.Write(other.BooleanTrue);
 					archive.Write(other.Char);
 					archive.Write(other.SByte);
 					archive.Write(other.Byte);
@@ -72,7 +73,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 				if (archive.Version == 1)
 				{
-					obj.Boolean = archive.ReadBoolean();
+					obj.BooleanFalse = archive.ReadBoolean();
+					obj.BooleanTrue = archive.ReadBoolean();
 					obj.Char = archive.ReadChar();
 					obj.SByte = archive.ReadSByte();
 					obj.Byte = archive.ReadByte();
