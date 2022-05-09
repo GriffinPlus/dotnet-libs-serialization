@@ -11,7 +11,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 	/// <summary>
 	/// Tests for the <see cref="Leb128EncodingHelper"/> utility class.
 	/// </summary>
-	public class Leb128EncodingHelpers
+	public class Leb128EncodingHelperTests
 	{
 		private readonly byte[] mBuffer = new byte[20];
 

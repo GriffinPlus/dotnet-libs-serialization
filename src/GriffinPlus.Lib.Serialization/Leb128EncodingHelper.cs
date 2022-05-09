@@ -27,29 +27,76 @@ namespace GriffinPlus.Lib.Serialization
 		#region 32-Bit Signed Integer
 
 		/// <summary>
+		/// Minimum <see cref="System.Int32"/> value that can be encoded using 1 byte.
+		/// </summary>
+		public const int Int32MinValueEncodedWith1Byte = -64;
+
+		/// <summary>
+		/// Maximum <see cref="System.Int32"/> value that can be encoded using 1 byte.
+		/// </summary>
+		public const int Int32MaxValueEncodedWith1Byte = 63;
+
+		/// <summary>
+		/// Minimum <see cref="System.Int32"/> value that can be encoded using 2 bytes.
+		/// </summary>
+		public const int Int32MinValueEncodedWith2Bytes = -8192;
+
+		/// <summary>
+		/// Minimum <see cref="System.Int32"/> value that can be encoded using 2 bytes.
+		/// </summary>
+		public const int Int32MaxValueEncodedWith2Bytes = 8191;
+
+		/// <summary>
+		/// Minimum <see cref="System.Int32"/> value that can be encoded using 3 bytes.
+		/// </summary>
+		public const int Int32MinValueEncodedWith3Bytes = -1048576;
+
+		/// <summary>
+		/// Maximum <see cref="System.Int32"/> value that can be encoded using 3 bytes.
+		/// </summary>
+		public const int Int32MaxValueEncodedWith3Bytes = 1048575;
+
+		/// <summary>
+		/// Minimum <see cref="System.Int32"/> value that can be encoded using 4 bytes.
+		/// </summary>
+		public const int Int32MinValueEncodedWith4Bytes = -134217728;
+
+		/// <summary>
+		/// Maximum <see cref="System.Int32"/> value that can be encoded using 4 bytes.
+		/// </summary>
+		public const int Int32MaxValueEncodedWith4Bytes = 134217727;
+
+		/// <summary>
+		/// Minimum <see cref="System.Int32"/> value that can be encoded using 5 bytes.
+		/// </summary>
+		public const int Int32MinValueEncodedWith5Bytes = int.MinValue;
+
+		/// <summary>
+		/// Maximum <see cref="System.Int32"/> value that can be encoded using 5 bytes.
+		/// </summary>
+		public const int Int32MaxValueEncodedWith5Bytes = int.MaxValue;
+
+		/// <summary>
 		/// Determines how many bytes are needed to encode the specified signed integer using the SLEB128 encoding.
 		/// </summary>
 		/// <param name="value">Integer to encode.</param>
 		/// <returns>Number of bytes needed to encode the specified integer.</returns>
 		public static int GetByteCount(int value)
 		{
-			unchecked
+			if (value < 0)
 			{
-				if (value < 0)
-				{
-					if (value >= (int)0xFFFFFFC0) return 1;
-					if (value >= (int)0xFFFFE000) return 2;
-					if (value >= (int)0xFFF00000) return 3;
-					if (value >= (int)0xF8000000) return 4;
-					return 5;
-				}
-
-				if (value <= 0x0000003F) return 1;
-				if (value <= 0x00001FFF) return 2;
-				if (value <= 0x000FFFFF) return 3;
-				if (value <= 0x07FFFFFF) return 4;
+				if (value >= Int32MinValueEncodedWith1Byte) return 1;
+				if (value >= Int32MinValueEncodedWith2Bytes) return 2;
+				if (value >= Int32MinValueEncodedWith3Bytes) return 3;
+				if (value >= Int32MinValueEncodedWith4Bytes) return 4;
 				return 5;
 			}
+
+			if (value <= Int32MaxValueEncodedWith1Byte) return 1;
+			if (value <= Int32MaxValueEncodedWith2Bytes) return 2;
+			if (value <= Int32MaxValueEncodedWith3Bytes) return 3;
+			if (value <= Int32MaxValueEncodedWith4Bytes) return 4;
+			return 5;
 		}
 
 		/// <summary>
@@ -240,16 +287,41 @@ namespace GriffinPlus.Lib.Serialization
 		#region 32-Bit Unsigned Integer
 
 		/// <summary>
+		/// Maximum <see cref="System.UInt64"/> value that can be encoded using 1 byte.
+		/// </summary>
+		public const uint UInt32MaxValueEncodedWith1Byte = 0x0000007F;
+
+		/// <summary>
+		/// Maximum <see cref="System.UInt64"/> value that can be encoded using 2 bytes.
+		/// </summary>
+		public const uint UInt32MaxValueEncodedWith2Bytes = 0x00003FFF;
+
+		/// <summary>
+		/// Maximum <see cref="System.UInt64"/> value that can be encoded using 3 bytes.
+		/// </summary>
+		public const uint UInt32MaxValueEncodedWith3Bytes = 0x001FFFFF;
+
+		/// <summary>
+		/// Maximum <see cref="System.UInt64"/> value that can be encoded using 4 bytes.
+		/// </summary>
+		public const uint UInt32MaxValueEncodedWith4Bytes = 0x0FFFFFFF;
+
+		/// <summary>
+		/// Maximum <see cref="System.UInt64"/> value that can be encoded using 5 bytes.
+		/// </summary>
+		public const uint UInt32MaxValueEncodedWith5Bytes = uint.MaxValue;
+
+		/// <summary>
 		/// Determines how many bytes are needed to encode a the specified unsigned integer using the ULEB128 encoding.
 		/// </summary>
 		/// <param name="value">Integer to encode.</param>
 		/// <returns>Number of bytes needed to encode the specified integer.</returns>
 		public static int GetByteCount(uint value)
 		{
-			if (value < 0x00000080) return 1; // 7 bits
-			if (value < 0x00004000) return 2; // 14 bits
-			if (value < 0x00200000) return 3; // 21 bits
-			if (value < 0x10000000) return 4; // 28 bits
+			if (value <= UInt32MaxValueEncodedWith1Byte) return 1;  // 7 bits
+			if (value <= UInt32MaxValueEncodedWith2Bytes) return 2; // 14 bits
+			if (value <= UInt32MaxValueEncodedWith3Bytes) return 3; // 21 bits
+			if (value <= UInt32MaxValueEncodedWith4Bytes) return 4; // 28 bits
 			return 5;
 		}
 
@@ -379,39 +451,137 @@ namespace GriffinPlus.Lib.Serialization
 		#region 64-Bit Signed Integer
 
 		/// <summary>
+		/// Minimum <see cref="System.Int64"/> value that can be encoded using 1 byte.
+		/// </summary>
+		public const long Int64MinValueEncodedWith1Byte = -64;
+
+		/// <summary>
+		/// Maximum <see cref="System.Int64"/> value that can be encoded using 1 byte.
+		/// </summary>
+		public const long Int64MaxValueEncodedWith1Byte = 63;
+
+		/// <summary>
+		/// Minimum <see cref="System.Int64"/> value that can be encoded using 2 bytes.
+		/// </summary>
+		public const long Int64MinValueEncodedWith2Bytes = -8192;
+
+		/// <summary>
+		/// Minimum <see cref="System.Int64"/> value that can be encoded using 2 bytes.
+		/// </summary>
+		public const long Int64MaxValueEncodedWith2Bytes = 8191;
+
+		/// <summary>
+		/// Minimum <see cref="System.Int64"/> value that can be encoded using 3 bytes.
+		/// </summary>
+		public const long Int64MinValueEncodedWith3Bytes = -1048576;
+
+		/// <summary>
+		/// Maximum <see cref="System.Int64"/> value that can be encoded using 3 bytes.
+		/// </summary>
+		public const long Int64MaxValueEncodedWith3Bytes = 1048575;
+
+		/// <summary>
+		/// Minimum <see cref="System.Int64"/> value that can be encoded using 4 bytes.
+		/// </summary>
+		public const long Int64MinValueEncodedWith4Bytes = -134217728;
+
+		/// <summary>
+		/// Maximum <see cref="System.Int64"/> value that can be encoded using 4 bytes.
+		/// </summary>
+		public const long Int64MaxValueEncodedWith4Bytes = 134217727;
+
+		/// <summary>
+		/// Minimum <see cref="System.Int64"/> value that can be encoded using 5 bytes.
+		/// </summary>
+		public const long Int64MinValueEncodedWith5Bytes = -17179869184;
+
+		/// <summary>
+		/// Maximum <see cref="System.Int64"/> value that can be encoded using 5 bytes.
+		/// </summary>
+		public const long Int64MaxValueEncodedWith5Bytes = 17179869183;
+
+		/// <summary>
+		/// Minimum <see cref="System.Int64"/> value that can be encoded using 6 bytes.
+		/// </summary>
+		public const long Int64MinValueEncodedWith6Bytes = -2199023255552;
+
+		/// <summary>
+		/// Maximum <see cref="System.Int64"/> value that can be encoded using 6 bytes.
+		/// </summary>
+		public const long Int64MaxValueEncodedWith6Bytes = 2199023255551;
+
+		/// <summary>
+		/// Minimum <see cref="System.Int64"/> value that can be encoded using 7 bytes.
+		/// </summary>
+		public const long Int64MinValueEncodedWith7Bytes = -281474976710656;
+
+		/// <summary>
+		/// Maximum <see cref="System.Int64"/> value that can be encoded using 7 bytes.
+		/// </summary>
+		public const long Int64MaxValueEncodedWith7Bytes = 281474976710655;
+
+		/// <summary>
+		/// Minimum <see cref="System.Int64"/> value that can be encoded using 8 bytes.
+		/// </summary>
+		public const long Int64MinValueEncodedWith8Bytes = -36028797018963968;
+
+		/// <summary>
+		/// Maximum <see cref="System.Int64"/> value that can be encoded using 8 bytes.
+		/// </summary>
+		public const long Int64MaxValueEncodedWith8Bytes = 36028797018963967;
+
+		/// <summary>
+		/// Minimum <see cref="System.Int64"/> value that can be encoded using 9 bytes.
+		/// </summary>
+		public const long Int64MinValueEncodedWith9Bytes = -4611686018427387904;
+
+		/// <summary>
+		/// Maximum <see cref="System.Int64"/> value that can be encoded using 9 bytes.
+		/// </summary>
+		public const long Int64MaxValueEncodedWith9Bytes = 4611686018427387903;
+
+		/// <summary>
+		/// Minimum <see cref="System.Int64"/> value that can be encoded using 10 bytes.
+		/// </summary>
+		public const long Int64MinValueEncodedWith10Bytes = long.MinValue;
+
+		/// <summary>
+		/// Maximum <see cref="System.Int64"/> value that can be encoded using 10 bytes.
+		/// </summary>
+		public const long Int64MaxValueEncodedWith10Bytes = long.MaxValue;
+
+
+		/// <summary>
 		/// Determines how many bytes are needed to encode a the specified signed integer using the SLEB128 encoding.
 		/// </summary>
 		/// <param name="value">Integer to encode.</param>
 		/// <returns>Number of bytes needed to encode the specified integer.</returns>
 		public static int GetByteCount(long value)
 		{
-			unchecked
+			if (value < 0)
 			{
-				if (value < 0)
-				{
-					if (value >= (long)0xFFFFFFFFFFFFFFC0) return 1;
-					if (value >= (long)0xFFFFFFFFFFFFE000) return 2;
-					if (value >= (long)0xFFFFFFFFFFF00000) return 3;
-					if (value >= (long)0xFFFFFFFFF8000000) return 4;
-					if (value >= (long)0xFFFFFFFC00000000) return 5;
-					if (value >= (long)0xFFFFFE0000000000) return 6;
-					if (value >= (long)0xFFFF000000000000) return 7;
-					if (value >= (long)0xFF80000000000000) return 8;
-					if (value >= (long)0xC000000000000000) return 9;
-					return 10;
-				}
-
-				if (value <= 0x000000000000003F) return 1;
-				if (value <= 0x0000000000001FFF) return 2;
-				if (value <= 0x00000000000FFFFF) return 3;
-				if (value <= 0x0000000007FFFFFF) return 4;
-				if (value <= 0x00000003FFFFFFFF) return 5;
-				if (value <= 0x000001FFFFFFFFFF) return 6;
-				if (value <= 0x0000FFFFFFFFFFFF) return 7;
-				if (value <= 0x007FFFFFFFFFFFFF) return 8;
-				if (value <= 0x3FFFFFFFFFFFFFFF) return 9;
+				if (value >= Int64MinValueEncodedWith1Byte) return 1;
+				if (value >= Int64MinValueEncodedWith2Bytes) return 2;
+				if (value >= Int64MinValueEncodedWith3Bytes) return 3;
+				if (value >= Int64MinValueEncodedWith4Bytes) return 4;
+				if (value >= Int64MinValueEncodedWith5Bytes) return 5;
+				if (value >= Int64MinValueEncodedWith6Bytes) return 6;
+				if (value >= Int64MinValueEncodedWith7Bytes) return 7;
+				if (value >= Int64MinValueEncodedWith8Bytes) return 8;
+				if (value >= Int64MinValueEncodedWith9Bytes) return 9;
 				return 10;
 			}
+
+			if (value <= Int64MaxValueEncodedWith1Byte) return 1;
+			if (value <= Int64MaxValueEncodedWith2Bytes) return 2;
+			if (value <= Int64MaxValueEncodedWith3Bytes) return 3;
+			if (value <= Int64MaxValueEncodedWith4Bytes) return 4;
+			if (value <= Int64MaxValueEncodedWith5Bytes) return 5;
+			if (value <= Int64MaxValueEncodedWith6Bytes) return 6;
+			if (value <= Int64MaxValueEncodedWith7Bytes) return 7;
+			if (value <= Int64MaxValueEncodedWith8Bytes) return 8;
+			if (value <= Int64MaxValueEncodedWith9Bytes) return 9;
+			return 10;
 		}
 
 		/// <summary>
@@ -596,21 +766,71 @@ namespace GriffinPlus.Lib.Serialization
 		#region 64-Bit Unsigned Integer
 
 		/// <summary>
+		/// Maximum <see cref="System.UInt64"/> value that can be encoded using 1 byte.
+		/// </summary>
+		public const ulong UInt64MaxValueEncodedWith1Byte = 0x000000000000007F;
+
+		/// <summary>
+		/// Maximum <see cref="System.UInt64"/> value that can be encoded using 2 bytes.
+		/// </summary>
+		public const ulong UInt64MaxValueEncodedWith2Bytes = 0x0000000000003FFF;
+
+		/// <summary>
+		/// Maximum <see cref="System.UInt64"/> value that can be encoded using 3 bytes.
+		/// </summary>
+		public const ulong UInt64MaxValueEncodedWith3Bytes = 0x00000000001FFFFF;
+
+		/// <summary>
+		/// Maximum <see cref="System.UInt64"/> value that can be encoded using 4 bytes.
+		/// </summary>
+		public const ulong UInt64MaxValueEncodedWith4Bytes = 0x000000000FFFFFFF;
+
+		/// <summary>
+		/// Maximum <see cref="System.UInt64"/> value that can be encoded using 5 bytes.
+		/// </summary>
+		public const ulong UInt64MaxValueEncodedWith5Bytes = 0x00000007FFFFFFFF;
+
+		/// <summary>
+		/// Maximum <see cref="System.UInt64"/> value that can be encoded using 6 bytes.
+		/// </summary>
+		public const ulong UInt64MaxValueEncodedWith6Bytes = 0x000003FFFFFFFFFF;
+
+		/// <summary>
+		/// Maximum <see cref="System.UInt64"/> value that can be encoded using 7 bytes.
+		/// </summary>
+		public const ulong UInt64MaxValueEncodedWith7Bytes = 0x0001FFFFFFFFFFFF;
+
+		/// <summary>
+		/// Maximum <see cref="System.UInt64"/> value that can be encoded using 8 bytes.
+		/// </summary>
+		public const ulong UInt64MaxValueEncodedWith8Bytes = 0x00FFFFFFFFFFFFFF;
+
+		/// <summary>
+		/// Maximum <see cref="System.UInt64"/> value that can be encoded using 9 bytes.
+		/// </summary>
+		public const ulong UInt64MaxValueEncodedWith9Bytes = 0x7FFFFFFFFFFFFFFF;
+
+		/// <summary>
+		/// Maximum <see cref="System.UInt64"/> value that can be encoded using 10 bytes.
+		/// </summary>
+		public const ulong UInt64MaxValueEncodedWith10Bytes = 0xFFFFFFFFFFFFFFFF;
+
+		/// <summary>
 		/// Determines how many bytes are needed to encode a the specified unsigned integer using the ULEB128 encoding.
 		/// </summary>
 		/// <param name="value">Integer to encode.</param>
 		/// <returns>Number of bytes needed to encode the specified integer.</returns>
 		public static int GetByteCount(ulong value)
 		{
-			if (value < 0x0000000000000080) return 1; // 7 bits
-			if (value < 0x0000000000004000) return 2; // 14 bits
-			if (value < 0x0000000000200000) return 3; // 21 bits
-			if (value < 0x0000000010000000) return 4; // 28 bits
-			if (value < 0x0000000800000000) return 5; // 35 bits
-			if (value < 0x0000040000000000) return 6; // 42 bits
-			if (value < 0x0002000000000000) return 7; // 49 bits
-			if (value < 0x0100000000000000) return 8; // 56 bits
-			if (value < 0x8000000000000000) return 9; // 63 bits
+			if (value <= UInt64MaxValueEncodedWith1Byte) return 1;  // 7 bits
+			if (value <= UInt64MaxValueEncodedWith2Bytes) return 2; // 14 bits
+			if (value <= UInt64MaxValueEncodedWith3Bytes) return 3; // 21 bits
+			if (value <= UInt64MaxValueEncodedWith4Bytes) return 4; // 28 bits
+			if (value <= UInt64MaxValueEncodedWith5Bytes) return 5; // 35 bits
+			if (value <= UInt64MaxValueEncodedWith6Bytes) return 6; // 42 bits
+			if (value <= UInt64MaxValueEncodedWith7Bytes) return 7; // 49 bits
+			if (value <= UInt64MaxValueEncodedWith8Bytes) return 8; // 56 bits
+			if (value <= UInt64MaxValueEncodedWith9Bytes) return 9; // 63 bits
 			return 10;
 		}
 
