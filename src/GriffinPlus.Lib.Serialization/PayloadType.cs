@@ -117,9 +117,14 @@ namespace GriffinPlus.Lib.Serialization
 		Byte,
 
 		/// <summary>
-		/// A <see cref="System.UInt16"/> value.
+		/// A <see cref="System.UInt16"/> value (native encoding).
 		/// </summary>
-		UInt16,
+		UInt16_Native,
+
+		/// <summary>
+		/// A <see cref="System.UInt16"/> value (LEB128 encoding).
+		/// </summary>
+		UInt16_LEB128,
 
 		/// <summary>
 		/// A <see cref="System.UInt32"/> value.

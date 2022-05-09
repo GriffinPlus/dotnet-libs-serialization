@@ -445,18 +445,46 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="writer">Buffer writer to write the value to.</param>
 		internal void WritePrimitive_UInt16(ushort value, IBufferWriter<byte> writer)
 		{
-			var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
-			buffer[0] = (byte)PayloadType.UInt16;
-			int count = Leb128EncodingHelper.Write(buffer.Slice(1), value);
-			writer.Advance(1 + count);
+			if (SerializationOptimization == SerializationOptimization.Speed || value > Leb128EncodingHelper.UInt32MaxValueEncodedWith1Byte)
+			{
+				// use native encoding
+				var buffer = writer.GetSpan(3);
+				buffer[0] = (byte)PayloadType.UInt16_Native;
+				MemoryMarshal.Write(buffer.Slice(1), ref value);
+				writer.Advance(3);
+			}
+			else
+			{
+				// use LEB128 encoding
+				var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+				buffer[0] = (byte)PayloadType.UInt16_LEB128;
+				int count = Leb128EncodingHelper.Write(buffer.Slice(1), (uint)value);
+				writer.Advance(1 + count);
+			}
 		}
 
 		/// <summary>
-		/// Reads a <see cref="System.UInt16"/> value.
+		/// Reads a <see cref="System.UInt16"/> value (native encoding).
 		/// </summary>
 		/// <param name="stream">Stream to read the value from.</param>
 		/// <returns>The read value.</returns>
-		internal ushort ReadPrimitive_UInt16(Stream stream)
+		internal ushort ReadPrimitive_UInt16_Native(Stream stream)
+		{
+			const int bytesToRead = 2;
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+			ushort value = MemoryMarshal.Read<ushort>(TempBuffer_Buffer);
+			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+				value = EndianessHelper.SwapBytes(value);
+			return value;
+		}
+
+		/// <summary>
+		/// Reads a <see cref="System.UInt16"/> value (LEB128 encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the value from.</param>
+		/// <returns>The read value.</returns>
+		internal ushort ReadPrimitive_UInt16_LEB128(Stream stream)
 		{
 			return (ushort)Leb128EncodingHelper.ReadUInt32(stream);
 		}

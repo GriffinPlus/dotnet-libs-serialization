@@ -179,8 +179,9 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
 		public ushort ReadUInt16()
 		{
-			ReadAndCheckPayloadType(PayloadType.UInt16);
-			return mSerializer.ReadPrimitive_UInt16(mStream);
+			var payloadType = ReadAndCheckPayloadType(PayloadType.UInt16_Native, PayloadType.UInt16_LEB128);
+			if (payloadType == PayloadType.UInt16_Native) return mSerializer.ReadPrimitive_UInt16_Native(mStream);
+			return mSerializer.ReadPrimitive_UInt16_LEB128(mStream);
 		}
 
 		#endregion
