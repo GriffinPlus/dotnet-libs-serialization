@@ -3,8 +3,6 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-using System;
-
 namespace GriffinPlus.Lib.Serialization.Tests
 {
 
@@ -12,58 +10,58 @@ namespace GriffinPlus.Lib.Serialization.Tests
 	{
 		public enum TestEnum_S8 : sbyte
 		{
-			A = SByte.MinValue,
+			A = sbyte.MinValue,
 			B = 0,
-			C = SByte.MaxValue
+			C = sbyte.MaxValue
 		}
 
 		public enum TestEnum_U8 : byte
 		{
-			A = Byte.MinValue,
-			B = Byte.MaxValue / 2,
-			C = Byte.MaxValue
+			A = byte.MinValue,
+			B = byte.MaxValue / 2,
+			C = byte.MaxValue
 		}
 
 		public enum TestEnum_S16 : short
 		{
-			A = Int16.MinValue,
+			A = short.MinValue,
 			B = 0,
-			C = Int16.MaxValue
+			C = short.MaxValue
 		}
 
 		public enum TestEnum_U16 : ushort
 		{
-			A = UInt16.MinValue,
-			B = UInt16.MaxValue / 2,
-			C = UInt16.MaxValue
+			A = ushort.MinValue,
+			B = ushort.MaxValue / 2,
+			C = ushort.MaxValue
 		}
 
 		public enum TestEnum_S32
 		{
-			A = Int32.MinValue,
+			A = int.MinValue,
 			B = 0,
-			C = Int32.MaxValue
+			C = int.MaxValue
 		}
 
 		public enum TestEnum_U32 : uint
 		{
-			A = UInt32.MinValue,
-			B = UInt32.MaxValue / 2,
-			C = UInt32.MaxValue
+			A = uint.MinValue,
+			B = uint.MaxValue / 2,
+			C = uint.MaxValue
 		}
 
 		public enum TestEnum_S64 : long
 		{
-			A = Int64.MinValue,
+			A = long.MinValue,
 			B = 0,
-			C = Int64.MaxValue
+			C = long.MaxValue
 		}
 
 		public enum TestEnum_U64 : ulong
 		{
-			A = UInt64.MinValue,
-			B = UInt64.MaxValue / 2,
-			C = UInt64.MaxValue
+			A = ulong.MinValue,
+			B = ulong.MaxValue / 2,
+			C = ulong.MaxValue
 		}
 	}
 

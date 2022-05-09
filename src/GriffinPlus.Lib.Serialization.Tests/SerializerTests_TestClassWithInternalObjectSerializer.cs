@@ -261,4 +261,3 @@ namespace GriffinPlus.Lib.Serialization.Tests
 	}
 
 }
-
