@@ -116,8 +116,9 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
 		public short ReadInt16()
 		{
-			ReadAndCheckPayloadType(PayloadType.Int16);
-			return mSerializer.ReadPrimitive_Int16(mStream);
+			var payloadType = ReadAndCheckPayloadType(PayloadType.Int16_Native, PayloadType.Int16_LEB128);
+			if (payloadType == PayloadType.Int16_Native) return mSerializer.ReadPrimitive_Int16_Native(mStream);
+			return mSerializer.ReadPrimitive_Int16_LEB128(mStream);
 		}
 
 		#endregion

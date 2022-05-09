@@ -610,7 +610,8 @@ namespace GriffinPlus.Lib.Serialization
 			sDeserializers.Add(PayloadType.Char_Native, (serializer,  stream, context) => serializer.ReadPrimitive_Char_Native(stream));
 			sDeserializers.Add(PayloadType.Char_LEB128, (serializer,  stream, context) => serializer.ReadPrimitive_Char_LEB128(stream));
 			sDeserializers.Add(PayloadType.SByte, (serializer,        stream, context) => serializer.ReadPrimitive_SByte(stream));
-			sDeserializers.Add(PayloadType.Int16, (serializer,        stream, context) => serializer.ReadPrimitive_Int16(stream));
+			sDeserializers.Add(PayloadType.Int16_Native, (serializer, stream, context) => serializer.ReadPrimitive_Int16_Native(stream));
+			sDeserializers.Add(PayloadType.Int16_LEB128, (serializer, stream, context) => serializer.ReadPrimitive_Int16_LEB128(stream));
 			sDeserializers.Add(PayloadType.Int32, (serializer,        stream, context) => serializer.ReadPrimitive_Int32(stream));
 			sDeserializers.Add(PayloadType.Int64, (serializer,        stream, context) => serializer.ReadPrimitive_Int64(stream));
 			sDeserializers.Add(PayloadType.Byte, (serializer,         stream, context) => serializer.ReadPrimitive_Byte(stream));

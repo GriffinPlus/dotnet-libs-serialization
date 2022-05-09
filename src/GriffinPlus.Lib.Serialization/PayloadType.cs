@@ -80,9 +80,14 @@ namespace GriffinPlus.Lib.Serialization
 		SByte,
 
 		/// <summary>
-		/// A <see cref="System.Int16"/> value.
+		/// A <see cref="System.Int16"/> value (native encoding)
 		/// </summary>
-		Int16,
+		Int16_Native,
+
+		/// <summary>
+		/// A <see cref="System.Int16"/> value (LEB128 encoding)
+		/// </summary>
+		Int16_LEB128,
 
 		/// <summary>
 		/// A <see cref="System.Int32"/> value.
