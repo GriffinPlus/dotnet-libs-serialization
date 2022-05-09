@@ -195,8 +195,9 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
 		public uint ReadUInt32()
 		{
-			ReadAndCheckPayloadType(PayloadType.UInt32);
-			return mSerializer.ReadPrimitive_UInt32(mStream);
+			var payloadType = ReadAndCheckPayloadType(PayloadType.UInt32_Native, PayloadType.UInt32_LEB128);
+			if (payloadType == PayloadType.UInt32_Native) return mSerializer.ReadPrimitive_UInt32_Native(mStream);
+			return mSerializer.ReadPrimitive_UInt32_LEB128(mStream);
 		}
 
 		#endregion
