@@ -2308,7 +2308,8 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			int readByte = stream.ReadByte();
 			if (readByte < 0) throw new SerializationException("Stream ended unexpectedly.");
-			if ((PayloadType)(readByte & (int)PayloadType.TypeMask) != type)
+			var payloadType = (PayloadType)readByte;
+			if (payloadType != type)
 			{
 				var trace = new StackTrace();
 				string error = $"Unexpected payload type during deserialization. Stack Trace:\n{trace}";

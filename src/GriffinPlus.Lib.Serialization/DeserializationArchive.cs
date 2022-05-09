@@ -272,7 +272,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			int readByte = mStream.ReadByte();
 			if (readByte < 0) throw new SerializationException("Stream ended unexpectedly.");
-			var payloadType = (PayloadType)(readByte & (int)PayloadType.TypeMask);
+			var payloadType = (PayloadType)readByte;
 			if (payloadType == PayloadType.BooleanFalse) return false;
 			if (payloadType == PayloadType.BooleanTrue) return true;
 			Debug.Fail("Unexpected payload type during deserialization.");
@@ -562,7 +562,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			int readByte = mStream.ReadByte();
 			if (readByte < 0) throw new SerializationException("Stream ended unexpectedly.");
-			var payloadType = (PayloadType)(readByte & (int)PayloadType.TypeMask);
+			var payloadType = (PayloadType)readByte;
 			if (payloadType != type)
 			{
 				Debug.Fail("Unexpected payload type during deserialization.");

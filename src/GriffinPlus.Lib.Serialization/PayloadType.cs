@@ -312,31 +312,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// An instance of <see cref="System.Object"/>.
 		/// </summary>
-		Object,
-
-		// ------------------------------------------------------------------------------------------------------------------
-
-		/// <summary>
-		/// Encoding 1 (depends on the payload type).
-		/// </summary>
-		Encoding1 = 0x00,
-
-		/// <summary>
-		/// Encoding 2 (depends on the payload type).
-		/// </summary>
-		Encoding2 = 0x40,
-
-		// ------------------------------------------------------------------------------------------------------------------
-
-		/// <summary>
-		/// Mask defining the bits that are used to encode the payload type.
-		/// </summary>
-		TypeMask = 0x7F,
-
-		/// <summary>
-		/// Mask defining the bits that are used to encode the payload encoding.
-		/// </summary>
-		EncodingMask = 0x80
+		Object
 	}
 
 }
