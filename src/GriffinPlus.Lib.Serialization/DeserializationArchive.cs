@@ -148,8 +148,9 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
 		public long ReadInt64()
 		{
-			ReadAndCheckPayloadType(PayloadType.Int64);
-			return mSerializer.ReadPrimitive_Int64(mStream);
+			var payloadType = ReadAndCheckPayloadType(PayloadType.Int64_Native, PayloadType.Int64_LEB128);
+			if (payloadType == PayloadType.Int64_Native) return mSerializer.ReadPrimitive_Int64_Native(mStream);
+			return mSerializer.ReadPrimitive_Int64_LEB128(mStream);
 		}
 
 		#endregion
