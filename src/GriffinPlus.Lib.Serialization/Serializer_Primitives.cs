@@ -302,18 +302,48 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="writer">Buffer writer to write the value to.</param>
 		internal void WritePrimitive_Int32(int value, IBufferWriter<byte> writer)
 		{
-			var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
-			buffer[0] = (byte)PayloadType.Int32;
-			int count = Leb128EncodingHelper.Write(buffer.Slice(1), value);
-			writer.Advance(1 + count);
+			if (SerializationOptimization == SerializationOptimization.Speed ||
+			    value < Leb128EncodingHelper.Int32MinValueEncodedWith3Bytes ||
+			    value > Leb128EncodingHelper.Int32MaxValueEncodedWith3Bytes)
+			{
+				// use native encoding
+				var buffer = writer.GetSpan(5);
+				buffer[0] = (byte)PayloadType.Int32_Native;
+				MemoryMarshal.Write(buffer.Slice(1), ref value);
+				writer.Advance(5);
+			}
+			else
+			{
+				// use LEB128 encoding
+				var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+				buffer[0] = (byte)PayloadType.Int32_LEB128;
+				int count = Leb128EncodingHelper.Write(buffer.Slice(1), value);
+				writer.Advance(1 + count);
+			}
 		}
 
 		/// <summary>
-		/// Reads a <see cref="System.Int32"/> value.
+		/// Reads a <see cref="System.Int32"/> value (native encoding).
 		/// </summary>
 		/// <param name="stream">Stream to read the value from.</param>
 		/// <returns>The read value.</returns>
-		internal int ReadPrimitive_Int32(Stream stream)
+		internal int ReadPrimitive_Int32_Native(Stream stream)
+		{
+			const int bytesToRead = 4;
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+			int value = MemoryMarshal.Read<int>(TempBuffer_Buffer);
+			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+				value = EndianessHelper.SwapBytes(value);
+			return value;
+		}
+
+		/// <summary>
+		/// Reads a <see cref="System.Int32"/> value (LEB128 encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the value from.</param>
+		/// <returns>The read value.</returns>
+		internal int ReadPrimitive_Int32_LEB128(Stream stream)
 		{
 			return Leb128EncodingHelper.ReadInt32(stream);
 		}

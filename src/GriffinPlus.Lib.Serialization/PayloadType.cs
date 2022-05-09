@@ -5,6 +5,8 @@
 
 using System;
 
+// ReSharper disable InconsistentNaming
+
 namespace GriffinPlus.Lib.Serialization
 {
 
@@ -80,19 +82,24 @@ namespace GriffinPlus.Lib.Serialization
 		SByte,
 
 		/// <summary>
-		/// A <see cref="System.Int16"/> value (native encoding)
+		/// A <see cref="System.Int16"/> value (native encoding).
 		/// </summary>
 		Int16_Native,
 
 		/// <summary>
-		/// A <see cref="System.Int16"/> value (LEB128 encoding)
+		/// A <see cref="System.Int16"/> value (LEB128 encoding).
 		/// </summary>
 		Int16_LEB128,
 
 		/// <summary>
-		/// A <see cref="System.Int32"/> value.
+		/// A <see cref="System.Int32"/> value (native encoding).
 		/// </summary>
-		Int32,
+		Int32_Native,
+
+		/// <summary>
+		/// A <see cref="System.Int32"/> value (LEB128 encoding).
+		/// </summary>
+		Int32_LEB128,
 
 		/// <summary>
 		/// A <see cref="System.Int64"/> value.
