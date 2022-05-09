@@ -65,9 +65,14 @@ namespace GriffinPlus.Lib.Serialization
 		BooleanTrue,
 
 		/// <summary>
-		/// A <see cref="System.Char"/> value.
+		/// A <see cref="System.Char"/> value (native encoding).
 		/// </summary>
-		Char,
+		Char_Native,
+
+		/// <summary>
+		/// A <see cref="System.Char"/> value (LEB128 encoding).
+		/// </summary>
+		Char_LEB128,
 
 		/// <summary>
 		/// A <see cref="System.SByte"/> value.

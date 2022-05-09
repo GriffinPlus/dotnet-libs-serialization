@@ -66,6 +66,7 @@ namespace GriffinPlus.Lib.Serialization
 		private          uint                       mNextDeserializedTypeId     = default;
 		private          uint                       mNextDeserializedObjectId   = default;
 		private          bool                       mUseTolerantDeserialization = sUseTolerantDeserializationByDefault;
+		private          bool                       mDeserializingLittleEndian  = false;
 
 		#endregion
 
@@ -606,7 +607,8 @@ namespace GriffinPlus.Lib.Serialization
 			// simple types
 			sDeserializers.Add(PayloadType.BooleanFalse, (serializer, stream, context) => false);
 			sDeserializers.Add(PayloadType.BooleanTrue, (serializer,  stream, context) => true);
-			sDeserializers.Add(PayloadType.Char, (serializer,         stream, context) => serializer.ReadPrimitive_Char(stream));
+			sDeserializers.Add(PayloadType.Char_Native, (serializer,  stream, context) => serializer.ReadPrimitive_Char_Native(stream));
+			sDeserializers.Add(PayloadType.Char_LEB128, (serializer,  stream, context) => serializer.ReadPrimitive_Char_LEB128(stream));
 			sDeserializers.Add(PayloadType.SByte, (serializer,        stream, context) => serializer.ReadPrimitive_SByte(stream));
 			sDeserializers.Add(PayloadType.Int16, (serializer,        stream, context) => serializer.ReadPrimitive_Int16(stream));
 			sDeserializers.Add(PayloadType.Int32, (serializer,        stream, context) => serializer.ReadPrimitive_Int32(stream));
@@ -1458,9 +1460,17 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			try
 			{
+				// prepare the serializer
 				ResetSerializer();
 				AllocateTemporaryBuffers();
 				mWriter.Stream = stream;
+
+				// write endianess indicator
+				var buffer = mWriter.GetSpan(1);
+				buffer[0] = (byte)(BitConverter.IsLittleEndian ? 1 : 0);
+				mWriter.Advance(1);
+
+				// serialize the object
 				InnerSerialize(mWriter, obj, context);
 			}
 			finally
@@ -1980,8 +1990,16 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			try
 			{
+				// prepare the serializer
 				ResetDeserializer();
 				AllocateTemporaryBuffers();
+
+				// read the endianess indicator
+				int readByte = stream.ReadByte();
+				if (readByte < 0) throw new SerializationException("Unexpected end of stream.");
+				mDeserializingLittleEndian = readByte != 0;
+
+				// deserialize the object
 				return InnerDeserialize(stream, context);
 			}
 			finally

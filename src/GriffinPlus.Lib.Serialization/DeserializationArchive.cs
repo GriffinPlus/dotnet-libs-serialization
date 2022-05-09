@@ -293,8 +293,9 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
 		public char ReadChar()
 		{
-			ReadAndCheckPayloadType(PayloadType.Char);
-			return mSerializer.ReadPrimitive_Char(mStream);
+			var payloadType = ReadAndCheckPayloadType(PayloadType.Char_Native, PayloadType.Char_LEB128);
+			if (payloadType == PayloadType.Char_Native) return mSerializer.ReadPrimitive_Char_Native(mStream);
+			return mSerializer.ReadPrimitive_Char_LEB128(mStream);
 		}
 
 		#endregion
@@ -571,6 +572,33 @@ namespace GriffinPlus.Lib.Serialization
 				sLog.Write(LogLevel.Error, error);
 				throw new SerializationException(error);
 			}
+		}
+
+		/// <summary>
+		/// Reads the payload type from the stream and checks whether it matches one of the expected payload types.
+		/// </summary>
+		/// <param name="type1">The first expected payload type.</param>
+		/// <param name="type2">The second expected payload type.</param>
+		/// <returns>The read payload type.</returns>
+		/// <exception cref="SerializationException">Stream ended unexpectedly.</exception>
+		/// <exception cref="SerializationException">Specified payload type does not match the received payload type.</exception>
+		private PayloadType ReadAndCheckPayloadType(PayloadType type1, PayloadType type2)
+		{
+			CloseArchiveStream();
+
+			int readByte = mStream.ReadByte();
+			if (readByte < 0) throw new SerializationException("Stream ended unexpectedly.");
+			var payloadType = (PayloadType)readByte;
+			if (payloadType != type1 && payloadType != type2)
+			{
+				Debug.Fail("Unexpected payload type during deserialization.");
+				var trace = new StackTrace();
+				string error = $"Unexpected payload type during deserialization. Stack Trace:\n{trace}";
+				sLog.Write(LogLevel.Error, error);
+				throw new SerializationException(error);
+			}
+
+			return payloadType;
 		}
 
 		/// <summary>
