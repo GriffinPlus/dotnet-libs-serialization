@@ -137,9 +137,14 @@ namespace GriffinPlus.Lib.Serialization
 		UInt32_LEB128,
 
 		/// <summary>
-		/// A <see cref="System.UInt64"/> value.
+		/// A <see cref="System.UInt64"/> value (native encoding).
 		/// </summary>
-		UInt64,
+		UInt64_Native,
+
+		/// <summary>
+		/// A <see cref="System.UInt64"/> value (LEB128 encoding).
+		/// </summary>
+		UInt64_LEB128,
 
 		/// <summary>
 		/// A <see cref="System.Single"/> value.

@@ -621,7 +621,8 @@ namespace GriffinPlus.Lib.Serialization
 			sDeserializers.Add(PayloadType.UInt16_LEB128, (serializer, stream, context) => serializer.ReadPrimitive_UInt16_LEB128(stream));
 			sDeserializers.Add(PayloadType.UInt32_Native, (serializer, stream, context) => serializer.ReadPrimitive_UInt32_Native(stream));
 			sDeserializers.Add(PayloadType.UInt32_LEB128, (serializer, stream, context) => serializer.ReadPrimitive_UInt32_LEB128(stream));
-			sDeserializers.Add(PayloadType.UInt64, (serializer,        stream, context) => serializer.ReadPrimitive_UInt64(stream));
+			sDeserializers.Add(PayloadType.UInt64_Native, (serializer, stream, context) => serializer.ReadPrimitive_UInt64_Native(stream));
+			sDeserializers.Add(PayloadType.UInt64_LEB128, (serializer, stream, context) => serializer.ReadPrimitive_UInt64_LEB128(stream));
 			sDeserializers.Add(PayloadType.Single, (serializer,        stream, context) => serializer.ReadPrimitive_Single(stream));
 			sDeserializers.Add(PayloadType.Double, (serializer,        stream, context) => serializer.ReadPrimitive_Double(stream));
 			sDeserializers.Add(PayloadType.Decimal, (serializer,       stream, context) => serializer.ReadPrimitive_Decimal(stream));

@@ -555,18 +555,46 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="writer">Buffer writer to write the value to.</param>
 		internal void WritePrimitive_UInt64(ulong value, IBufferWriter<byte> writer)
 		{
-			var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
-			buffer[0] = (byte)PayloadType.UInt64;
-			int count = Leb128EncodingHelper.Write(buffer.Slice(1), value);
-			writer.Advance(1 + count);
+			if (SerializationOptimization == SerializationOptimization.Speed || value > Leb128EncodingHelper.UInt64MaxValueEncodedWith7Bytes)
+			{
+				// use native encoding
+				var buffer = writer.GetSpan(9);
+				buffer[0] = (byte)PayloadType.UInt64_Native;
+				MemoryMarshal.Write(buffer.Slice(1), ref value);
+				writer.Advance(9);
+			}
+			else
+			{
+				// use LEB128 encoding
+				var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
+				buffer[0] = (byte)PayloadType.UInt64_LEB128;
+				int count = Leb128EncodingHelper.Write(buffer.Slice(1), value);
+				writer.Advance(1 + count);
+			}
 		}
 
 		/// <summary>
-		/// Reads a <see cref="System.UInt64"/> value.
+		/// Reads a <see cref="System.UInt64"/> value (native encoding).
 		/// </summary>
 		/// <param name="stream">Stream to read the value from.</param>
 		/// <returns>The read value.</returns>
-		internal ulong ReadPrimitive_UInt64(Stream stream)
+		internal ulong ReadPrimitive_UInt64_Native(Stream stream)
+		{
+			const int bytesToRead = 8;
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+			ulong value = MemoryMarshal.Read<ulong>(TempBuffer_Buffer);
+			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+				value = EndianessHelper.SwapBytes(value);
+			return value;
+		}
+
+		/// <summary>
+		/// Reads a <see cref="System.UInt64"/> value (LEB128 encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the value from.</param>
+		/// <returns>The read value.</returns>
+		internal ulong ReadPrimitive_UInt64_LEB128(Stream stream)
 		{
 			return Leb128EncodingHelper.ReadUInt64(stream);
 		}

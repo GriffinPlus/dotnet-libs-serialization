@@ -211,8 +211,9 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
 		public ulong ReadUInt64()
 		{
-			ReadAndCheckPayloadType(PayloadType.UInt64);
-			return mSerializer.ReadPrimitive_UInt64(mStream);
+			var payloadType = ReadAndCheckPayloadType(PayloadType.UInt64_Native, PayloadType.UInt64_LEB128);
+			if (payloadType == PayloadType.UInt64_Native) return mSerializer.ReadPrimitive_UInt64_Native(mStream);
+			return mSerializer.ReadPrimitive_UInt64_LEB128(mStream);
 		}
 
 		#endregion
