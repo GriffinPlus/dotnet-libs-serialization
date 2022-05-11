@@ -72,7 +72,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 			char value = MemoryMarshal.Read<char>(TempBuffer_Buffer);
 			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
-				value = EndianessHelper.SwapBytes(value);
+				EndiannessHelper.SwapBytes(ref value);
 			return value;
 		}
 
@@ -334,7 +334,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 			int value = MemoryMarshal.Read<int>(TempBuffer_Buffer);
 			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
-				value = EndianessHelper.SwapBytes(value);
+				EndiannessHelper.SwapBytes(ref value);
 			return value;
 		}
 
@@ -391,7 +391,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 			long value = MemoryMarshal.Read<long>(TempBuffer_Buffer);
 			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
-				value = EndianessHelper.SwapBytes(value);
+				EndiannessHelper.SwapBytes(ref value);
 			return value;
 		}
 
@@ -475,7 +475,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 			ushort value = MemoryMarshal.Read<ushort>(TempBuffer_Buffer);
 			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
-				value = EndianessHelper.SwapBytes(value);
+				EndiannessHelper.SwapBytes(ref value);
 			return value;
 		}
 
@@ -530,7 +530,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 			uint value = MemoryMarshal.Read<uint>(TempBuffer_Buffer);
 			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
-				value = EndianessHelper.SwapBytes(value);
+				EndiannessHelper.SwapBytes(ref value);
 			return value;
 		}
 
@@ -585,7 +585,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 			ulong value = MemoryMarshal.Read<ulong>(TempBuffer_Buffer);
 			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
-				value = EndianessHelper.SwapBytes(value);
+				EndiannessHelper.SwapBytes(ref value);
 			return value;
 		}
 

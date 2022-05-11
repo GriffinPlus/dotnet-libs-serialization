@@ -11,87 +11,79 @@ namespace GriffinPlus.Lib.Serialization
 	/// <summary>
 	/// Helper methods for handling endianness conversions.
 	/// </summary>
-	static class EndianessHelper
+	static class EndiannessHelper
 	{
 		/// <summary>
 		/// Swaps bytes to convert little-endian to big-endian and vice versa.
 		/// </summary>
-		/// <param name="x">Value to convert.</param>
-		/// <returns>The converted value.</returns>
+		/// <param name="value">Value to convert.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static short SwapBytes(short x)
+		public static void SwapBytes(ref short value)
 		{
-			return (short)((x >> 8) | (x << 8)); // swap adjacent 8-bit blocks
+			value = (short)((value >> 8) | (value << 8)); // swap adjacent 8-bit blocks
 		}
 
 		/// <summary>
 		/// Swaps bytes to convert little-endian to big-endian and vice versa.
 		/// </summary>
-		/// <param name="x">Value to convert.</param>
-		/// <returns>The converted value.</returns>
+		/// <param name="value">Value to convert.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort SwapBytes(ushort x)
+		public static void SwapBytes(ref ushort value)
 		{
-			return (ushort)((x >> 8) | (x << 8)); // swap adjacent 8-bit blocks
+			value = (ushort)((value >> 8) | (value << 8)); // swap adjacent 8-bit blocks
 		}
 
 		/// <summary>
 		/// Swaps bytes to convert little-endian to big-endian and vice versa.
 		/// </summary>
-		/// <param name="x">Value to convert.</param>
-		/// <returns>The converted value.</returns>
+		/// <param name="value">Value to convert.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static char SwapBytes(char x)
+		public static void SwapBytes(ref char value)
 		{
-			return (char)((x >> 8) | (x << 8)); // swap adjacent 8-bit blocks
+			value = (char)((value >> 8) | (value << 8)); // swap adjacent 8-bit blocks
 		}
 
 		/// <summary>
 		/// Swaps bytes to convert little-endian to big-endian and vice versa.
 		/// </summary>
-		/// <param name="x">Value to convert.</param>
-		/// <returns>The converted value.</returns>
+		/// <param name="value">Value to convert.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int SwapBytes(int x)
+		public static void SwapBytes(ref int value)
 		{
-			x = (x >> 16) | (x << 16);                                     // swap adjacent 16-bit blocks
-			return (int)((x & 0xFF00FF00) >> 8) | ((x & 0x00FF00FF) << 8); // swap adjacent 8-bit blocks
+			SwapBytes(ref Unsafe.As<int, uint>(ref value));
 		}
 
 		/// <summary>
 		/// Swaps bytes to convert little-endian to big-endian and vice versa.
 		/// </summary>
-		/// <param name="x">Value to convert.</param>
-		/// <returns>The converted value.</returns>
+		/// <param name="value">Value to convert.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static uint SwapBytes(uint x)
+		public static void SwapBytes(ref uint value)
 		{
-			x = (x >> 16) | (x << 16);                                // swap adjacent 16-bit blocks
-			return ((x & 0xFF00FF00) >> 8) | ((x & 0x00FF00FF) << 8); // swap adjacent 8-bit blocks
+			value = (value >> 16) | (value << 16);                             // swap adjacent 16-bit blocks
+			value = ((value & 0xFF00FF00) >> 8) | ((value & 0x00FF00FF) << 8); // swap adjacent 8-bit blocks
 		}
 
 		/// <summary>
 		/// Swaps bytes to convert little-endian to big-endian and vice versa.
 		/// </summary>
-		/// <param name="x">Value to convert.</param>
-		/// <returns>The converted value.</returns>
+		/// <param name="value">Value to convert.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static long SwapBytes(long x)
+		public static void SwapBytes(ref long value)
 		{
-			return (long)SwapBytes((ulong)x);
+			SwapBytes(ref Unsafe.As<long, ulong>(ref value));
 		}
 
 		/// <summary>
 		/// Swaps bytes to convert little-endian to big-endian and vice versa.
 		/// </summary>
-		/// <param name="x">Value to convert.</param>
-		/// <returns>The converted value.</returns>
+		/// <param name="value">Value to convert.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ulong SwapBytes(ulong x)
+		public static void SwapBytes(ref ulong value)
 		{
-			x = (x >> 32) | (x << 32);                                                // swap adjacent 32-bit blocks
-			x = ((x & 0xFFFF0000FFFF0000) >> 16) | ((x & 0x0000FFFF0000FFFF) << 16);  // swap adjacent 16-bit blocks
-			return ((x & 0xFF00FF00FF00FF00) >> 8) | ((x & 0x00FF00FF00FF00FF) << 8); // swap adjacent 8-bit blocks
+			value = (value >> 32) | (value << 32);                                               // swap adjacent 32-bit blocks
+			value = ((value & 0xFFFF0000FFFF0000) >> 16) | ((value & 0x0000FFFF0000FFFF) << 16); // swap adjacent 16-bit blocks
+			value = ((value & 0xFF00FF00FF00FF00) >> 8) | ((value & 0x00FF00FF00FF00FF) << 8);   // swap adjacent 8-bit blocks
 		}
 	}
 
