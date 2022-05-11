@@ -85,6 +85,28 @@ namespace GriffinPlus.Lib.Serialization
 			value = ((value & 0xFFFF0000FFFF0000) >> 16) | ((value & 0x0000FFFF0000FFFF) << 16); // swap adjacent 16-bit blocks
 			value = ((value & 0xFF00FF00FF00FF00) >> 8) | ((value & 0x00FF00FF00FF00FF) << 8);   // swap adjacent 8-bit blocks
 		}
+
+		/// <summary>
+		/// Swaps bytes to convert little-endian to big-endian and vice versa.
+		/// </summary>
+		/// <param name="value">Value to convert.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SwapBytes(ref float value)
+		{
+			ref uint x = ref Unsafe.As<float, uint>(ref value);
+			SwapBytes(ref x);
+		}
+
+		/// <summary>
+		/// Swaps bytes to convert little-endian to big-endian and vice versa.
+		/// </summary>
+		/// <param name="value">Value to convert.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SwapBytes(ref double value)
+		{
+			ref ulong x = ref Unsafe.As<double, ulong>(ref value);
+			SwapBytes(ref x);
+		}
 	}
 
 }

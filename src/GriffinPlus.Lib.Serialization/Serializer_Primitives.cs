@@ -140,13 +140,7 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(float);
 			var buffer = writer.GetSpan(1 + elementSize);
 			buffer[0] = (byte)PayloadType.Single;
-#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
-			BitConverter.TryWriteBytes(buffer.Slice(1), value);
-#else
-			Span<float> temp = stackalloc float[1];
-			temp[0] = value;
-			MemoryMarshal.Cast<float, byte>(temp).CopyTo(buffer.Slice(1));
-#endif
+			MemoryMarshal.Write(buffer.Slice(1), ref value);
 			writer.Advance(1 + elementSize);
 		}
 
@@ -160,7 +154,10 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(float);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
 			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
-			return BitConverter.ToSingle(TempBuffer_Buffer, 0);
+			float value = MemoryMarshal.Read<float>(TempBuffer_Buffer);
+			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+				EndiannessHelper.SwapBytes(ref value);
+			return value;
 		}
 
 		#endregion
@@ -177,13 +174,7 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(double);
 			var buffer = writer.GetSpan(1 + elementSize);
 			buffer[0] = (byte)PayloadType.Double;
-#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
-			BitConverter.TryWriteBytes(buffer.Slice(1), value);
-#else
-			Span<double> temp = stackalloc double[1];
-			temp[0] = value;
-			MemoryMarshal.Cast<double, byte>(temp).CopyTo(buffer.Slice(1));
-#endif
+			MemoryMarshal.Write(buffer.Slice(1), ref value);
 			writer.Advance(1 + elementSize);
 		}
 
@@ -197,7 +188,10 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(double);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
 			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
-			return BitConverter.ToDouble(TempBuffer_Buffer, 0);
+			double value = MemoryMarshal.Read<double>(TempBuffer_Buffer);
+			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+				EndiannessHelper.SwapBytes(ref value);
+			return value;
 		}
 
 		#endregion
@@ -277,7 +271,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 			short value = MemoryMarshal.Read<short>(TempBuffer_Buffer);
 			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
-				value = EndianessHelper.SwapBytes(value);
+				EndiannessHelper.SwapBytes(ref value);
 			return value;
 		}
 
