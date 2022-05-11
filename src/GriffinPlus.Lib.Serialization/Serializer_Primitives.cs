@@ -628,13 +628,8 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(long); // binary representation of a DateTime
 			var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
 			buffer[0] = (byte)PayloadType.DateTime;
-#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
-			BitConverter.TryWriteBytes(buffer.Slice(1), value.ToBinary());
-#else
-			Span<long> temp = stackalloc long[1];
-			temp[0] = value.ToBinary();
-			MemoryMarshal.Cast<long, byte>(temp).CopyTo(buffer.Slice(1));
-#endif
+			long binaryValue = value.ToBinary();
+			MemoryMarshal.Write(buffer.Slice(1), ref binaryValue);
 			writer.Advance(1 + elementSize);
 		}
 
@@ -648,7 +643,9 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(long); // binary representation of a DateTime
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
 			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
-			long value = BitConverter.ToInt64(TempBuffer_Buffer, 0);
+			long value = MemoryMarshal.Read<long>(TempBuffer_Buffer);
+			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+				EndiannessHelper.SwapBytes(ref value);
 			return DateTime.FromBinary(value);
 		}
 
