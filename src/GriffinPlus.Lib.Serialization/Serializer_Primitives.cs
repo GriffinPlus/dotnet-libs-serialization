@@ -101,9 +101,10 @@ namespace GriffinPlus.Lib.Serialization
 			var buffer = writer.GetSpan(1 + elementSize);
 			buffer[0] = (byte)PayloadType.Decimal;
 #if NET5_0_OR_GREATER
-			var intBuffer = MemoryMarshal.Cast<byte, int>(buffer.Slice(1));
-			decimal.TryGetBits(value, intBuffer, out int valuesWritten);
+			Span<int> temp = stackalloc int[4];
+			decimal.TryGetBits(value, temp, out int valuesWritten);
 			Debug.Assert(valuesWritten * sizeof(int) == elementSize);
+			MemoryMarshal.Cast<int, byte>(temp).CopyTo(buffer.Slice(1));
 #else
 			int[] bits = decimal.GetBits(value);
 			Buffer.BlockCopy(bits, 0, TempBuffer_Buffer, 0, elementSize);
@@ -122,8 +123,28 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(decimal);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
 			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+#if NET5_0_OR_GREATER
+			var intBuffer = MemoryMarshal.Cast<byte, int>(TempBuffer_Buffer.AsSpan(0, elementSize));
+			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			{
+				EndiannessHelper.SwapBytes(ref intBuffer[0]);
+				EndiannessHelper.SwapBytes(ref intBuffer[1]);
+				EndiannessHelper.SwapBytes(ref intBuffer[2]);
+				EndiannessHelper.SwapBytes(ref intBuffer[3]);
+			}
+
+			return new decimal(intBuffer);
+#else
 			Buffer.BlockCopy(TempBuffer_Buffer, 0, TempBuffer_Int32, 0, elementSize);
+			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			{
+				EndiannessHelper.SwapBytes(ref TempBuffer_Int32[0]);
+				EndiannessHelper.SwapBytes(ref TempBuffer_Int32[1]);
+				EndiannessHelper.SwapBytes(ref TempBuffer_Int32[2]);
+				EndiannessHelper.SwapBytes(ref TempBuffer_Int32[3]);
+			}
 			return new decimal(TempBuffer_Int32);
+#endif
 		}
 
 		#endregion
