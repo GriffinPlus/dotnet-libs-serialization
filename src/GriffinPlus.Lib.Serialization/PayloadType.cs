@@ -354,7 +354,12 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// An instance of <see cref="System.Object"/>.
 		/// </summary>
-		Object
+		Object,
+
+		/// <summary>
+		/// Terminator (last enumeration value + 1).
+		/// </summary>
+		Terminator
 	}
 
 }
