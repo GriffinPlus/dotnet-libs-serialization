@@ -42,8 +42,9 @@ namespace GriffinPlus.Lib.Serialization
 
 		#region Class Variables
 
-		private static readonly LogWriter sLog  = LogWriter.Get<Serializer>();
-		private static readonly object    sSync = new object();
+		private static readonly LogWriter    sLog          = LogWriter.Get<Serializer>();
+		private static readonly UTF8Encoding sUtf8Encoding = new UTF8Encoding(false);
+		private static readonly object       sSync         = new object();
 
 		#endregion
 
@@ -626,7 +627,8 @@ namespace GriffinPlus.Lib.Serialization
 			sDeserializers.Add(PayloadType.Single, (serializer,        stream, context) => serializer.ReadPrimitive_Single(stream));
 			sDeserializers.Add(PayloadType.Double, (serializer,        stream, context) => serializer.ReadPrimitive_Double(stream));
 			sDeserializers.Add(PayloadType.Decimal, (serializer,       stream, context) => serializer.ReadPrimitive_Decimal(stream));
-			sDeserializers.Add(PayloadType.String, (serializer,        stream, context) => serializer.ReadPrimitive_String(stream));
+			sDeserializers.Add(PayloadType.String_UTF8, (serializer,   stream, context) => serializer.ReadPrimitive_String_UTF8(stream));
+			sDeserializers.Add(PayloadType.String_UTF16, (serializer,  stream, context) => serializer.ReadPrimitive_String_UTF16(stream));
 			sDeserializers.Add(PayloadType.DateTime, (serializer,      stream, context) => serializer.ReadPrimitive_DateTime(stream));
 			sDeserializers.Add(PayloadType.Object, (serializer,        stream, context) => serializer.ReadPrimitive_Object());
 			sDeserializers.Add(PayloadType.TypeObject, (serializer,    stream, context) => serializer.ReadTypeObject(stream, out _));

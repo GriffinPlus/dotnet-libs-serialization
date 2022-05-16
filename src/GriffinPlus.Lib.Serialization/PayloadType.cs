@@ -162,9 +162,14 @@ namespace GriffinPlus.Lib.Serialization
 		Decimal,
 
 		/// <summary>
-		/// A <see cref="System.String"/> value.
+		/// A <see cref="System.String"/> value (UTF-8 encoding).
 		/// </summary>
-		String,
+		String_UTF8,
+
+		/// <summary>
+		/// A <see cref="System.String"/> value (UTF-16 encoding, endianness depends on the system).
+		/// </summary>
+		String_UTF16,
 
 		/// <summary>
 		/// A <see cref="System.DateTime"/> value.

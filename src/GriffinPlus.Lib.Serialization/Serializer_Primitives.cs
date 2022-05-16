@@ -7,7 +7,6 @@ using System;
 using System.Buffers;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Text;
 #if NET5_0_OR_GREATER
 using System.Diagnostics;
 #endif
@@ -143,6 +142,7 @@ namespace GriffinPlus.Lib.Serialization
 				EndiannessHelper.SwapBytes(ref TempBuffer_Int32[2]);
 				EndiannessHelper.SwapBytes(ref TempBuffer_Int32[3]);
 			}
+
 			return new decimal(TempBuffer_Int32);
 #endif
 		}
@@ -660,33 +660,58 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="writer">Buffer writer to write the string to.</param>
 		internal void WritePrimitive_String(string value, IBufferWriter<byte> writer)
 		{
-			// resize temporary buffer for the encoding the string
-			int size = Encoding.UTF8.GetMaxByteCount(value.Length);
-			EnsureTemporaryByteBufferSize(size);
+			if (SerializationOptimization == SerializationOptimization.Speed)
+			{
+				// use UTF-16 encoding
+				// => .NET strings are always UTF-16 encoded itself, so no further encoding steps are needed...
 
-			// encode the string
-			int valueByteCount = Encoding.UTF8.GetBytes(value, 0, value.Length, TempBuffer_Buffer, 0);
+				// write the encoded string
+				int valueByteCount = value.Length * sizeof(char);
+				int maxSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue + valueByteCount;
+				var buffer = writer.GetSpan(maxSize);
+				int bufferIndex = 0;
+				buffer[bufferIndex++] = (byte)PayloadType.String_UTF16;
+				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), value.Length);
+				MemoryMarshal.AsBytes(value.AsSpan()).CopyTo(buffer.Slice(bufferIndex));
+				bufferIndex += valueByteCount;
+				writer.Advance(bufferIndex);
+			}
+			else
+			{
+				// use UTF-8 encoding
 
-			// write the encoded string
-			int maxSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue + valueByteCount;
-			var buffer = writer.GetSpan(maxSize);
-			buffer[0] = (byte)PayloadType.String;
-			int headerSize = 1 + Leb128EncodingHelper.Write(buffer.Slice(1), valueByteCount);
-			TempBuffer_Buffer.AsSpan().Slice(0, valueByteCount).CopyTo(buffer.Slice(headerSize));
-			writer.Advance(headerSize + valueByteCount);
+				// resize temporary buffer for the encoding the string
+				int size = sUtf8Encoding.GetMaxByteCount(value.Length);
+				EnsureTemporaryByteBufferSize(size);
+
+				// encode the string
+				int valueByteCount = sUtf8Encoding.GetBytes(value, 0, value.Length, TempBuffer_Buffer, 0);
+
+				// write the encoded string
+				int maxSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue + valueByteCount;
+				var buffer = writer.GetSpan(maxSize);
+				int bufferIndex = 0;
+				buffer[bufferIndex++] = (byte)PayloadType.String_UTF8;
+				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(1), valueByteCount);
+				TempBuffer_Buffer.AsSpan().Slice(0, valueByteCount).CopyTo(buffer.Slice(bufferIndex));
+				bufferIndex += valueByteCount;
+				writer.Advance(bufferIndex);
+			}
 
 			// assign an object id to the serialized string
 			mSerializedObjectIdTable.Add(value, mNextSerializedObjectId++);
 		}
 
 		/// <summary>
-		/// Reads a <see cref="System.String"/> object.
+		/// Reads a <see cref="System.String"/> object (UTF-8 encoding).
 		/// </summary>
 		/// <param name="stream">Stream to read the string object from.</param>
 		/// <returns>The read string.</returns>
-		internal string ReadPrimitive_String(Stream stream)
+		internal string ReadPrimitive_String_UTF8(Stream stream)
 		{
-			int size = Leb128EncodingHelper.ReadInt32(stream);
+			// read the number of UTF-8 code units
+			int codeUnitCount = Leb128EncodingHelper.ReadInt32(stream);
+			int size = codeUnitCount * sizeof(byte);
 
 			// read encoded string
 			EnsureTemporaryByteBufferSize(size);
@@ -694,7 +719,44 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
 
 			// decode string
-			string s = Encoding.UTF8.GetString(TempBuffer_Buffer, 0, size);
+			string s = sUtf8Encoding.GetString(TempBuffer_Buffer, 0, size);
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, s);
+			return s;
+		}
+
+		/// <summary>
+		/// Reads a <see cref="System.String"/> object (UTF-16 encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the string object from.</param>
+		/// <returns>The read string.</returns>
+		internal unsafe string ReadPrimitive_String_UTF16(Stream stream)
+		{
+			// read the number of UTF-16 code units
+			int codeUnitCount = Leb128EncodingHelper.ReadInt32(stream);
+			int size = codeUnitCount * sizeof(char);
+
+			// read encoded string
+			EnsureTemporaryByteBufferSize(size);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
+			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+
+			// swap bytes to fix endianness issues, if necessary
+			var buffer = MemoryMarshal.Cast<byte, char>(TempBuffer_Buffer.AsSpan(0, bytesRead));
+			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			{
+				for (int i = 0; i < buffer.Length; i++)
+				{
+					EndiannessHelper.SwapBytes(ref buffer[i]);
+				}
+			}
+
+			// create a string from the buffer
+#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
+			string s = new string(buffer);
+#else
+			string s;
+			fixed (char* p = buffer) { s = new string(p, 0, buffer.Length); }
+#endif
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, s);
 			return s;
 		}
