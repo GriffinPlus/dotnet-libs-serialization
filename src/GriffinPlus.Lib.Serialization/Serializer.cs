@@ -16,6 +16,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 
+using GriffinPlus.Lib.Collections;
 using GriffinPlus.Lib.Io;
 using GriffinPlus.Lib.Logging;
 
@@ -51,14 +52,14 @@ namespace GriffinPlus.Lib.Serialization
 		#region Member Variables
 
 		// for serialization only
-		private          Type                     mCurrentSerializedType      = default;
-		private readonly Dictionary<Type, uint>   mSerializedTypeIdTable      = new Dictionary<Type, uint>();
-		private readonly SerializerVersionTable   mSerializedTypeVersionTable = new SerializerVersionTable();
-		private readonly Dictionary<object, uint> mSerializedObjectIdTable    = new Dictionary<object, uint>(IdentityComparer<object>.Default);
-		private readonly HashSet<object>          mObjectsUnderSerialization  = new HashSet<object>(IdentityComparer<object>.Default);
-		private readonly StreamBufferWriter       mWriter                     = new StreamBufferWriter();
-		private          uint                     mNextSerializedTypeId       = default;
-		private          uint                     mNextSerializedObjectId     = default;
+		private          Type                                  mCurrentSerializedType      = default;
+		private readonly TypeKeyedDictionary<uint>             mSerializedTypeIdTable      = new TypeKeyedDictionary<uint>();
+		private readonly SerializerVersionTable                mSerializedTypeVersionTable = new SerializerVersionTable();
+		private readonly IdentityKeyedDictionary<object, uint> mSerializedObjectIdTable    = new IdentityKeyedDictionary<object, uint>();
+		private readonly HashSet<object>                       mObjectsUnderSerialization  = new HashSet<object>(IdentityComparer<object>.Default);
+		private readonly StreamBufferWriter                    mWriter                     = new StreamBufferWriter();
+		private          uint                                  mNextSerializedTypeId       = default;
+		private          uint                                  mNextSerializedObjectId     = default;
 
 		// for deserialization only
 		private          TypeItem                   mCurrentDeserializedType    = default;
@@ -73,13 +74,13 @@ namespace GriffinPlus.Lib.Serialization
 
 		#region Initialization (Scanning for Custom Serializers)
 
-		private static          bool                                           sInitializing                          = false;
-		private static          bool                                           sInitialized                           = false;
-		private static readonly object                                         sInitializationSync                    = new object();
-		private static volatile bool                                           sUseTolerantDeserializationByDefault   = false;
-		private static          Dictionary<Type, InternalObjectSerializerInfo> sInternalObjectSerializerInfoByType    = new Dictionary<Type, InternalObjectSerializerInfo>();
-		private static          Dictionary<Type, ExternalObjectSerializerInfo> sExternalObjectSerializersBySerializee = new Dictionary<Type, ExternalObjectSerializerInfo>();
-		private static readonly Type[]                                         sConstructorArgumentTypes              = { typeof(DeserializationArchive) };
+		private static          bool                                              sInitializing                          = false;
+		private static          bool                                              sInitialized                           = false;
+		private static readonly object                                            sInitializationSync                    = new object();
+		private static volatile bool                                              sUseTolerantDeserializationByDefault   = false;
+		private static          TypeKeyedDictionary<InternalObjectSerializerInfo> sInternalObjectSerializerInfoByType    = new TypeKeyedDictionary<InternalObjectSerializerInfo>();
+		private static          TypeKeyedDictionary<ExternalObjectSerializerInfo> sExternalObjectSerializersBySerializee = new TypeKeyedDictionary<ExternalObjectSerializerInfo>();
+		private static readonly Type[]                                            sConstructorArgumentTypes              = { typeof(DeserializationArchive) };
 
 		/// <summary>
 		/// Initializes the serializer, if necessary.
@@ -746,7 +747,7 @@ namespace GriffinPlus.Lib.Serialization
 					{
 						if (!sInternalObjectSerializerInfoByType.ContainsKey(type))
 						{
-							var typeToInternalObjectSerializerInfo = new Dictionary<Type, InternalObjectSerializerInfo>(sInternalObjectSerializerInfoByType)
+							var typeToInternalObjectSerializerInfo = new TypeKeyedDictionary<InternalObjectSerializerInfo>(sInternalObjectSerializerInfoByType)
 							{
 								{ type, new InternalObjectSerializerInfo(type, iosAttributes[0].Version) }
 							};
@@ -810,7 +811,7 @@ namespace GriffinPlus.Lib.Serialization
 						var eos = FastActivator.CreateInstance(type) as IExternalObjectSerializer;
 
 						// add types the external object serializer supports
-						var eosDictCopy = new Dictionary<Type, ExternalObjectSerializerInfo>(sExternalObjectSerializersBySerializee);
+						var eosDictCopy = new TypeKeyedDictionary<ExternalObjectSerializerInfo>(sExternalObjectSerializersBySerializee);
 						foreach (var attribute in attributes) eosDictCopy[attribute.TypeToSerialize] = new ExternalObjectSerializerInfo(eos, attribute.Version);
 						Thread.MemoryBarrier();
 						sExternalObjectSerializersBySerializee = eosDictCopy;
@@ -929,10 +930,10 @@ namespace GriffinPlus.Lib.Serialization
 
 		#region Type Serialization
 
-		private static          Dictionary<string, Type> sTypeTable                        = new Dictionary<string, Type>(); // assembly-qualified type name => type
-		private static readonly object                   sTypeTableLock                    = new object();                   // lock protecting the type table
-		private static          Dictionary<Type, byte[]> sSerializedTypeSnippetsByType     = new Dictionary<Type, byte[]>(); // type => UTF-8 encoded assembly-qualified type name
-		private static readonly object                   sSerializedTypeSnippetsByTypeLock = new object();                   // lock protecting the type snippet table
+		private static          Dictionary<string, Type>    sTypeTable                        = new Dictionary<string, Type>();    // assembly-qualified type name => type
+		private static readonly object                      sTypeTableLock                    = new object();                      // lock protecting the type table
+		private static          TypeKeyedDictionary<byte[]> sSerializedTypeSnippetsByType     = new TypeKeyedDictionary<byte[]>(); // type => UTF-8 encoded assembly-qualified type name
+		private static readonly object                      sSerializedTypeSnippetsByTypeLock = new object();                      // lock protecting the type snippet table
 
 		/// <summary>
 		/// Serializes metadata about a type.
@@ -1071,7 +1072,7 @@ namespace GriffinPlus.Lib.Serialization
 					Encoding.UTF8.GetBytes(name, 0, name.Length, serializedTypeName, 1 + leb128Length);
 
 					// create a copy of the current dictionary and add the new snippet
-					var newSnippets = new Dictionary<Type, byte[]>(sSerializedTypeSnippetsByType) { [type] = serializedTypeName };
+					var newSnippets = new TypeKeyedDictionary<byte[]>(sSerializedTypeSnippetsByType) { [type] = serializedTypeName };
 
 					// ensure that dictionary contents are committed to memory before publishing the reference of the new dictionary
 					Thread.MemoryBarrier();
@@ -1446,9 +1447,9 @@ namespace GriffinPlus.Lib.Serialization
 
 		#region Serialization
 
-		private static          Dictionary<Type, SerializerDelegate>   sSerializers                      = new Dictionary<Type, SerializerDelegate>();
-		private static readonly Dictionary<Type, SerializerDelegate>   sMultidimensionalArraySerializers = new Dictionary<Type, SerializerDelegate>();
-		private static          Dictionary<Type, IosSerializeDelegate> sIosSerializeCallers              = new Dictionary<Type, IosSerializeDelegate>();
+		private static          TypeKeyedDictionary<SerializerDelegate>   sSerializers                      = new TypeKeyedDictionary<SerializerDelegate>();
+		private static readonly TypeKeyedDictionary<SerializerDelegate>   sMultidimensionalArraySerializers = new TypeKeyedDictionary<SerializerDelegate>();
+		private static          TypeKeyedDictionary<IosSerializeDelegate> sIosSerializeCallers              = new TypeKeyedDictionary<IosSerializeDelegate>();
 
 		/// <summary>
 		/// Serializes an object to a stream.
@@ -1638,7 +1639,7 @@ namespace GriffinPlus.Lib.Serialization
 				if (!sSerializers.TryGetValue(type, out var serializer))
 				{
 					serializer = serializerFactory();
-					var copy = new Dictionary<Type, SerializerDelegate>(sSerializers) { [type] = serializer };
+					var copy = new TypeKeyedDictionary<SerializerDelegate>(sSerializers) { [type] = serializer };
 					Thread.MemoryBarrier();
 					sSerializers = copy;
 				}
@@ -1715,7 +1716,7 @@ namespace GriffinPlus.Lib.Serialization
 					if (!sIosSerializeCallers.TryGetValue(type, out serializeDelegate))
 					{
 						serializeDelegate = CreateIosSerializeCaller(type);
-						var copy = new Dictionary<Type, IosSerializeDelegate>(sIosSerializeCallers) { { type, serializeDelegate } };
+						var copy = new TypeKeyedDictionary<IosSerializeDelegate>(sIosSerializeCallers) { { type, serializeDelegate } };
 						Thread.MemoryBarrier();
 						sIosSerializeCallers = copy;
 					}
@@ -1974,8 +1975,8 @@ namespace GriffinPlus.Lib.Serialization
 
 		#region Deserialization
 
-		private static readonly DeserializerDelegate[]               sDeserializersByPayloadType = new DeserializerDelegate[(int)PayloadType.Terminator];
-		private static          Dictionary<Type, EnumCasterDelegate> sEnumCasters                = new Dictionary<Type, EnumCasterDelegate>();
+		private static readonly DeserializerDelegate[]                  sDeserializersByPayloadType = new DeserializerDelegate[(int)PayloadType.Terminator];
+		private static          TypeKeyedDictionary<EnumCasterDelegate> sEnumCasters                = new TypeKeyedDictionary<EnumCasterDelegate>();
 
 		/// <summary>
 		/// Deserializes an object from a stream.
@@ -2050,7 +2051,7 @@ namespace GriffinPlus.Lib.Serialization
 					if (!sEnumCasters.TryGetValue(mCurrentDeserializedType.Type, out caster))
 					{
 						caster = CreateEnumCaster(mCurrentDeserializedType.Type);
-						var copy = new Dictionary<Type, EnumCasterDelegate>(sEnumCasters) { [mCurrentDeserializedType.Type] = caster };
+						var copy = new TypeKeyedDictionary<EnumCasterDelegate>(sEnumCasters) { [mCurrentDeserializedType.Type] = caster };
 						Thread.MemoryBarrier();
 						sEnumCasters = copy;
 					}
