@@ -1971,8 +1971,9 @@ namespace GriffinPlus.Lib.Serialization
 
 		#region Deserialization
 
-		private static readonly DeserializerDelegate[]                  sDeserializersByPayloadType = new DeserializerDelegate[(int)PayloadType.Terminator];
-		private static          TypeKeyedDictionary<EnumCasterDelegate> sEnumCasters                = new TypeKeyedDictionary<EnumCasterDelegate>();
+		private static readonly DeserializerDelegate[]                                        sDeserializersByPayloadType        = new DeserializerDelegate[(int)PayloadType.Terminator];
+		private static          TypeKeyedDictionary<EnumCasterDelegate>                       sEnumCasters                       = new TypeKeyedDictionary<EnumCasterDelegate>();
+		private static          TypeKeyedDictionary<DeserializationConstructorCallerDelegate> sDeserializationConstructorCallers = new TypeKeyedDictionary<DeserializationConstructorCallerDelegate>();
 
 		/// <summary>
 		/// Deserializes an object from a stream.
@@ -2295,8 +2296,22 @@ namespace GriffinPlus.Lib.Serialization
 				}
 
 				// version is ok, deserialize...
+				if (!sDeserializationConstructorCallers.TryGetValue(mCurrentDeserializedType.Type, out var deserializationConstructorCaller))
+				{
+					lock (sSync)
+					{
+						if (!sDeserializationConstructorCallers.TryGetValue(mCurrentDeserializedType.Type, out deserializationConstructorCaller))
+						{
+							deserializationConstructorCaller = CreateDeserializationConstructorCaller(mCurrentDeserializedType.Type);
+							var copy = new TypeKeyedDictionary<DeserializationConstructorCallerDelegate>(sDeserializationConstructorCallers) { [mCurrentDeserializedType.Type] = deserializationConstructorCaller };
+							Thread.MemoryBarrier();
+							sDeserializationConstructorCallers = copy;
+						}
+					}
+				}
+
 				var archive = new DeserializationArchive(this, stream, mCurrentDeserializedType.Type, deserializedVersion, context);
-				object obj = FastActivator.CreateInstance(mCurrentDeserializedType.Type, archive);
+				object obj = deserializationConstructorCaller(ref archive);
 				archive.Close();
 
 				// read and check archive end
@@ -2309,6 +2324,26 @@ namespace GriffinPlus.Lib.Serialization
 			error = $"Deserializing type '{mCurrentDeserializedType.Type.FullName}' failed because it lacks an internal/external object serializer.";
 			sLog.Write(LogLevel.Error, error);
 			throw new SerializationException(error);
+		}
+
+		/// <summary>
+		/// Creates a method that casts an integer to the specified enumeration type.
+		/// </summary>
+		/// <param name="type">Enumeration type to cast an integer to.</param>
+		/// <returns>A caster delegate.</returns>
+		private static DeserializationConstructorCallerDelegate CreateDeserializationConstructorCaller(Type type)
+		{
+			Type[] parameterTypes = { typeof(DeserializationArchive).MakeByRefType() };
+			var parameterExpression = parameterTypes.Select(Expression.Parameter).First();
+			var constructor = type.GetConstructor(
+				BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+				Type.DefaultBinder,
+				new[] { typeof(DeserializationArchive) },
+				null);
+			Debug.Assert(constructor != null, nameof(constructor) + " != null");
+			Expression body = Expression.New(constructor, parameterExpression);
+			var lambda = Expression.Lambda(typeof(DeserializationConstructorCallerDelegate), body, parameterExpression);
+			return (DeserializationConstructorCallerDelegate)lambda.Compile();
 		}
 
 		/// <summary>
