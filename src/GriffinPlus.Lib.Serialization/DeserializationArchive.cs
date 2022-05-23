@@ -17,7 +17,7 @@ namespace GriffinPlus.Lib.Serialization
 	/// <summary>
 	/// Archive providing support for the deserialization of classes using the <see cref="Serializer"/> class.
 	/// </summary>
-	public class DeserializationArchive
+	public struct DeserializationArchive
 	{
 		#region Constants
 
@@ -62,6 +62,7 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			mSerializer = serializer;
 			mStream = stream;
+			mArchiveStream = null;
 			DataType = type;
 			Version = version;
 			Context = context;

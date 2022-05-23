@@ -1682,10 +1682,8 @@ namespace GriffinPlus.Lib.Serialization
 				// get the delegate invoking the internal object serializer
 				var serialize = GetInternalObjectSerializerSerializeCaller(type);
 
-				// create a serialization archive for the type
+				// serialize the object using its internal object serializer
 				var archive = new SerializationArchive(serializer, writer, type, version, context);
-
-				// serialize the object
 				serializer.mObjectsUnderSerialization.Add(obj);
 				try { serialize(obj as IInternalObjectSerializer, archive, version); }
 				finally { serializer.mObjectsUnderSerialization.Remove(obj); }
@@ -1802,10 +1800,8 @@ namespace GriffinPlus.Lib.Serialization
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), version);
 				writer.Advance(bufferIndex);
 
-				// create a serialization archive for the type
-				var archive = new SerializationArchive(serializer, writer, typeToSerialize, version, context);
-
 				// serialize the object using the external object serializer
+				var archive = new SerializationArchive(serializer, writer, typeToSerialize, version, context);
 				serializer.mObjectsUnderSerialization.Add(obj);
 				try { eos.Serialize(archive, version, obj); }
 				finally { serializer.mObjectsUnderSerialization.Remove(obj); }
@@ -2069,7 +2065,6 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>A caster delegate.</returns>
 		private static EnumCasterDelegate CreateEnumCaster(Type type)
 		{
-			// create a deserializer delegate that handles the specified type
 			Type[] parameterTypes = { typeof(long) };
 			var parameterExpression = parameterTypes.Select(Expression.Parameter).First();
 			Expression body = Expression.Convert(Expression.Convert(parameterExpression, type), typeof(Enum));

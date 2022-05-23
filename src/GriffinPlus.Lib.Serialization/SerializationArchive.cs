@@ -8,22 +8,14 @@ using System.Buffers;
 using System.Diagnostics;
 using System.IO;
 
-using GriffinPlus.Lib.Logging;
-
 namespace GriffinPlus.Lib.Serialization
 {
 
 	/// <summary>
 	/// Archive providing support for the serialization of classes using the <see cref="Serializer"/> class.
 	/// </summary>
-	public class SerializationArchive
+	public readonly struct SerializationArchive
 	{
-		#region Class Variables
-
-		private static readonly LogWriter sLog = LogWriter.Get<SerializationArchive>();
-
-		#endregion
-
 		#region Member Variables
 
 		private readonly Serializer          mSerializer;

@@ -19,7 +19,7 @@ namespace GriffinPlus.Lib.Serialization
 	/// </remarks>
 	public interface IInternalObjectSerializer
 	{
-		// public MyConstructor(SerializationArchive archive)
+		// public MyConstructor(DeserializationArchive archive)
 
 		/// <summary>
 		/// Serializes the current object into a serializer archive.
