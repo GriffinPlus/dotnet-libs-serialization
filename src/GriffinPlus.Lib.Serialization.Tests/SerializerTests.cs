@@ -484,7 +484,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		/// Tests serializing and deserializing an instance of a class implementing an internal object serializer.
 		/// </summary>
 		[Fact]
-		public void SerializeAndDeserialize_ObjectUsingInternalObjectSerializer()
+		public void SerializeAndDeserialize_InstanceOfClassUsingInternalObjectSerializer()
 		{
 			var obj = new TestClassWithInternalObjectSerializer();
 			var copy = SerializeAndDeserializeObject(obj) as TestClassWithInternalObjectSerializer;
@@ -492,10 +492,21 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		}
 
 		/// <summary>
+		/// Tests serializing and deserializing an instance of a struct implementing an internal object serializer.
+		/// </summary>
+		[Fact]
+		public void SerializeAndDeserialize_InstanceOfStructUsingInternalObjectSerializer()
+		{
+			var obj = new TestStructWithInternalObjectSerializer();
+			var copy = SerializeAndDeserializeObject(obj) as TestStructWithInternalObjectSerializer;
+			Assert.Equal(obj, copy);
+		}
+
+		/// <summary>
 		/// Tests serializing and deserializing an instance of a class using an external object serializer.
 		/// </summary>
 		[Fact]
-		public void SerializeAndDeserialize_ObjectOfDerivedClassUsingInternalObjectSerializer()
+		public void SerializeAndDeserialize_InstanceOfDerivedClassUsingInternalObjectSerializer()
 		{
 			var obj = new TestClassWithInternalObjectSerializer_Derived();
 			var copy = SerializeAndDeserializeObject(obj) as TestClassWithInternalObjectSerializer_Derived;
@@ -506,7 +517,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		/// Tests serializing and deserializing an instance of a generic class implementing an internal object serializer.
 		/// </summary>
 		[Fact]
-		public void SerializeAndDeserialize_ObjectOfGenericClassUsingInternalObjectSerializer()
+		public void SerializeAndDeserialize_InstanceOfGenericClassUsingInternalObjectSerializer()
 		{
 			var obj = new GenericTestClassWithInternalObjectSerializer<int, uint>();
 			var copy = SerializeAndDeserializeObject(obj) as GenericTestClassWithInternalObjectSerializer<int, uint>;
@@ -521,10 +532,21 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		/// Tests serializing and deserializing an instance of a class using an external object serializer.
 		/// </summary>
 		[Fact]
-		public void SerializeAndDeserialize_ObjectOfClassUsingExternalObjectSerializer()
+		public void SerializeAndDeserialize_InstanceOfClassUsingExternalObjectSerializer()
 		{
 			var obj = new TestClassWithExternalObjectSerializer();
 			var copy = SerializeAndDeserializeObject(obj) as TestClassWithExternalObjectSerializer;
+			Assert.Equal(obj, copy);
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing an instance of a struct using an external object serializer.
+		/// </summary>
+		[Fact]
+		public void SerializeAndDeserialize_InstanceOfStructUsingExternalObjectSerializer()
+		{
+			var obj = new TestStructWithExternalObjectSerializer();
+			var copy = SerializeAndDeserializeObject(obj) as TestStructWithExternalObjectSerializer;
 			Assert.Equal(obj, copy);
 		}
 
