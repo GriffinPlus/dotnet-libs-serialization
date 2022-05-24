@@ -14,7 +14,7 @@ namespace GriffinPlus.Lib.Serialization
 	/// <summary>
 	/// Archive providing support for the serialization of classes using the <see cref="Serializer"/> class.
 	/// </summary>
-	public readonly struct SerializationArchive
+	public readonly ref struct SerializationArchive
 	{
 		#region Member Variables
 
