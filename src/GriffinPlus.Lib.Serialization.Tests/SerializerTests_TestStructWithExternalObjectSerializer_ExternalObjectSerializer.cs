@@ -105,7 +105,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					// deserialize buffer via pointer
 					int bufferSize = archive.ReadInt32();
 					obj.Buffer1 = new byte[bufferSize];
-					fixed (byte* pBuffer = &obj.Buffer1[0]) archive.ReadBuffer(new IntPtr(pBuffer), bufferSize);
+					fixed (byte* pBuffer = &obj.Buffer1[0]) archive.ReadBuffer(pBuffer, bufferSize);
 
 					// deserialize buffer via Stream
 					int buffer2Size = archive.ReadInt32();
