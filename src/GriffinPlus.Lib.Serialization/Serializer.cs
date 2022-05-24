@@ -2269,7 +2269,6 @@ namespace GriffinPlus.Lib.Serialization
 				// version is ok, deserialize...
 				var archive = new DeserializationArchive(this, stream, mCurrentDeserializedType.Type, deserializedVersion, context);
 				object obj = eosi.Serializer.Deserialize(archive);
-				archive.Close();
 
 				// assign an object id to the deserialized object, the serialization stream may refer to it later on
 				if (!(obj is ValueType))
@@ -2312,7 +2311,6 @@ namespace GriffinPlus.Lib.Serialization
 
 				var archive = new DeserializationArchive(this, stream, mCurrentDeserializedType.Type, deserializedVersion, context);
 				object obj = deserializationConstructorCaller(ref archive);
-				archive.Close();
 
 				// read and check archive end
 				ReadAndCheckPayloadType(stream, PayloadType.ArchiveEnd);

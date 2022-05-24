@@ -4,6 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Buffers;
 using System.Diagnostics;
 using System.IO;
 
@@ -48,7 +49,43 @@ namespace GriffinPlus.Lib.Serialization
 		protected override void Dispose(bool disposing)
 		{
 			base.Dispose(disposing);
-			mClosed = true;
+			if (!disposing) return;
+
+			if (!mClosed)
+			{
+				// skip bytes if the archive stream has not been consumed entirely
+				long bytesToSkip = Length - Position;
+				if (bytesToSkip > 0)
+				{
+					if (mStream.CanSeek)
+					{
+						// deserialization stream supports seeking
+						// => set stream position
+						mStream.Position += bytesToSkip;
+					}
+					else
+					{
+						// stream does not support seeking
+						// => read and discard bytes to skip
+						byte[] buffer = ArrayPool<byte>.Shared.Rent(80000);
+						try
+						{
+							while (bytesToSkip > 0)
+							{
+								int bytesToRead = (int)Math.Min(bytesToSkip, int.MaxValue);
+								bytesToRead = Math.Min(bytesToRead, buffer.Length);
+								bytesToSkip -= mStream.Read(buffer, 0, bytesToRead);
+							}
+						}
+						finally
+						{
+							ArrayPool<byte>.Shared.Return(buffer);
+						}
+					}
+				}
+
+				mClosed = true;
+			}
 		}
 
 		/// <summary>

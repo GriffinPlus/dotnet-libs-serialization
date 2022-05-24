@@ -5,7 +5,6 @@
 
 // ReSharper disable NonReadonlyMemberInGetHashCode
 
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -112,6 +111,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					var stream = archive.ReadStream();
 					obj.Buffer2 = new byte[buffer2Size];
 					int readByteCount = stream.Read(obj.Buffer2, 0, obj.Buffer2.Length);
+					stream.Dispose();
 					Debug.Assert(readByteCount == obj.Buffer2.Length);
 					Debug.Assert(stream.Length == obj.Buffer2.Length);
 				}

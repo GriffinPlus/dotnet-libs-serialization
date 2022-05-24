@@ -128,6 +128,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					var stream = archive.ReadStream();
 					Buffer2 = new byte[buffer2Size];
 					int readByteCount = stream.Read(Buffer2, 0, Buffer2.Length);
+					stream.Dispose();
 					Debug.Assert(readByteCount == Buffer2.Length);
 					Debug.Assert(stream.Length == Buffer2.Length);
 				}

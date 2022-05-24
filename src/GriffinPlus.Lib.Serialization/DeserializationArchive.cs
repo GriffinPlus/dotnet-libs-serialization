@@ -17,7 +17,7 @@ namespace GriffinPlus.Lib.Serialization
 	/// <summary>
 	/// Archive providing support for the deserialization of classes using the <see cref="Serializer"/> class.
 	/// </summary>
-	public struct DeserializationArchive
+	public ref struct DeserializationArchive
 	{
 		#region Constants
 
@@ -31,7 +31,7 @@ namespace GriffinPlus.Lib.Serialization
 
 		#region Class Variables
 
-		private static readonly LogWriter sLog = LogWriter.Get<DeserializationArchive>();
+		private static readonly LogWriter sLog = LogWriter.Get(typeof(DeserializationArchive));
 
 		#endregion
 
@@ -541,6 +541,8 @@ namespace GriffinPlus.Lib.Serialization
 
 		/// <summary>
 		/// Reads a byte buffer using a stream.
+		/// Consume the returned stream before reading any other serialized data as doing so will skip the rest of the buffer.
+		/// Dispose the returned stream at the end to ensure that unread data in the deserialization stream is skipped properly.
 		/// </summary>
 		/// <returns>Stream containing data to read.</returns>
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
@@ -644,37 +646,9 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			if (mArchiveStream != null)
 			{
-				long bytesToSkip = mArchiveStream.Length - mArchiveStream.Position;
-				if (mStream.CanSeek)
-				{
-					// stream supports seeking
-					// => set stream position
-					mStream.Position += bytesToSkip;
-				}
-				else
-				{
-					// stream does not support seeking
-					// => read and discard bytes to skip
-					byte[] buffer = mSerializer.TempBuffer_Buffer;
-					while (bytesToSkip > 0)
-					{
-						int bytesToRead = (int)Math.Min(bytesToSkip, int.MaxValue);
-						bytesToRead = Math.Min(bytesToRead, buffer.Length);
-						bytesToSkip -= mStream.Read(buffer, 0, bytesToRead);
-					}
-				}
-
 				mArchiveStream.Dispose();
 				mArchiveStream = null;
 			}
-		}
-
-		/// <summary>
-		/// Closes the archive (for internal use only).
-		/// </summary>
-		internal void Close()
-		{
-			CloseArchiveStream();
 		}
 
 		#endregion
