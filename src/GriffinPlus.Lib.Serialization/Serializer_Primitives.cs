@@ -625,8 +625,11 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="writer">Buffer writer to write the <see cref="System.DateTime"/> object to.</param>
 		internal void WritePrimitive_DateTime(DateTime value, IBufferWriter<byte> writer)
 		{
+			// always use native encoding as the serialized value encodes both ticks and
+			// datetime kind always resulting in a value that is too great to be encoded using
+			// LEB128 with 7 bytes or less
 			const int elementSize = sizeof(long); // binary representation of a DateTime
-			var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
+			var buffer = writer.GetSpan(1 + elementSize);
 			buffer[0] = (byte)PayloadType.DateTime;
 			long binaryValue = value.ToBinary();
 			MemoryMarshal.Write(buffer.Slice(1), ref binaryValue);
@@ -634,7 +637,7 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// read a <see cref="System.DateTime"/> object.
+		/// Reads a <see cref="System.DateTime"/> object.
 		/// </summary>
 		/// <param name="stream">Stream to read the DateTime object from.</param>
 		/// <returns>The read <see cref="System.DateTime"/> object.</returns>
@@ -647,6 +650,51 @@ namespace GriffinPlus.Lib.Serialization
 			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				EndiannessHelper.SwapBytes(ref value);
 			return DateTime.FromBinary(value);
+		}
+
+		#endregion
+
+		#region System.DateTimeOffset
+
+		/// <summary>
+		/// Writes a <see cref="System.DateTimeOffset"/> object.
+		/// </summary>
+		/// <param name="value">DateTimeOffset object to write.</param>
+		/// <param name="writer">Buffer writer to write the <see cref="System.DateTime"/> object to.</param>
+		internal void WritePrimitive_DateTimeOffset(DateTimeOffset value, IBufferWriter<byte> writer)
+		{
+			// always use native encoding as the serialized ticks are usually too great to be encoded using
+			// LEB128 with 7 bytes or less (using LEB128 encoding for the timezone offset could save some bytes,
+			// but the benefit is marginal and does not outweigh the overhead that comes with it)
+			const int elementSize = 2 * sizeof(long);
+			long dateTimeTicks = value.Ticks;
+			long timezoneOffsetTicks = value.Offset.Ticks;
+			var buffer = writer.GetSpan(1 + elementSize);
+			buffer[0] = (byte)PayloadType.DateTimeOffset;
+			MemoryMarshal.Write(buffer.Slice(1), ref dateTimeTicks);
+			MemoryMarshal.Write(buffer.Slice(9), ref timezoneOffsetTicks);
+			writer.Advance(1 + elementSize);
+		}
+
+		/// <summary>
+		/// Reads a <see cref="System.DateTimeOffset"/> object.
+		/// </summary>
+		/// <param name="stream">Stream to read the DateTimeOffset object from.</param>
+		/// <returns>The read <see cref="System.DateTime"/> object.</returns>
+		internal DateTimeOffset ReadPrimitive_DateTimeOffset(Stream stream)
+		{
+			const int elementSize = 2 * sizeof(long);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+			long dateTimeTicks = MemoryMarshal.Read<long>(TempBuffer_Buffer);
+			long timezoneOffsetTicks = MemoryMarshal.Read<long>(TempBuffer_Buffer.AsSpan().Slice(8));
+			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			{
+				EndiannessHelper.SwapBytes(ref dateTimeTicks);
+				EndiannessHelper.SwapBytes(ref timezoneOffsetTicks);
+			}
+
+			return new DateTimeOffset(dateTimeTicks, new TimeSpan(timezoneOffsetTicks));
 		}
 
 		#endregion

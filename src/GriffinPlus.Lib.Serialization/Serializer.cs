@@ -280,6 +280,16 @@ namespace GriffinPlus.Lib.Serialization
 					serializer.WritePrimitive_DateTime((DateTime)obj, writer);
 				});
 			sSerializers.Add(
+				typeof(DateTimeOffset),
+				(
+					serializer,
+					writer,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_DateTimeOffset((DateTimeOffset)obj, writer);
+				});
+			sSerializers.Add(
 				typeof(object),
 				(
 					serializer,
@@ -606,35 +616,36 @@ namespace GriffinPlus.Lib.Serialization
 			sDeserializersByPayloadType[(int)PayloadType.Enum] = (serializer,              stream, context) => serializer.ReadEnum(stream);
 			sDeserializersByPayloadType[(int)PayloadType.ArchiveStart] = (serializer,      stream, context) => serializer.ReadArchive(stream, context);
 
-			// simple types
-			sDeserializersByPayloadType[(int)PayloadType.BooleanFalse] = (serializer,  stream, context) => false;
-			sDeserializersByPayloadType[(int)PayloadType.BooleanTrue] = (serializer,   stream, context) => true;
-			sDeserializersByPayloadType[(int)PayloadType.Char_Native] = (serializer,   stream, context) => serializer.ReadPrimitive_Char_Native(stream);
-			sDeserializersByPayloadType[(int)PayloadType.Char_LEB128] = (serializer,   stream, context) => serializer.ReadPrimitive_Char_LEB128(stream);
-			sDeserializersByPayloadType[(int)PayloadType.SByte] = (serializer,         stream, context) => serializer.ReadPrimitive_SByte(stream);
-			sDeserializersByPayloadType[(int)PayloadType.Int16_Native] = (serializer,  stream, context) => serializer.ReadPrimitive_Int16_Native(stream);
-			sDeserializersByPayloadType[(int)PayloadType.Int16_LEB128] = (serializer,  stream, context) => serializer.ReadPrimitive_Int16_LEB128(stream);
-			sDeserializersByPayloadType[(int)PayloadType.Int32_Native] = (serializer,  stream, context) => serializer.ReadPrimitive_Int32_Native(stream);
-			sDeserializersByPayloadType[(int)PayloadType.Int32_LEB128] = (serializer,  stream, context) => serializer.ReadPrimitive_Int32_LEB128(stream);
-			sDeserializersByPayloadType[(int)PayloadType.Int64_Native] = (serializer,  stream, context) => serializer.ReadPrimitive_Int64_Native(stream);
-			sDeserializersByPayloadType[(int)PayloadType.Int64_LEB128] = (serializer,  stream, context) => serializer.ReadPrimitive_Int64_LEB128(stream);
-			sDeserializersByPayloadType[(int)PayloadType.Byte] = (serializer,          stream, context) => serializer.ReadPrimitive_Byte(stream);
-			sDeserializersByPayloadType[(int)PayloadType.UInt16_Native] = (serializer, stream, context) => serializer.ReadPrimitive_UInt16_Native(stream);
-			sDeserializersByPayloadType[(int)PayloadType.UInt16_LEB128] = (serializer, stream, context) => serializer.ReadPrimitive_UInt16_LEB128(stream);
-			sDeserializersByPayloadType[(int)PayloadType.UInt32_Native] = (serializer, stream, context) => serializer.ReadPrimitive_UInt32_Native(stream);
-			sDeserializersByPayloadType[(int)PayloadType.UInt32_LEB128] = (serializer, stream, context) => serializer.ReadPrimitive_UInt32_LEB128(stream);
-			sDeserializersByPayloadType[(int)PayloadType.UInt64_Native] = (serializer, stream, context) => serializer.ReadPrimitive_UInt64_Native(stream);
-			sDeserializersByPayloadType[(int)PayloadType.UInt64_LEB128] = (serializer, stream, context) => serializer.ReadPrimitive_UInt64_LEB128(stream);
-			sDeserializersByPayloadType[(int)PayloadType.Single] = (serializer,        stream, context) => serializer.ReadPrimitive_Single(stream);
-			sDeserializersByPayloadType[(int)PayloadType.Double] = (serializer,        stream, context) => serializer.ReadPrimitive_Double(stream);
-			sDeserializersByPayloadType[(int)PayloadType.Decimal] = (serializer,       stream, context) => serializer.ReadPrimitive_Decimal(stream);
-			sDeserializersByPayloadType[(int)PayloadType.String_UTF8] = (serializer,   stream, context) => serializer.ReadPrimitive_String_UTF8(stream);
-			sDeserializersByPayloadType[(int)PayloadType.String_UTF16] = (serializer,  stream, context) => serializer.ReadPrimitive_String_UTF16(stream);
-			sDeserializersByPayloadType[(int)PayloadType.DateTime] = (serializer,      stream, context) => serializer.ReadPrimitive_DateTime(stream);
-			sDeserializersByPayloadType[(int)PayloadType.Object] = (serializer,        stream, context) => serializer.ReadPrimitive_Object();
-			sDeserializersByPayloadType[(int)PayloadType.TypeObject] = (serializer,    stream, context) => serializer.ReadTypeObject(stream, out _);
+			// built-in types
+			sDeserializersByPayloadType[(int)PayloadType.BooleanFalse] = (serializer,   stream, context) => false;
+			sDeserializersByPayloadType[(int)PayloadType.BooleanTrue] = (serializer,    stream, context) => true;
+			sDeserializersByPayloadType[(int)PayloadType.Char_Native] = (serializer,    stream, context) => serializer.ReadPrimitive_Char_Native(stream);
+			sDeserializersByPayloadType[(int)PayloadType.Char_LEB128] = (serializer,    stream, context) => serializer.ReadPrimitive_Char_LEB128(stream);
+			sDeserializersByPayloadType[(int)PayloadType.SByte] = (serializer,          stream, context) => serializer.ReadPrimitive_SByte(stream);
+			sDeserializersByPayloadType[(int)PayloadType.Int16_Native] = (serializer,   stream, context) => serializer.ReadPrimitive_Int16_Native(stream);
+			sDeserializersByPayloadType[(int)PayloadType.Int16_LEB128] = (serializer,   stream, context) => serializer.ReadPrimitive_Int16_LEB128(stream);
+			sDeserializersByPayloadType[(int)PayloadType.Int32_Native] = (serializer,   stream, context) => serializer.ReadPrimitive_Int32_Native(stream);
+			sDeserializersByPayloadType[(int)PayloadType.Int32_LEB128] = (serializer,   stream, context) => serializer.ReadPrimitive_Int32_LEB128(stream);
+			sDeserializersByPayloadType[(int)PayloadType.Int64_Native] = (serializer,   stream, context) => serializer.ReadPrimitive_Int64_Native(stream);
+			sDeserializersByPayloadType[(int)PayloadType.Int64_LEB128] = (serializer,   stream, context) => serializer.ReadPrimitive_Int64_LEB128(stream);
+			sDeserializersByPayloadType[(int)PayloadType.Byte] = (serializer,           stream, context) => serializer.ReadPrimitive_Byte(stream);
+			sDeserializersByPayloadType[(int)PayloadType.UInt16_Native] = (serializer,  stream, context) => serializer.ReadPrimitive_UInt16_Native(stream);
+			sDeserializersByPayloadType[(int)PayloadType.UInt16_LEB128] = (serializer,  stream, context) => serializer.ReadPrimitive_UInt16_LEB128(stream);
+			sDeserializersByPayloadType[(int)PayloadType.UInt32_Native] = (serializer,  stream, context) => serializer.ReadPrimitive_UInt32_Native(stream);
+			sDeserializersByPayloadType[(int)PayloadType.UInt32_LEB128] = (serializer,  stream, context) => serializer.ReadPrimitive_UInt32_LEB128(stream);
+			sDeserializersByPayloadType[(int)PayloadType.UInt64_Native] = (serializer,  stream, context) => serializer.ReadPrimitive_UInt64_Native(stream);
+			sDeserializersByPayloadType[(int)PayloadType.UInt64_LEB128] = (serializer,  stream, context) => serializer.ReadPrimitive_UInt64_LEB128(stream);
+			sDeserializersByPayloadType[(int)PayloadType.Single] = (serializer,         stream, context) => serializer.ReadPrimitive_Single(stream);
+			sDeserializersByPayloadType[(int)PayloadType.Double] = (serializer,         stream, context) => serializer.ReadPrimitive_Double(stream);
+			sDeserializersByPayloadType[(int)PayloadType.Decimal] = (serializer,        stream, context) => serializer.ReadPrimitive_Decimal(stream);
+			sDeserializersByPayloadType[(int)PayloadType.String_UTF8] = (serializer,    stream, context) => serializer.ReadPrimitive_String_UTF8(stream);
+			sDeserializersByPayloadType[(int)PayloadType.String_UTF16] = (serializer,   stream, context) => serializer.ReadPrimitive_String_UTF16(stream);
+			sDeserializersByPayloadType[(int)PayloadType.DateTime] = (serializer,       stream, context) => serializer.ReadPrimitive_DateTime(stream);
+			sDeserializersByPayloadType[(int)PayloadType.DateTimeOffset] = (serializer, stream, context) => serializer.ReadPrimitive_DateTimeOffset(stream);
+			sDeserializersByPayloadType[(int)PayloadType.Object] = (serializer,         stream, context) => serializer.ReadPrimitive_Object();
+			sDeserializersByPayloadType[(int)PayloadType.TypeObject] = (serializer,     stream, context) => serializer.ReadTypeObject(stream, out _);
 
-			// arrays of simple types (one-dimensional, zero-based indexing)
+			// one-dimensional arrays with zero-based indexing
 			sDeserializersByPayloadType[(int)PayloadType.ArrayOfBoolean] = (serializer,  stream, context) => serializer.ReadArrayOfPrimitives(stream, typeof(bool), sizeof(bool));
 			sDeserializersByPayloadType[(int)PayloadType.ArrayOfChar] = (serializer,     stream, context) => serializer.ReadArrayOfPrimitives(stream, typeof(char), sizeof(char));
 			sDeserializersByPayloadType[(int)PayloadType.ArrayOfSByte] = (serializer,    stream, context) => serializer.ReadArrayOfPrimitives(stream, typeof(sbyte), sizeof(sbyte));

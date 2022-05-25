@@ -3,7 +3,6 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-using System;
 
 // ReSharper disable InconsistentNaming
 
@@ -13,7 +12,6 @@ namespace GriffinPlus.Lib.Serialization
 	/// <summary>
 	/// The payload type.
 	/// </summary>
-	[Flags]
 	enum PayloadType : byte
 	{
 		/// <summary>
@@ -175,6 +173,11 @@ namespace GriffinPlus.Lib.Serialization
 		/// A <see cref="System.DateTime"/> value.
 		/// </summary>
 		DateTime,
+
+		/// <summary>
+		/// A <see cref="System.DateTimeOffset"/> value.
+		/// </summary>
+		DateTimeOffset,
 
 		/// <summary>
 		/// An one-dimensional, zero-based array of <see cref="System.Boolean"/>.

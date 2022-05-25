@@ -303,6 +303,64 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 		#endregion
 
+		#region DateTimeOffset
+
+		/// <summary>
+		/// Tests serializing and deserializing a <see cref="DateTimeOffset"/> value.
+		/// </summary>
+		[Fact]
+		public void SerializeAndDeserialize_DateTimeOffset()
+		{
+			var value = DateTimeOffset.Now;
+			object copy = SerializeAndDeserializeObject(value);
+			Assert.Equal(value, copy);
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing an array of <see cref="DateTimeOffset"/> values (one-dimensional, zero-based indexing).
+		/// </summary>
+		[Fact]
+		public void SerializeAndDeserialize_OneDimensionalArrayOfDateTimeOffset()
+		{
+			var now = DateTimeOffset.Now;
+			DateTimeOffset[] array = { now.AddMinutes(1), now.AddMinutes(2), now.AddMinutes(3), now.AddMinutes(4) };
+			dynamic copy = SerializeAndDeserializeObject(array);
+			Assert.NotNull(copy);
+			Assert.IsType<DateTimeOffset[]>(copy);
+			Assert.Equal(array, copy);
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing an array of <see cref="DateTimeOffset"/> values (multi-dimensional).
+		/// </summary>
+		[Fact]
+		public void SerializeAndDeserialize_MultiDimensionalArrayOfDateTimeOffset()
+		{
+			// create a multi-dimensional array of datetime
+			int[] lengths = { 5, 4, 3 };
+			int[] lowerBounds = { 10, 20, 30 };
+			var array = Array.CreateInstance(typeof(DateTimeOffset), lengths, lowerBounds);
+
+			// populate array with some test data
+			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++)
+			{
+				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++)
+				{
+					for (int z = lowerBounds[2]; z <= array.GetUpperBound(2); z++)
+					{
+						var value = DateTimeOffset.Now.AddMinutes(x + y + z);
+						array.SetValue(value, x, y, z);
+					}
+				}
+			}
+
+			// check whether the copies array equals the original one
+			dynamic copy = SerializeAndDeserializeObject(array);
+			Assert.Equal(array, copy);
+		}
+
+		#endregion
+
 		#region Type Objects
 
 		/// <summary>
