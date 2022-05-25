@@ -14,19 +14,18 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[ExternalObjectSerializer(typeof(GraphNode), 1)]
 		public class GraphNode_ExternalObjectSerializer : IExternalObjectSerializer
 		{
-			public void Serialize(SerializationArchive archive, uint version, object obj)
+			public void Serialize(SerializationArchive archive, object obj)
 			{
 				var other = (GraphNode)obj;
 
-				if (version == 1)
+				if (archive.Version == 1)
 				{
 					archive.Write(other.Name);
 					archive.Write(other.Next);
+					return;
 				}
-				else
-				{
-					throw new VersionNotSupportedException(typeof(TestClassWithExternalObjectSerializer), version);
-				}
+
+				throw new VersionNotSupportedException(archive);
 			}
 
 			public object Deserialize(DeserializationArchive archive)

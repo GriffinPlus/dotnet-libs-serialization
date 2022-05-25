@@ -19,13 +19,12 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Initializes a new instance of the <see cref="VersionNotSupportedException"/> class.
 		/// </summary>
-		/// <param name="type">Type that was tried to serialize (must be serializable).</param>
-		/// <param name="version">Requested serializer version.</param>
-		public VersionNotSupportedException(Type type, uint version) :
-			base($"Specified serializer version ({version}) is not supported for type '{type.FullName}'.")
+		/// <param name="archive">Serializer archive passed in during serialization.</param>
+		public VersionNotSupportedException(SerializationArchive archive) :
+			base($"Specified serializer version ({archive.Version}) is not supported for type '{archive.DataType.FullName}'.")
 		{
-			Type = type;
-			RequestedVersion = version;
+			Type = archive.DataType;
+			RequestedVersion = archive.Version;
 			MaxVersion = Serializer.GetSerializerVersion(Type);
 		}
 

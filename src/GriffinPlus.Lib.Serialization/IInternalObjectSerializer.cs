@@ -25,8 +25,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// Serializes the current object into a serializer archive.
 		/// </summary>
 		/// <param name="archive">Archive to serialize the current object into.</param>
-		/// <param name="version">Requested version of the current object to serialize.</param>
-		void Serialize(SerializationArchive archive, uint version);
+		void Serialize(SerializationArchive archive);
 	}
 
 }

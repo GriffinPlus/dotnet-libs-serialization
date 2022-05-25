@@ -18,20 +18,18 @@ namespace GriffinPlus.Lib.Serialization
 		/// Serializes a <see cref="System.Guid"/>.
 		/// </summary>
 		/// <param name="archive">Archive to put the specified GUID into.</param>
-		/// <param name="version">Serializer version to use.</param>
 		/// <param name="obj">The <see cref="System.Guid"/> to serialize.</param>
 		/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
-		public void Serialize(SerializationArchive archive, uint version, object obj)
+		public void Serialize(SerializationArchive archive, object obj)
 		{
-			if (version == 1)
+			if (archive.Version == 1)
 			{
 				var guid = (Guid)obj;
 				archive.Write(guid.ToUuidByteArray());
+				return;
 			}
-			else
-			{
-				throw new VersionNotSupportedException(typeof(Guid), version);
-			}
+
+			throw new VersionNotSupportedException(archive);
 		}
 
 		/// <summary>

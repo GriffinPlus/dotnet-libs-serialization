@@ -19,12 +19,11 @@ namespace GriffinPlus.Lib.Serialization
 		/// Serializes a <see cref="List{T}"/>.
 		/// </summary>
 		/// <param name="archive">Archive to serialize the specified list into.</param>
-		/// <param name="version">Serializer version to use.</param>
 		/// <param name="obj">The list to serialize.</param>
 		/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
-		public void Serialize(SerializationArchive archive, uint version, object obj)
+		public void Serialize(SerializationArchive archive, object obj)
 		{
-			if (version == 1)
+			if (archive.Version == 1)
 			{
 				var list = (IList)obj;
 				int count = list.Count;
@@ -33,11 +32,11 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					archive.Write(list[i], archive.Context);
 				}
+
+				return;
 			}
-			else
-			{
-				throw new VersionNotSupportedException(typeof(List<>), version);
-			}
+
+			throw new VersionNotSupportedException(archive);
 		}
 
 		/// <summary>

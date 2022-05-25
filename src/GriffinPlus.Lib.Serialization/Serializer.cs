@@ -1696,7 +1696,7 @@ namespace GriffinPlus.Lib.Serialization
 				// serialize the object using its internal object serializer
 				var archive = new SerializationArchive(serializer, writer, type, version, context);
 				serializer.mObjectsUnderSerialization.Add(obj);
-				try { serialize(obj as IInternalObjectSerializer, archive, version); }
+				try { serialize(obj as IInternalObjectSerializer, archive); }
 				finally { serializer.mObjectsUnderSerialization.Remove(obj); }
 
 				// assign an object id to the object to enable referencing it later on
@@ -1744,7 +1744,7 @@ namespace GriffinPlus.Lib.Serialization
 		private static IosSerializeDelegate CreateIosSerializeCaller(Type type)
 		{
 			// try to get the publicly implemented 'Serialize' method...
-			var method = type.GetMethod(nameof(IInternalObjectSerializer.Serialize), new[] { typeof(SerializationArchive), typeof(uint) });
+			var method = type.GetMethod(nameof(IInternalObjectSerializer.Serialize), new[] { typeof(SerializationArchive) });
 			if (method == null)
 			{
 				// the publicly implemented 'Serialize' method is not available
@@ -1753,7 +1753,7 @@ namespace GriffinPlus.Lib.Serialization
 					typeof(IInternalObjectSerializer).FullName + "." + nameof(IInternalObjectSerializer.Serialize),
 					BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly,
 					null,
-					new[] { typeof(SerializationArchive), typeof(uint) },
+					new[] { typeof(SerializationArchive) },
 					null);
 			}
 
@@ -1763,15 +1763,13 @@ namespace GriffinPlus.Lib.Serialization
 			ParameterExpression[] parameterExpressions =
 			{
 				Expression.Parameter(typeof(IInternalObjectSerializer), "object"),
-				Expression.Parameter(typeof(SerializationArchive), "archive"),
-				Expression.Parameter(typeof(uint), "version")
+				Expression.Parameter(typeof(SerializationArchive), "archive")
 			};
 
 			Expression body = Expression.Call(
 				Expression.Convert(parameterExpressions[0], type),
 				method,
-				parameterExpressions[1],
-				parameterExpressions[2]);
+				parameterExpressions[1]);
 
 			var lambda = Expression.Lambda(typeof(IosSerializeDelegate), body, parameterExpressions);
 			return (IosSerializeDelegate)lambda.Compile();
@@ -1814,7 +1812,7 @@ namespace GriffinPlus.Lib.Serialization
 				// serialize the object using the external object serializer
 				var archive = new SerializationArchive(serializer, writer, typeToSerialize, version, context);
 				serializer.mObjectsUnderSerialization.Add(obj);
-				try { eos.Serialize(archive, version, obj); }
+				try { eos.Serialize(archive, obj); }
 				finally { serializer.mObjectsUnderSerialization.Remove(obj); }
 
 				// assign an object id to the object to allow referencing it later on

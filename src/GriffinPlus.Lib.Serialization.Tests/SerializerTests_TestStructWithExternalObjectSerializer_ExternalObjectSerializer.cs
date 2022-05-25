@@ -17,11 +17,11 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[ExternalObjectSerializer(typeof(TestStructWithExternalObjectSerializer), 1)]
 		public class TestStructWithGenericObjectSerializer_ExternalObjectSerializer : IExternalObjectSerializer
 		{
-			public unsafe void Serialize(SerializationArchive archive, uint version, object obj)
+			public unsafe void Serialize(SerializationArchive archive, object obj)
 			{
 				var other = (TestStructWithExternalObjectSerializer)obj;
 
-				if (version == 1)
+				if (archive.Version == 1)
 				{
 					archive.Write(other.BooleanFalse);
 					archive.Write(other.BooleanTrue);
@@ -59,11 +59,10 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					// serializer buffer via stream
 					archive.Write(other.Buffer2.Length);
 					archive.Write(new MemoryStream(other.Buffer2));
+					return;
 				}
-				else
-				{
-					throw new VersionNotSupportedException(typeof(TestStructWithExternalObjectSerializer), version);
-				}
+
+				throw new VersionNotSupportedException(archive);
 			}
 
 			public unsafe object Deserialize(DeserializationArchive archive)

@@ -20,9 +20,8 @@ namespace GriffinPlus.Lib.Serialization
 		/// Serializes the specified object to the specified archive.
 		/// </summary>
 		/// <param name="archive">Archive to serialize the specified object to.</param>
-		/// <param name="version">Serializer version to use.</param>
 		/// <param name="obj">The object to serialize.</param>
-		void Serialize(SerializationArchive archive, uint version, object obj);
+		void Serialize(SerializationArchive archive, object obj);
 
 		/// <summary>
 		/// Deserializes an object from the specified archive.

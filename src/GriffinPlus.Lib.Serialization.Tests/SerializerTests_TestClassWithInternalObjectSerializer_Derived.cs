@@ -35,18 +35,17 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				}
 			}
 
-			public new void Serialize(SerializationArchive archive, uint version)
+			public new void Serialize(SerializationArchive archive)
 			{
 				archive.WriteBaseArchive(this, typeof(TestClassWithInternalObjectSerializer), null);
 
-				if (version == 1)
+				if (archive.Version == 1)
 				{
 					archive.Write(AnotherString);
+					return;
 				}
-				else
-				{
-					throw new VersionNotSupportedException(typeof(TestClassWithInternalObjectSerializer_Derived), version);
-				}
+
+				throw new VersionNotSupportedException(archive);
 			}
 
 			public override int GetHashCode()

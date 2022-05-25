@@ -350,7 +350,7 @@ namespace GriffinPlus.Lib.Serialization
 
 				// serialize object
 				var archive = new SerializationArchive(mSerializer, mBufferWriter, baseClassType, version, context);
-				eos.Serialize(archive, version, obj);
+				eos.Serialize(archive, obj);
 				return;
 			}
 
@@ -372,7 +372,7 @@ namespace GriffinPlus.Lib.Serialization
 				// call the Serialize() method of the base class
 				var archive = new SerializationArchive(mSerializer, mBufferWriter, baseClassType, version, context);
 				var serializeDelegate = Serializer.GetInternalObjectSerializerSerializeCaller(baseClassType);
-				serializeDelegate(ios, archive, version);
+				serializeDelegate(ios, archive);
 				return;
 			}
 

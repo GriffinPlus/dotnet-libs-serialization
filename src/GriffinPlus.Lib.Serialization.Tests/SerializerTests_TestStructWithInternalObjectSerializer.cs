@@ -137,9 +137,9 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				}
 			}
 
-			public unsafe void Serialize(SerializationArchive archive, uint version)
+			public unsafe void Serialize(SerializationArchive archive)
 			{
-				if (version == 1)
+				if (archive.Version == 1)
 				{
 					archive.Write(BooleanFalse);
 					archive.Write(BooleanTrue);
@@ -177,11 +177,10 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					// serializer buffer via stream
 					archive.Write(Buffer2.Length);
 					archive.Write(new MemoryStream(Buffer2));
+					return;
 				}
-				else
-				{
-					throw new VersionNotSupportedException(typeof(TestStructWithInternalObjectSerializer), version);
-				}
+
+				throw new VersionNotSupportedException(archive);
 			}
 
 			public override int GetHashCode()

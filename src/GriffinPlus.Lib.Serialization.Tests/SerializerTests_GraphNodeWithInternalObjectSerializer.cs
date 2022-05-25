@@ -29,17 +29,15 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				}
 			}
 
-			void IInternalObjectSerializer.Serialize(SerializationArchive archive, uint version)
+			void IInternalObjectSerializer.Serialize(SerializationArchive archive)
 			{
-				if (version == 1)
+				if (archive.Version == 1)
 				{
 					archive.Write(Name);
 					archive.Write(Next);
 				}
-				else
-				{
-					throw new VersionNotSupportedException(typeof(GraphNodeWithInternalObjectSerializer), version);
-				}
+
+				throw new VersionNotSupportedException(archive);
 			}
 		}
 	}
