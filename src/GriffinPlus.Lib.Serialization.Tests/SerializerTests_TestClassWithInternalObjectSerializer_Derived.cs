@@ -23,7 +23,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			}
 
 			public TestClassWithInternalObjectSerializer_Derived(DeserializationArchive archive) :
-				base(archive.PrepareBaseArchive(typeof(TestClassWithInternalObjectSerializer)))
+				base(archive.PrepareBaseArchive())
 			{
 				if (archive.Version == 1)
 				{

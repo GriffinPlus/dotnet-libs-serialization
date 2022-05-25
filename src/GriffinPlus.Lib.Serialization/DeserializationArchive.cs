@@ -422,25 +422,29 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Prepares an archive for deserializing the base class of a serializable class.
 		/// </summary>
-		/// <param name="type">Base class type.</param>
 		/// <returns>Deserialization archive for the base class.</returns>
-		/// <exception cref="ArgumentException">Type is not serializable.</exception>
-		/// <exception cref="SerializationException">Archive does not contain an archive for the specified class.</exception>
-		public DeserializationArchive PrepareBaseArchive(Type type)
+		/// <exception cref="ArgumentException">Type does not have a base type or it is not serializable.</exception>
+		/// <exception cref="SerializationException">
+		/// The serializer version in the archive is greater than the maximum supported version of the base class.
+		/// </exception>
+		public DeserializationArchive PrepareBaseArchive()
 		{
-			return PrepareBaseArchive(type, Context);
+			return PrepareBaseArchive(Context);
 		}
 
 		/// <summary>
 		/// Prepares an archive for deserializing the base class of a serializable class.
 		/// </summary>
-		/// <param name="type">Base class type.</param>
 		/// <param name="context">Context object to pass to the serializer of the base class.</param>
 		/// <returns>Deserialization archive for the base class.</returns>
-		/// <exception cref="ArgumentException">Type is not serializable.</exception>
-		/// <exception cref="SerializationException">Archive does not contain an archive for the specified class.</exception>
-		public DeserializationArchive PrepareBaseArchive(Type type, object context)
+		/// <exception cref="ArgumentException">Type does not have a base type or it is not serializable.</exception>
+		/// <exception cref="SerializationException">
+		/// The serializer version in the archive is greater than the maximum supported version of the base class.
+		/// </exception>
+		public DeserializationArchive PrepareBaseArchive(object context)
 		{
+			var type = DataType.BaseType ?? throw new ArgumentException($"{DataType.FullName} does not have a base type.");
+
 			// read payload type (expecting a base class archive)
 			ReadAndCheckPayloadType(PayloadType.BaseArchiveStart);
 
