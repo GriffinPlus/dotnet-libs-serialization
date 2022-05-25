@@ -20,6 +20,7 @@ namespace GriffinPlus.Lib.Serialization
 
 		private readonly Serializer          mSerializer;
 		private readonly IBufferWriter<byte> mBufferWriter;
+		private readonly object              mObjectToSerialize;
 
 		#endregion
 
@@ -31,17 +32,20 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="serializer">The executing serializer.</param>
 		/// <param name="writer">Writer to use for writing.</param>
 		/// <param name="type">Type to serialize.</param>
+		/// <param name="objectToSerialize">Object to serialize.</param>
 		/// <param name="version">Version of the type the archive contains data from.</param>
 		/// <param name="context">User-specific context object.</param>
 		internal SerializationArchive(
 			Serializer          serializer,
 			IBufferWriter<byte> writer,
 			Type                type,
+			object              objectToSerialize,
 			uint                version,
 			object              context)
 		{
 			mSerializer = serializer;
 			mBufferWriter = writer;
+			mObjectToSerialize = objectToSerialize;
 			DataType = type;
 			Version = version;
 			Context = context;
@@ -321,17 +325,13 @@ namespace GriffinPlus.Lib.Serialization
 		#region Class Hierarchies
 
 		/// <summary>
-		/// Opens a base archive and calls the serializer of the specified type (for base class serialization).
+		/// Opens a base archive and calls the serializer of the derived type (for base class serialization).
 		/// </summary>
-		/// <param name="obj">Object to serialize.</param>
-		/// <param name="baseClassType">Type of the base class to serialize.</param>
 		/// <param name="context">Context object to pass to the serializer of the base class.</param>
 		/// <exception cref="ArgumentException">Specified type is not serializable.</exception>
-		public void WriteBaseArchive(object obj, Type baseClassType, object context = null)
+		public void WriteBaseArchive(object context = null)
 		{
-			// ensure the specified type is the type of the specified object or the type of one of its base classes
-			if (obj.GetType().IsAssignableFrom(baseClassType))
-				throw new ArgumentException("Specified type is neither the type of the specified object nor the type of one of its base classes.");
+			var baseClassType = DataType.BaseType ?? throw new ArgumentException($"{DataType.FullName} does not have a base class.");
 
 			// try external object serializer
 			var eos = Serializer.GetExternalObjectSerializer(baseClassType, out uint version);
@@ -349,13 +349,13 @@ namespace GriffinPlus.Lib.Serialization
 				mBufferWriter.Advance(bufferIndex);
 
 				// serialize object
-				var archive = new SerializationArchive(mSerializer, mBufferWriter, baseClassType, version, context);
-				eos.Serialize(archive, obj);
+				var archive = new SerializationArchive(mSerializer, mBufferWriter, baseClassType, mObjectToSerialize, version, context);
+				eos.Serialize(archive, mObjectToSerialize);
 				return;
 			}
 
 			// try internal object serializer
-			var ios = Serializer.GetInternalObjectSerializer(obj, baseClassType, out version);
+			var ios = Serializer.GetInternalObjectSerializer(mObjectToSerialize, baseClassType, out version);
 			if (ios != null)
 			{
 				// consider serializer version overrides...
@@ -370,7 +370,7 @@ namespace GriffinPlus.Lib.Serialization
 				mBufferWriter.Advance(bufferIndex);
 
 				// call the Serialize() method of the base class
-				var archive = new SerializationArchive(mSerializer, mBufferWriter, baseClassType, version, context);
+				var archive = new SerializationArchive(mSerializer, mBufferWriter, baseClassType, mObjectToSerialize, version, context);
 				var serializeDelegate = Serializer.GetInternalObjectSerializerSerializeCaller(baseClassType);
 				serializeDelegate(ios, archive);
 				return;

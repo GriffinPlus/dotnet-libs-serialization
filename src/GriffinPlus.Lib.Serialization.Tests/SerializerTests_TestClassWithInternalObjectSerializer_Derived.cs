@@ -37,7 +37,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 			public new void Serialize(SerializationArchive archive)
 			{
-				archive.WriteBaseArchive(this, typeof(TestClassWithInternalObjectSerializer), null);
+				archive.WriteBaseArchive(null);
 
 				if (archive.Version == 1)
 				{

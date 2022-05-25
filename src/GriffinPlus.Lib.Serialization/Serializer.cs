@@ -1694,7 +1694,7 @@ namespace GriffinPlus.Lib.Serialization
 				var serialize = GetInternalObjectSerializerSerializeCaller(type);
 
 				// serialize the object using its internal object serializer
-				var archive = new SerializationArchive(serializer, writer, type, version, context);
+				var archive = new SerializationArchive(serializer, writer, type, obj, version, context);
 				serializer.mObjectsUnderSerialization.Add(obj);
 				try { serialize(obj as IInternalObjectSerializer, archive); }
 				finally { serializer.mObjectsUnderSerialization.Remove(obj); }
@@ -1810,7 +1810,7 @@ namespace GriffinPlus.Lib.Serialization
 				writer.Advance(bufferIndex);
 
 				// serialize the object using the external object serializer
-				var archive = new SerializationArchive(serializer, writer, typeToSerialize, version, context);
+				var archive = new SerializationArchive(serializer, writer, typeToSerialize, obj, version, context);
 				serializer.mObjectsUnderSerialization.Add(obj);
 				try { eos.Serialize(archive, obj); }
 				finally { serializer.mObjectsUnderSerialization.Remove(obj); }
