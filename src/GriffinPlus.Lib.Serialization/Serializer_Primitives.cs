@@ -99,15 +99,17 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(decimal);
 			var buffer = writer.GetSpan(1 + elementSize);
 			buffer[0] = (byte)PayloadType.Decimal;
-#if NET5_0_OR_GREATER
+#if NETSTANDARD2_0 || NETSTANDARD2_1 || NET461
+			int[] bits = decimal.GetBits(value);
+			Buffer.BlockCopy(bits, 0, TempBuffer_Buffer, 0, elementSize);
+			TempBuffer_Buffer.AsSpan(0, elementSize).CopyTo(buffer.Slice(1));
+#elif NET5_0_OR_GREATER
 			Span<int> temp = stackalloc int[4];
 			decimal.TryGetBits(value, temp, out int valuesWritten);
 			Debug.Assert(valuesWritten * sizeof(int) == elementSize);
 			MemoryMarshal.Cast<int, byte>(temp).CopyTo(buffer.Slice(1));
 #else
-			int[] bits = decimal.GetBits(value);
-			Buffer.BlockCopy(bits, 0, TempBuffer_Buffer, 0, elementSize);
-			TempBuffer_Buffer.AsSpan(0, elementSize).CopyTo(buffer.Slice(1));
+			#error Unhandled .NET framework
 #endif
 			writer.Advance(1 + elementSize);
 		}
@@ -122,7 +124,18 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(decimal);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
 			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
-#if NET5_0_OR_GREATER
+#if NETSTANDARD2_0 || NETSTANDARD2_1 || NET461
+			Buffer.BlockCopy(TempBuffer_Buffer, 0, TempBuffer_Int32, 0, elementSize);
+			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			{
+				EndiannessHelper.SwapBytes(ref TempBuffer_Int32[0]);
+				EndiannessHelper.SwapBytes(ref TempBuffer_Int32[1]);
+				EndiannessHelper.SwapBytes(ref TempBuffer_Int32[2]);
+				EndiannessHelper.SwapBytes(ref TempBuffer_Int32[3]);
+			}
+
+			return new decimal(TempBuffer_Int32);
+#elif NET5_0_OR_GREATER
 			var intBuffer = MemoryMarshal.Cast<byte, int>(TempBuffer_Buffer.AsSpan(0, elementSize));
 			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
 			{
@@ -134,16 +147,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			return new decimal(intBuffer);
 #else
-			Buffer.BlockCopy(TempBuffer_Buffer, 0, TempBuffer_Int32, 0, elementSize);
-			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
-			{
-				EndiannessHelper.SwapBytes(ref TempBuffer_Int32[0]);
-				EndiannessHelper.SwapBytes(ref TempBuffer_Int32[1]);
-				EndiannessHelper.SwapBytes(ref TempBuffer_Int32[2]);
-				EndiannessHelper.SwapBytes(ref TempBuffer_Int32[3]);
-			}
-
-			return new decimal(TempBuffer_Int32);
+			#error Unhandled .NET framework
 #endif
 		}
 
@@ -711,10 +715,12 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = 16;
 			var buffer = writer.GetSpan(1 + elementSize);
 			buffer[0] = (byte)PayloadType.Guid;
-#if NETSTANDARD2_1 || NET5_0_OR_GREATER
+#if NETSTANDARD2_0 || NET461
+			value.ToByteArray().AsSpan().CopyTo(buffer.Slice(1));
+#elif NETSTANDARD2_1 || NET5_0_OR_GREATER
 			value.TryWriteBytes(buffer.Slice(1));
 #else
-			value.ToByteArray().AsSpan().CopyTo(buffer.Slice(1));
+			#error Unhandled .NET framework
 #endif
 			writer.Advance(1 + elementSize);
 		}
@@ -727,15 +733,17 @@ namespace GriffinPlus.Lib.Serialization
 		internal Guid ReadPrimitive_Guid(Stream stream)
 		{
 			const int elementSize = 16;
-#if NETSTANDARD2_1 || NET5_0_OR_GREATER
-			int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
-			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
-			return new Guid(TempBuffer_Buffer.AsSpan(0, 16));
-#else
+#if NETSTANDARD2_0 || NET461
 			byte[] buffer = new byte[elementSize];
 			int bytesRead = stream.Read(buffer, 0, elementSize);
 			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
 			return new Guid(buffer);
+#elif NETSTANDARD2_1 || NET5_0_OR_GREATER
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+			return new Guid(TempBuffer_Buffer.AsSpan(0, 16));
+#else
+			#error Unhandled .NET framework
 #endif
 		}
 
@@ -841,11 +849,13 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			// create a string from the buffer
-#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
-			string s = new string(buffer);
-#else
+#if NETSTANDARD2_0 || NET461
 			string s;
 			fixed (char* p = buffer) { s = new string(p, 0, buffer.Length); }
+#elif NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
+			string s = new string(buffer);
+#else
+			#error Unhandled .NET framework
 #endif
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, s);
 			return s;

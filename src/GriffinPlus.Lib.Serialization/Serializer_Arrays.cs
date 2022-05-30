@@ -105,19 +105,20 @@ namespace GriffinPlus.Lib.Serialization
 				int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
 				int bytesToCopy = elementsToCopy * elementSize;
 				buffer = writer.GetSpan(bytesToCopy);
-
-#if NET5_0_OR_GREATER
+#if NETSTANDARD2_0 || NETSTANDARD2_1 || NET461
+				for (int i = 0; i < elementsToCopy; i++)
+				{
+					int[] bits = decimal.GetBits(array[fromIndex++]);
+					MemoryMarshal.Cast<int, byte>(bits.AsSpan()).CopyTo(buffer.Slice(i * elementSize));
+				}
+#elif NET5_0_OR_GREATER
 				var intBuffer = MemoryMarshal.Cast<byte, int>(buffer);
 				for (int i = 0; i < elementsToCopy; i++)
 				{
 					decimal.GetBits(array[fromIndex++], intBuffer.Slice(4 * i, 4));
 				}
 #else
-				for (int i = 0; i < elementsToCopy; i++)
-				{
-					int[] bits = decimal.GetBits(array[fromIndex++]);
-					MemoryMarshal.Cast<int, byte>(bits.AsSpan()).CopyTo(buffer.Slice(i * elementSize));
-				}
+				#error Unhandled .NET framework
 #endif
 
 				writer.Advance(bytesToCopy);
@@ -183,21 +184,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// write array elements
 			int fromIndex = 0;
-#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
-			while (fromIndex < array.Length)
-			{
-				int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
-				int bytesToCopy = elementsToCopy * elementSize;
-				buffer = writer.GetSpan(bytesToCopy);
-				var intBuffer = MemoryMarshal.Cast<byte, int>(buffer);
-				for (int i = 0; i < elementsToCopy; i++)
-				{
-					BitConverter.TryWriteBytes(buffer.Slice(i * elementSize), array[fromIndex++].ToBinary());
-				}
-
-				writer.Advance(bytesToCopy);
-			}
-#else
+#if NETSTANDARD2_0 || NET461
 			Span<long> temp = stackalloc long[1];
 			while (fromIndex < array.Length)
 			{
@@ -212,6 +199,22 @@ namespace GriffinPlus.Lib.Serialization
 
 				writer.Advance(bytesToCopy);
 			}
+#elif NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
+			while (fromIndex < array.Length)
+			{
+				int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+				int bytesToCopy = elementsToCopy * elementSize;
+				buffer = writer.GetSpan(bytesToCopy);
+				var intBuffer = MemoryMarshal.Cast<byte, int>(buffer);
+				for (int i = 0; i < elementsToCopy; i++)
+				{
+					BitConverter.TryWriteBytes(buffer.Slice(i * elementSize), array[fromIndex++].ToBinary());
+				}
+
+				writer.Advance(bytesToCopy);
+			}
+#else
+			#error Unhandled .NET framework
 #endif
 
 			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
@@ -492,12 +495,14 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					// ReSharper disable once PossibleNullReferenceException
 					decimal value = (decimal)array.GetValue(indices);
-#if NET5_0_OR_GREATER
+#if NETSTANDARD2_0 || NETSTANDARD2_1 || NET461
+					int[] bits = decimal.GetBits(value);
+					MemoryMarshal.Cast<int, byte>(bits).CopyTo(buffer.Slice(bufferIndex));
+#elif NET5_0_OR_GREATER
 					var intBuffer = MemoryMarshal.Cast<byte, int>(buffer.Slice(bufferIndex));
 					decimal.GetBits(value, intBuffer);
 #else
-					int[] bits = decimal.GetBits(value);
-					MemoryMarshal.Cast<int, byte>(bits).CopyTo(buffer.Slice(bufferIndex));
+					#error Unhandled .NET framework
 #endif
 					IncrementArrayIndices(indices, array);
 					bufferIndex += elementSize;
@@ -608,12 +613,13 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					// ReSharper disable once PossibleNullReferenceException
 					var dt = (DateTime)array.GetValue(indices);
-
-#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
-					BitConverter.TryWriteBytes(buffer.Slice(bufferIndex), dt.ToBinary());
-#else
+#if NETSTANDARD2_0 || NET461
 					temp[0] = dt.ToBinary();
 					MemoryMarshal.Cast<long, byte>(temp).CopyTo(buffer.Slice(bufferIndex));
+#elif NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
+					BitConverter.TryWriteBytes(buffer.Slice(bufferIndex), dt.ToBinary());
+#else
+					#error Unhandled .NET framework
 #endif
 					IncrementArrayIndices(indices, array);
 					bufferIndex += elementSize;
