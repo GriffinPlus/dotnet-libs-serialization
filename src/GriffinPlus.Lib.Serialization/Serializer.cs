@@ -654,7 +654,7 @@ namespace GriffinPlus.Lib.Serialization
 			sDeserializersByPayloadType[(int)PayloadType.DateTimeOffset] = (serializer, stream, context) => serializer.ReadPrimitive_DateTimeOffset(stream);
 			sDeserializersByPayloadType[(int)PayloadType.Guid] = (serializer,           stream, context) => serializer.ReadPrimitive_Guid(stream);
 			sDeserializersByPayloadType[(int)PayloadType.Object] = (serializer,         stream, context) => serializer.ReadPrimitive_Object();
-			sDeserializersByPayloadType[(int)PayloadType.TypeObject] = (serializer,     stream, context) => serializer.ReadTypeObject(stream, out _);
+			sDeserializersByPayloadType[(int)PayloadType.TypeObject] = (serializer,     stream, context) => serializer.ReadTypeObject(stream, true, out _);
 
 			// one-dimensional arrays with zero-based indexing
 			sDeserializersByPayloadType[(int)PayloadType.ArrayOfBoolean] = (serializer,  stream, context) => serializer.ReadArrayOfPrimitives(stream, typeof(bool), sizeof(bool));
@@ -1178,7 +1178,7 @@ namespace GriffinPlus.Lib.Serialization
 					var genericTypeArgumentTypeItems = new TypeItem[genericTypeParameters.Length];
 					for (int i = 0; i < genericTypeParameters.Length; i++)
 					{
-						var genericTypeArgument = ReadTypeObject(stream, out string genericTypeArgumentSourceName);
+						var genericTypeArgument = ReadTypeObject(stream, false, out string genericTypeArgumentSourceName);
 						genericTypeArgumentTypeItems[i] = new TypeItem(genericTypeArgumentSourceName, genericTypeArgument);
 					}
 
@@ -2097,10 +2097,11 @@ namespace GriffinPlus.Lib.Serialization
 		/// Deserializes a type object.
 		/// </summary>
 		/// <param name="stream">Stream to deserialize the type object from.</param>
+		/// <param name="assignObjectId"><c>true</c> to assign an object id; otherwise <c>false</c>.</param>
 		/// <param name="sourceTypeName">Receives the assembly qualified name of the type as it was known when serializing.</param>
 		/// <returns>Type object.</returns>
 		/// <exception cref="SerializationException">Stream ended unexpectedly.</exception>
-		private Type ReadTypeObject(Stream stream, out string sourceTypeName)
+		private Type ReadTypeObject(Stream stream, bool assignObjectId, out string sourceTypeName)
 		{
 			TypeItem typeItem;
 			int byteRead = stream.ReadByte();
@@ -2169,7 +2170,7 @@ namespace GriffinPlus.Lib.Serialization
 					var genericTypeArgumentTypeItems = new TypeItem[genericTypeParameters.Length];
 					for (int i = 0; i < genericTypeParameters.Length; i++)
 					{
-						var genericTypeArgument = ReadTypeObject(stream, out string genericTypeArgumentSourceName);
+						var genericTypeArgument = ReadTypeObject(stream, assignObjectId, out string genericTypeArgumentSourceName);
 						genericTypeArgumentTypeItems[i] = new TypeItem(genericTypeArgumentSourceName, genericTypeArgument);
 					}
 
@@ -2194,7 +2195,10 @@ namespace GriffinPlus.Lib.Serialization
 				}
 			}
 
-			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, typeItem.Type);
+			// assign an object id, if requested
+			if (assignObjectId)
+				mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, typeItem.Type);
+
 			sourceTypeName = typeItem.Name;
 			return typeItem.Type;
 		}
