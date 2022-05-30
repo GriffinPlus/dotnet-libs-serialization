@@ -1711,7 +1711,7 @@ namespace GriffinPlus.Lib.Serialization
 				finally { serializer.mObjectsUnderSerialization.Remove(obj); }
 
 				// assign an object id to the object to enable referencing it later on
-				if (!(obj is ValueType))
+				if (!type.IsValueType)
 					serializer.mSerializedObjectIdTable.Add(obj, serializer.mNextSerializedObjectId++);
 
 				// close the archive
@@ -1827,7 +1827,7 @@ namespace GriffinPlus.Lib.Serialization
 				finally { serializer.mObjectsUnderSerialization.Remove(obj); }
 
 				// assign an object id to the object to allow referencing it later on
-				if (!(obj is ValueType))
+				if (!typeToSerialize.IsValueType)
 					serializer.mSerializedObjectIdTable.Add(obj, serializer.mNextSerializedObjectId++);
 
 				// close the archive
@@ -2014,7 +2014,7 @@ namespace GriffinPlus.Lib.Serialization
 				ResetDeserializer();
 				AllocateTemporaryBuffers();
 
-				// read the endianess indicator
+				// read the endianness indicator
 				int readByte = stream.ReadByte();
 				if (readByte < 0) throw new SerializationException("Unexpected end of stream.");
 				mDeserializingLittleEndian = readByte != 0;
@@ -2295,7 +2295,7 @@ namespace GriffinPlus.Lib.Serialization
 				object obj = eosi.Serializer.Deserialize(archive);
 
 				// assign an object id to the deserialized object, the serialization stream may refer to it later on
-				if (!(obj is ValueType))
+				if (!mCurrentDeserializedType.Type.IsValueType)
 					mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, obj);
 
 				// read and check archive end
