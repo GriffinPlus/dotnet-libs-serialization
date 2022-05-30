@@ -2336,6 +2336,10 @@ namespace GriffinPlus.Lib.Serialization
 				var archive = new DeserializationArchive(this, stream, mCurrentDeserializedType.Type, deserializedVersion, context);
 				object obj = deserializationConstructorCaller(ref archive);
 
+				// assign an object id to the deserialized object, the serialization stream may refer to it later on
+				if (!mCurrentDeserializedType.Type.IsValueType)
+					mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, obj);
+
 				// read and check archive end
 				ReadAndCheckPayloadType(stream, PayloadType.ArchiveEnd);
 				return obj;
