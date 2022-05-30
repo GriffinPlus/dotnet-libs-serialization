@@ -299,6 +299,19 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 
+		#region System.DateTime
+
+		/// <summary>
+		/// Writes a <see cref="System.DateTimeOffset"/> value to the archive.
+		/// </summary>
+		/// <param name="value">Value to write to the archive.</param>
+		public void Write(DateTimeOffset value)
+		{
+			mSerializer.WritePrimitive_DateTimeOffset(value, mBufferWriter);
+		}
+
+		#endregion
+
 		#region System.Object
 
 		/// <summary>

@@ -401,6 +401,21 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 
+		#region System.DateTimeOffset
+
+		/// <summary>
+		/// Reads a <see cref="System.DateTimeOffset"/> value from the archive.
+		/// </summary>
+		/// <returns>The read value.</returns>
+		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
+		public DateTimeOffset ReadDateTimeOffset()
+		{
+			ReadAndCheckPayloadType(PayloadType.DateTimeOffset);
+			return mSerializer.ReadPrimitive_DateTimeOffset(mStream);
+		}
+
+		#endregion
+
 		#region System.Object
 
 		/// <summary>

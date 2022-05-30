@@ -660,7 +660,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// Writes a <see cref="System.DateTimeOffset"/> object.
 		/// </summary>
 		/// <param name="value">DateTimeOffset object to write.</param>
-		/// <param name="writer">Buffer writer to write the <see cref="System.DateTime"/> object to.</param>
+		/// <param name="writer">Buffer writer to write the <see cref="System.DateTimeOffset"/> object to.</param>
 		internal void WritePrimitive_DateTimeOffset(DateTimeOffset value, IBufferWriter<byte> writer)
 		{
 			// always use native encoding as the serialized ticks are usually too great to be encoded using
@@ -680,7 +680,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// Reads a <see cref="System.DateTimeOffset"/> object.
 		/// </summary>
 		/// <param name="stream">Stream to read the DateTimeOffset object from.</param>
-		/// <returns>The read <see cref="System.DateTime"/> object.</returns>
+		/// <returns>The read <see cref="System.DateTimeOffset"/> object.</returns>
 		internal DateTimeOffset ReadPrimitive_DateTimeOffset(Stream stream)
 		{
 			const int elementSize = 2 * sizeof(long);
