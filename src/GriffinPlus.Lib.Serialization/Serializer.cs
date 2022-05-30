@@ -878,7 +878,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		private static void PrintToLog(LogLevel level)
 		{
-			var linesByTypeName = new SortedList<string, string>(StringComparer.Ordinal);
+			var linesByTypeName = new List<Tuple<string, string>>();
 
 			string ConditionAssemblyPath(Assembly assembly)
 			{
@@ -893,11 +893,12 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				Debug.Assert(kvp.Key.FullName != null, "kvp.Key.FullName != null");
 				linesByTypeName.Add(
-					kvp.Key.FullName,
-					$"-> {kvp.Key.FullName}" + Environment.NewLine +
-					$"   o Assembly: {ConditionAssemblyPath(kvp.Key.Assembly)}" + Environment.NewLine +
-					"   o Serializer: Internal Object Serializer" + Environment.NewLine +
-					$"   o Version: {kvp.Value.SerializerVersion}");
+					new Tuple<string, string>(
+						kvp.Key.FullName,
+						$"-> {kvp.Key.FullName}" + Environment.NewLine +
+						$"   o Assembly: {ConditionAssemblyPath(kvp.Key.Assembly)}" + Environment.NewLine +
+						"   o Serializer: Internal Object Serializer" + Environment.NewLine +
+						$"   o Version: {kvp.Value.SerializerVersion}"));
 			}
 
 			// external object serializers
@@ -908,17 +909,21 @@ namespace GriffinPlus.Lib.Serialization
 				var eosType = kvp.Value.Serializer.GetType();
 				uint version = kvp.Value.SerializerVersion;
 				linesByTypeName.Add(
-					kvp.Key.FullName,
-					$"-> {serializeeType.FullName}" + Environment.NewLine +
-					$"   o Assembly: {ConditionAssemblyPath(serializeeType.Assembly)}" + Environment.NewLine +
-					$"   o Serializer: External Object Serializer, {eosType.FullName} ({ConditionAssemblyPath(eosType.Assembly)})" + Environment.NewLine +
-					$"   o Version: {version}");
+					new Tuple<string, string>(
+						kvp.Key.FullName,
+						$"-> {serializeeType.FullName}" + Environment.NewLine +
+						$"   o Assembly: {ConditionAssemblyPath(serializeeType.Assembly)}" + Environment.NewLine +
+						$"   o Serializer: External Object Serializer, {eosType.FullName} ({ConditionAssemblyPath(eosType.Assembly)})" + Environment.NewLine +
+						$"   o Version: {version}"));
 			}
+
+			// sort type names
+			linesByTypeName.Sort((x, y) => StringComparer.OrdinalIgnoreCase.Compare(x.Item1, y.Item1));
 
 			// put everything together and print to the log
 			var builder = new StringBuilder();
 			builder.AppendLine("Types with Custom Serializers:");
-			foreach (var kvp in linesByTypeName) builder.AppendLine(kvp.Value);
+			foreach (var kvp in linesByTypeName) builder.AppendLine(kvp.Item2);
 			sLog.Write(level, builder.ToString());
 		}
 
