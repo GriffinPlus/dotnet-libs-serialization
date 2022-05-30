@@ -104,7 +104,7 @@ The property `SerializationOptimization` allows to influence whether the seriali
 
 The property `UseTolerantDeserialization` determines whether tolerant deserialization is in place. Tolerant deserialization allows to deserialize objects that were serialized on a machine with a different .NET framework. The serializer will try to exactly map to existing types when deserializing. If this fails, it will try to find the type in some other assembly. This enables the serializer to handle type migrations. Different .NET framework versions define even primitive types in different assemblies, so deserializing on some other .NET version would fail, if done without tolerance. As a side effect you can move your own types between assemblies as well. The full type name (namespace + type name) must not change. The default is `false` to avoid unexpected behavior.
 
-#### Step 3a: Add Serialization Support for Own Types (Internal Object Serializer)
+#### Step 3a: Add Serialization Support to Own Types (Internal Object Serializer)
 
 Very basic example of a class with an internal object serializer illustrating the parts that are relevant for serialization.
 
@@ -138,15 +138,14 @@ public class MyClass : IInternalObjectSerializer
         }
     }
 }
-
 ```
 
 A type (class/struct) with an *Internal Object Serializer* has the following characteristics:
 
 - Class annotation: The type is annotated with the `GriffinPlus.Lib.Serialization.InternalObjectSerializer` attribute specifying the maximum version supported by the serializer. The implemented internal object serializer must support all versions from `1` up to the specified version number to allow deserializing older versions as well.
 - Interface implementation: The type implements the `GriffinPlus.Lib.Serialization.IInternalObjectSerializer` interface.
-- Deserialization constructor: The type provides a special constructor taking a `DeserializationArchive` as argument. The constructor is called by the serializer when deserializing an object of this type from a stream. If a serializer version is requested, but not supported, a `GriffinPlus.Lib.Serialization.VersionNotSupportedException` should be thrown. The serializer also takes care of checking the maximum supported version as specified by the `InternalObjectSerializer` attribute. It does not call the deserialization constructor if the requested serializer version is greater than the maximum version specified by the attribute. If you can be sure that the maximum supported version and the versions actually implemented are consistent, you can omit throwing the exception.
-- Serialization method: The type provides an implementation of the `IInternalObjectSerializer.Serialize()` method that takes care of writing an object of the type to a stream. The `Serialize()` method can be implemented as a public method as well, but it is not recommended as this method is only meaningful in conjunction with the serializer. If a serializer version is requested, but not supported, a `GriffinPlus.Lib.Serialization.VersionNotSupportedException` should be thrown. Same here, you can omit throwing the exception if you are sure that the announced maximum supported serializer version and the actually implemented versions are consistent.
+- Deserialization constructor: The type provides a special constructor taking a `DeserializationArchive` which acts as an abstract userfriendly interface to the deserialization stream. The constructor is called by the serializer when deserializing an object of this type from a stream. If a serializer version is requested, but not supported, a `GriffinPlus.Lib.Serialization.VersionNotSupportedException` should be thrown. The serializer also takes care of checking the maximum supported version as specified by the `InternalObjectSerializer` attribute. It does not call the deserialization constructor if the requested serializer version is greater than the maximum version specified by the attribute. If you can be sure that the maximum supported version and the versions actually implemented are consistent, you can omit throwing the exception.
+- Serialization method: The type provides an implementation of the `IInternalObjectSerializer.Serialize()` method that takes care of writing an object of the type to a stream. The `Serialize()` method takes a `SerializationArchive` exposing an userfriendly abstraction of the serialization stream. The method can be implemented public as well, but it is not recommended as this method is only meaningful in conjunction with the serializer. If a serializer version is requested, but not supported, a `GriffinPlus.Lib.Serialization.VersionNotSupportedException` should be thrown. Same here, you can omit throwing the exception if you are sure that the announced maximum supported serializer version and the actually implemented versions are consistent.
 
 Using an internal object serializer allows to serialize derived classes by delegating serialization/deserialization to the base class. The following example shows a very rudimentary class deriving from the example class above:
 
@@ -191,11 +190,67 @@ The deserialization constructor of the base class is invoked by the deserializat
 
 The `Serialize()` method delegates the serialization of base class members by calling `SerializationArchive.WriteBaseArchive()`. This must be the first call in the `Serialize()` method to avoid mixing up the order of serialized data in the output stream.
 
+Internal object serializers **do not** need to be explicitly registered with the serializer as the serializer scans all assemblies for serializers when spinning up. You just need to implement it and it will be used automatically.
+
 #### Step 3b: Add Serialization Support for Other Types (External Object Serializer)
 
+Another option to add serialization support for a type is to implement an external object serializer for it. This is the only way to add serialization support for types that are not under your control. Let's assume the class to serialize is the `MyClass` from the example above, but without its internal object serializer.
+
 ```csharp
-TODO
+public class MyClass
+{
+    public int Value { get; set; }
+}
 ```
+
+An external object serializer for this class could look like the following:
+
+```csharp
+[ExternalObjectSerializer(typeof(MyClass), 1)]
+public class MyClassExternalObjectSerializer : IExternalObjectSerializer
+{
+    public void Serialize(SerializationArchive archive, object obj)
+    {
+        MyClass objToSerialize = (MyClass)obj;
+
+        if (archive.Version == 1)
+        {
+            archive.Write(objToSerialize.Value);
+        }
+        else
+        {
+            throw new VersionNotSupportedException(archive);
+        }
+    }
+
+    public object Deserialize(DeserializationArchive archive)
+    {
+        MyClass obj = new MyClass();
+
+        if (archive.Version == 1)
+        {
+            obj.Value = archive.ReadInt32();
+        }
+        else
+        {
+            throw new VersionNotSupportedException(archive);
+        }
+
+        return obj;
+    }
+}
+```
+
+An *External Object Serializer* class has the following characteristics:
+
+- Class annotation: The external object serializer is annotated with the `GriffinPlus.Lib.Serialization.ExternalObjectSerializer` attribute specifying the type the serializer provides serialization support for and the maximum supported version. The attribute may be specified multiple times if the external object serializer is able to handle multiple types. If the type to serialize is a generic, you should specify its generic type definition, e.g. `System.Collections.Generic.Dictionary<,>`. The implemented serializer must support all versions from `1` up to the specified version number to allow writing older versions as well.
+- Interface implementation: The external object serializer implements the `GriffinPlus.Lib.Serialization.IExternalObjectSerializer` interface.
+- Serialization method: The external object serializer provides an implementation of the `IExternalObjectSerializer.Serialize()` method taking care of writing an object of the supported type to the serialization stream. If a serializer version is requested, but not supported, a `GriffinPlus.Lib.Serialization.VersionNotSupportedException` should be thrown. If you can be sure that the maximum supported version and the versions actually implemented are consistent, you can omit throwing the exception.
+- Deserialization method: The external object serializer provides an implementation of the `IExternalObjectSerializer.Deserialize()` method that takes care of reading an object of the supported type from the deserialization stream. Same here, you can omit throwing the exception if you are sure that the announced maximum supported serializer version and the actually implemented versions are consistent.
+
+By nature, an *external object serializer* has only access to public members of the object to serialize/deserialize, while an *internal object serializer* has access to all members. Therefore, an internal object serializer should preferred over an external object serializer, whereever possible.
+
+External object serializers **do not** need to be explicitly registered with the serializer as the serializer scans all assemblies for serializers when spinning up. You just need to implement the external object serializer and it will be used automatically.
 
 ## Known Limitations
 
