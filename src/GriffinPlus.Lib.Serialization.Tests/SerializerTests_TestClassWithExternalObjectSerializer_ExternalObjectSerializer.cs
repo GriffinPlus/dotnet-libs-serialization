@@ -38,6 +38,9 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					archive.Write(other.Double);
 					archive.Write(other.Decimal);
 					archive.Write(other.String);
+					archive.Write(other.DateTime);
+					archive.Write(other.DateTimeOffset);
+					archive.Write(other.Guid);
 					archive.Write(other.NonGenericType);
 					archive.Write(other.GenericTypeDefinition);
 					archive.Write(other.ClosedConstructedGenericType);
@@ -86,6 +89,9 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					obj.Double = archive.ReadDouble();
 					obj.Decimal = archive.ReadDecimal();
 					obj.String = archive.ReadString();
+					obj.DateTime = archive.ReadDateTime();
+					obj.DateTimeOffset = archive.ReadDateTimeOffset();
+					obj.Guid = archive.ReadGuid();
 					obj.NonGenericType = archive.ReadType();
 					obj.GenericTypeDefinition = archive.ReadType();
 					obj.ClosedConstructedGenericType = archive.ReadType();
