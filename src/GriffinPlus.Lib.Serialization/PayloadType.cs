@@ -180,6 +180,11 @@ namespace GriffinPlus.Lib.Serialization
 		DateTimeOffset,
 
 		/// <summary>
+		/// A <see cref="System.Guid"/> value.
+		/// </summary>
+		Guid,
+
+		/// <summary>
 		/// An one-dimensional, zero-based array of <see cref="System.Boolean"/>.
 		/// </summary>
 		ArrayOfBoolean,

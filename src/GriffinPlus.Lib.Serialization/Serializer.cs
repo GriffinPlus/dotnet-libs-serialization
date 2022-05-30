@@ -290,6 +290,16 @@ namespace GriffinPlus.Lib.Serialization
 					serializer.WritePrimitive_DateTimeOffset((DateTimeOffset)obj, writer);
 				});
 			sSerializers.Add(
+				typeof(Guid),
+				(
+					serializer,
+					writer,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_Guid((Guid)obj, writer);
+				});
+			sSerializers.Add(
 				typeof(object),
 				(
 					serializer,
@@ -642,6 +652,7 @@ namespace GriffinPlus.Lib.Serialization
 			sDeserializersByPayloadType[(int)PayloadType.String_UTF16] = (serializer,   stream, context) => serializer.ReadPrimitive_String_UTF16(stream);
 			sDeserializersByPayloadType[(int)PayloadType.DateTime] = (serializer,       stream, context) => serializer.ReadPrimitive_DateTime(stream);
 			sDeserializersByPayloadType[(int)PayloadType.DateTimeOffset] = (serializer, stream, context) => serializer.ReadPrimitive_DateTimeOffset(stream);
+			sDeserializersByPayloadType[(int)PayloadType.Guid] = (serializer,           stream, context) => serializer.ReadPrimitive_Guid(stream);
 			sDeserializersByPayloadType[(int)PayloadType.Object] = (serializer,         stream, context) => serializer.ReadPrimitive_Object();
 			sDeserializersByPayloadType[(int)PayloadType.TypeObject] = (serializer,     stream, context) => serializer.ReadTypeObject(stream, out _);
 
@@ -1479,7 +1490,7 @@ namespace GriffinPlus.Lib.Serialization
 				AllocateTemporaryBuffers();
 				mWriter.Stream = stream;
 
-				// write endianess indicator
+				// write endianness indicator
 				var buffer = mWriter.GetSpan(1);
 				buffer[0] = (byte)(BitConverter.IsLittleEndian ? 1 : 0);
 				mWriter.Advance(1);

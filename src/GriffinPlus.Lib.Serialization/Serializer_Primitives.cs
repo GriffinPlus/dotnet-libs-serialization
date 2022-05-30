@@ -699,6 +699,48 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 
+		#region System.Guid
+
+		/// <summary>
+		/// Writes a <see cref="System.Guid"/> object.
+		/// </summary>
+		/// <param name="value">Guid object to write.</param>
+		/// <param name="writer">Buffer writer to write the <see cref="System.Guid"/> object to.</param>
+		internal void WritePrimitive_Guid(Guid value, IBufferWriter<byte> writer)
+		{
+			const int elementSize = 16;
+			var buffer = writer.GetSpan(1 + elementSize);
+			buffer[0] = (byte)PayloadType.Guid;
+#if NETSTANDARD2_1 || NET5_0_OR_GREATER
+			value.TryWriteBytes(buffer.Slice(1));
+#else
+			value.ToByteArray().AsSpan().CopyTo(buffer.Slice(1));
+#endif
+			writer.Advance(1 + elementSize);
+		}
+
+		/// <summary>
+		/// Reads a <see cref="System.Guid"/> object.
+		/// </summary>
+		/// <param name="stream">Stream to read the Guid object from.</param>
+		/// <returns>The read <see cref="System.Guid"/> object.</returns>
+		internal Guid ReadPrimitive_Guid(Stream stream)
+		{
+			const int elementSize = 16;
+#if NETSTANDARD2_1 || NET5_0_OR_GREATER
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+			return new Guid(TempBuffer_Buffer.AsSpan(0, 16));
+#else
+			byte[] buffer = new byte[elementSize];
+			int bytesRead = stream.Read(buffer, 0, elementSize);
+			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+			return new Guid(buffer);
+#endif
+		}
+
+		#endregion
+
 		#region System.String
 
 		/// <summary>

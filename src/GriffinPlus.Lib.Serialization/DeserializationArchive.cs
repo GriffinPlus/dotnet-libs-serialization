@@ -416,6 +416,21 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 
+		#region System.Guid
+
+		/// <summary>
+		/// Reads a <see cref="System.Guid"/> value from the archive.
+		/// </summary>
+		/// <returns>The read value.</returns>
+		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
+		public Guid ReadGuid()
+		{
+			ReadAndCheckPayloadType(PayloadType.Guid);
+			return mSerializer.ReadPrimitive_Guid(mStream);
+		}
+
+		#endregion
+
 		#region System.Object
 
 		/// <summary>

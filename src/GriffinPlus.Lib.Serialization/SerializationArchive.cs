@@ -312,6 +312,19 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 
+		#region System.Guid
+
+		/// <summary>
+		/// Writes a <see cref="System.Guid"/> value to the archive.
+		/// </summary>
+		/// <param name="value">Value to write to the archive.</param>
+		public void Write(Guid value)
+		{
+			mSerializer.WritePrimitive_Guid(value, mBufferWriter);
+		}
+
+		#endregion
+
 		#region System.Object
 
 		/// <summary>
