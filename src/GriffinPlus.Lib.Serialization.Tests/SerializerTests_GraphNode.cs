@@ -13,7 +13,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 	public partial class SerializerTests
 	{
 		[DebuggerDisplay("{Name}")]
-		internal class GraphNode
+		public class GraphNode
 		{
 			public string          Name { get; set; }
 			public List<GraphNode> Next { get; set; }

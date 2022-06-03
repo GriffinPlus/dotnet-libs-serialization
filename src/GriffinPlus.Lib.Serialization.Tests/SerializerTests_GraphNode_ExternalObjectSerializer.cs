@@ -11,24 +11,22 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 	public partial class SerializerTests
 	{
-		[ExternalObjectSerializer(typeof(GraphNode), 1)]
-		public class GraphNode_ExternalObjectSerializer : IExternalObjectSerializer
+		[ExternalObjectSerializer(1)]
+		public class GraphNode_ExternalObjectSerializer : ExternalObjectSerializer<GraphNode>
 		{
-			public void Serialize(SerializationArchive archive, object obj)
+			public override void Serialize(SerializationArchive archive, GraphNode obj)
 			{
-				var other = (GraphNode)obj;
-
 				if (archive.Version == 1)
 				{
-					archive.Write(other.Name);
-					archive.Write(other.Next);
+					archive.Write(obj.Name);
+					archive.Write(obj.Next);
 					return;
 				}
 
 				throw new VersionNotSupportedException(archive);
 			}
 
-			public object Deserialize(DeserializationArchive archive)
+			public override GraphNode Deserialize(DeserializationArchive archive)
 			{
 				var obj = new GraphNode();
 

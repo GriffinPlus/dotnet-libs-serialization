@@ -593,6 +593,80 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 		#endregion
 
+		#region System.Collections.Generic.Dictionary<,>
+
+		/// <summary>
+		/// Tests serializing and deserializing a <see cref="Dictionary{TKey,TValue}"/> value.
+		/// </summary>
+		[Fact]
+		public void SerializeAndDeserialize_DictionaryT()
+		{
+			var value = new Dictionary<int, string>
+			{
+				[0] = "Value 0",
+				[1] = "Value 1",
+				[2] = "Value 2",
+				[3] = "Value 3",
+				[4] = "Value 4"
+			};
+			object copy = SerializeAndDeserializeObject(value);
+			Assert.Equal(value, copy);
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing an array of <see cref="Dictionary{TKey,TValue}"/> values (one-dimensional, zero-based indexing).
+		/// </summary>
+		[Fact]
+		public void SerializeAndDeserialize_OneDimensionalArrayOfDictionaryT()
+		{
+			Dictionary<int, string>[] array =
+			{
+				new Dictionary<int, string>(),
+				new Dictionary<int, string> { { 0, "Value 0" } },
+				new Dictionary<int, string> { { 0, "Value 0" }, { 1, "Value 1" } },
+				new Dictionary<int, string> { { 0, "Value 0" }, { 1, "Value 1" }, { 2, "Value 2" } },
+				new Dictionary<int, string> { { 0, "Value 0" }, { 1, "Value 1" }, { 2, "Value 2" }, { 3, "Value 3" } }
+			};
+			dynamic copy = SerializeAndDeserializeObject(array);
+			Assert.NotNull(copy);
+			Assert.IsType<Dictionary<int, string>[]>(copy);
+			Assert.Equal(array, copy);
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing an array of <see cref="Dictionary{TKey,TValue}"/> values (multi-dimensional).
+		/// </summary>
+		[Fact]
+		public void SerializeAndDeserialize_MultiDimensionalArrayOfDictionaryT()
+		{
+			// create a multi-dimensional array
+			int[] lengths = { 5, 4, 3 };
+			int[] lowerBounds = { 10, 20, 30 };
+			var array = Array.CreateInstance(typeof(Dictionary<int, string>), lengths, lowerBounds);
+
+			// populate array with some test data
+			var value = new Dictionary<int, string>();
+			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++)
+			{
+				value[x] = $"Value {x}";
+				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++)
+				{
+					value[y] = $"Value {y}";
+					for (int z = lowerBounds[2]; z <= array.GetUpperBound(2); z++)
+					{
+						value[z] = $"Value {z}";
+						array.SetValue(new Dictionary<int, string>(value), x, y, z);
+					}
+				}
+			}
+
+			// check whether the copies array equals the original one
+			dynamic copy = SerializeAndDeserializeObject(array);
+			Assert.Equal(array, copy);
+		}
+
+		#endregion
+
 		#region Internal Object Serializer
 
 		/// <summary>

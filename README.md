@@ -36,9 +36,21 @@ The *Griffin+ Serialization Library* provides a serializer for almost all .NET o
   - Type objects: `System.Type`
   - GUIDs: `System.Guid`
   - Custom Buffers (supports streams and pointers)
-  - Common collections
-    - `System.Collections.Generic.Dictionary<TKey,TValue>`
-    - `System.Collections.Generic.List<T>`
+  - Generic collections shipped with the .NET Framework
+    - `System.Collection.Generic.Dictionary<TKey,TValue>`
+    - `System.Collection.Generic.HashSet<T>`
+    - `System.Collection.Generic.List<T>`
+    - `System.Collection.Generic.LinkedList<T>`
+    - `System.Collection.Generic.Queue<T>`
+    - `System.Collection.Generic.SortedDictionary<TKey,TValue>`
+    - `System.Collection.Generic.SortedList<TKey,TValue>`
+    - `System.Collection.Generic.Stack<T>`
+  - Collections that provide a parameterless constructor and implement at least one of the following interfaces (ordered by preference):
+    - `System.Collections.Generic.IDictionary<TKey,TValue>`
+    - `System.Collections.Generic.IList<T>`
+    - `System.Collections.Generic.ICollection<T>`
+    - `System.Collections.IDictionary`
+    - `System.Collections.IList`
   - Arrays of serializable objects
 
 ## Supported Platforms
@@ -206,16 +218,14 @@ public class MyClass
 An external object serializer for this class could look like the following:
 
 ```csharp
-[ExternalObjectSerializer(typeof(MyClass), 1)]
-public class MyClassExternalObjectSerializer : IExternalObjectSerializer
+[ExternalObjectSerializer(1)]
+public class MyClassExternalObjectSerializer : ExternalObjectSerializer<MyClass>
 {
-    public void Serialize(SerializationArchive archive, object obj)
+    public void Serialize(SerializationArchive archive, MyClass obj)
     {
-        MyClass objToSerialize = (MyClass)obj;
-
         if (archive.Version == 1)
         {
-            archive.Write(objToSerialize.Value);
+            archive.Write(obj.Value);
         }
         else
         {
@@ -223,7 +233,7 @@ public class MyClassExternalObjectSerializer : IExternalObjectSerializer
         }
     }
 
-    public object Deserialize(DeserializationArchive archive)
+    public MyClass Deserialize(DeserializationArchive archive)
     {
         MyClass obj = new MyClass();
 
@@ -243,10 +253,10 @@ public class MyClassExternalObjectSerializer : IExternalObjectSerializer
 
 An *External Object Serializer* class has the following characteristics:
 
-- Class annotation: The external object serializer is annotated with the `GriffinPlus.Lib.Serialization.ExternalObjectSerializer` attribute specifying the type the serializer provides serialization support for and the maximum supported version. The attribute may be specified multiple times if the external object serializer is able to handle multiple types. If the type to serialize is a generic, you should specify its generic type definition, e.g. `System.Collections.Generic.Dictionary<,>`. The implemented serializer must support all versions from `1` up to the specified version number to allow writing older versions as well.
-- Interface implementation: The external object serializer implements the `GriffinPlus.Lib.Serialization.IExternalObjectSerializer` interface.
-- Serialization method: The external object serializer provides an implementation of the `IExternalObjectSerializer.Serialize()` method taking care of writing an object of the supported type to the serialization stream. If a serializer version is requested, but not supported, a `GriffinPlus.Lib.Serialization.VersionNotSupportedException` should be thrown. If you can be sure that the maximum supported version and the versions actually implemented are consistent, you can omit throwing the exception.
-- Deserialization method: The external object serializer provides an implementation of the `IExternalObjectSerializer.Deserialize()` method that takes care of reading an object of the supported type from the deserialization stream. Same here, you can omit throwing the exception if you are sure that the announced maximum supported serializer version and the actually implemented versions are consistent.
+- Class annotation: The external object serializer is annotated with the `GriffinPlus.Lib.Serialization.ExternalObjectSerializer` attribute specifying the maximum supported version. The implemented external object serializer must support all versions from `1` up to the specified version number to allow deserializing older versions as well.
+- Base Class: The external object serializer derives from the `GriffinPlus.Lib.Serialization.ExternalObjectSerializer<T>` class. This class is the common base class for all external object serializers. Its generic type argument determines the type the serializer will handle. The type can be a regular type, a constructed generic type, a generic type definition or an interface. While regular and constructed generic types provide support for only the specified type, a generic type definition allow you to implement an external object serializer for a generic type or a type that implements a generic interface. The serializer will take care of infering generic type arguments from the specified type when creating an instance of the external object serializer at runtime.
+- Serialization method: The external object serializer overrides the `ExternalObjectSerializer<T>.Serialize()` method taking care of writing an object of the supported type to the serialization stream. If a serializer version is requested, but not supported, a `GriffinPlus.Lib.Serialization.VersionNotSupportedException` should be thrown. If you can be sure that the maximum supported version and the versions actually implemented are consistent, you can omit throwing the exception.
+- Deserialization method: The external object serializer overrides the `ExternalObjectSerializer<T>.Deserialize()` method that takes care of reading an object of the supported type from the deserialization stream. Same here, you can omit throwing the exception if you are sure that the announced maximum supported serializer version and the actually implemented versions are consistent.
 
 By nature, an *external object serializer* has only access to public members of the object to serialize/deserialize, while an *internal object serializer* has access to all members. Therefore, an internal object serializer should preferred over an external object serializer, whereever possible.
 

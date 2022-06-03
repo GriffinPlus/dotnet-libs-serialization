@@ -360,7 +360,7 @@ namespace GriffinPlus.Lib.Serialization
 			var baseClassType = DataType.BaseType ?? throw new ArgumentException($"{DataType.FullName} does not have a base class.");
 
 			// try external object serializer
-			var eos = Serializer.GetExternalObjectSerializer(baseClassType, out uint version);
+			var eos = ExternalObjectSerializerFactory.GetExternalObjectSerializer(baseClassType, out uint version);
 			if (eos != null)
 			{
 				// consider serializer version overrides...

@@ -3,31 +3,32 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-using System.Collections;
 using System.Collections.Generic;
 
 namespace GriffinPlus.Lib.Serialization
 {
 
 	/// <summary>
-	/// External object serializer for generic lists (type <see cref="List{T}"/>).
+	/// External object serializer for collections implementing the <see cref="IList{T}"/> interface.
 	/// </summary>
-	[ExternalObjectSerializer(typeof(List<>), 1)]
-	class ListTSerializer : IExternalObjectSerializer
+	[ExternalObjectSerializer(1)]
+	public class ExternalObjectSerializer_IList<T> : ExternalObjectSerializer<IList<T>>
 	{
 		/// <summary>
-		/// Serializes a <see cref="List{T}"/>.
+		/// Serializes the object.
 		/// </summary>
-		/// <param name="archive">Archive to serialize the specified list into.</param>
-		/// <param name="obj">The list to serialize.</param>
+		/// <param name="archive">Archive to serialize into.</param>
+		/// <param name="list">The list to serialize.</param>
 		/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
-		public void Serialize(SerializationArchive archive, object obj)
+		public override void Serialize(SerializationArchive archive, IList<T> list)
 		{
 			if (archive.Version == 1)
 			{
-				var list = (IList)obj;
+				// write number of list items
 				int count = list.Count;
 				archive.Write(count);
+
+				// write list items
 				for (int i = 0; i < count; i++)
 				{
 					archive.Write(list[i], archive.Context);
@@ -40,28 +41,27 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Deserializes a <see cref="List{T}"/>.
+		/// Deserializes an object.
 		/// </summary>
-		/// <param name="archive">Archive containing a serialized <see cref="List{T}"/> object.</param>
-		/// <returns>The deserialized <see cref="List{T}"/>.</returns>
+		/// <param name="archive">Archive containing the serialized object.</param>
+		/// <returns>The deserialized object.</returns>
 		/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
-		public object Deserialize(DeserializationArchive archive)
+		public override IList<T> Deserialize(DeserializationArchive archive)
 		{
 			if (archive.Version == 1)
 			{
-				// read number of elements and set the capacity of the list appropriately to
-				// avoid resizing while populating the list
+				// read number of list items
 				int count = archive.ReadInt32();
 
-				// read elements from the archive and put them into the list
-				var collection = (IList)FastActivator.CreateInstance(archive.DataType, count);
+				// read items from the archive and put them into the list
+				var list = (IList<T>)FastActivator.CreateInstance(archive.DataType);
 				for (int i = 0; i < count; i++)
 				{
-					object obj = archive.ReadObject(archive.Context);
-					collection.Add(obj);
+					var item = (T)archive.ReadObject(archive.Context);
+					list.Add(item);
 				}
 
-				return collection;
+				return list;
 			}
 
 			throw new VersionNotSupportedException(archive);

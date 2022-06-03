@@ -3,6 +3,8 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+using System;
+
 namespace GriffinPlus.Lib.Serialization
 {
 
@@ -16,6 +18,12 @@ namespace GriffinPlus.Lib.Serialization
 	/// </remarks>
 	public interface IExternalObjectSerializer
 	{
+		/// <summary>
+		/// Gets the type the serializer can process
+		/// (can be a regular type, a closed generic type, a generic type definition or an interface).
+		/// </summary>
+		Type SerializedType { get; }
+
 		/// <summary>
 		/// Serializes the specified object to the specified archive.
 		/// </summary>

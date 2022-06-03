@@ -74,13 +74,12 @@ namespace GriffinPlus.Lib.Serialization
 
 		#region Initialization (Scanning for Custom Serializers)
 
-		private static          bool                                              sInitializing                          = false;
-		private static          bool                                              sInitialized                           = false;
-		private static readonly object                                            sInitializationSync                    = new object();
-		private static volatile bool                                              sUseTolerantDeserializationByDefault   = false;
-		private static          TypeKeyedDictionary<InternalObjectSerializerInfo> sInternalObjectSerializerInfoByType    = new TypeKeyedDictionary<InternalObjectSerializerInfo>();
-		private static          TypeKeyedDictionary<ExternalObjectSerializerInfo> sExternalObjectSerializersBySerializee = new TypeKeyedDictionary<ExternalObjectSerializerInfo>();
-		private static readonly Type[]                                            sConstructorArgumentTypes              = { typeof(DeserializationArchive) };
+		private static          bool                                              sInitializing                        = false;
+		private static          bool                                              sInitialized                         = false;
+		private static readonly object                                            sInitializationSync                  = new object();
+		private static volatile bool                                              sUseTolerantDeserializationByDefault = false;
+		private static          TypeKeyedDictionary<InternalObjectSerializerInfo> sInternalObjectSerializerInfoByType  = new TypeKeyedDictionary<InternalObjectSerializerInfo>();
+		private static readonly Type[]                                            sConstructorArgumentTypes            = { typeof(DeserializationArchive) };
 
 		/// <summary>
 		/// Initializes the serializer, if necessary.
@@ -729,7 +728,7 @@ namespace GriffinPlus.Lib.Serialization
 					try
 					{
 						TryToAddInternalObjectSerializer(type);
-						TryToAddExternalObjectSerializer(type);
+						ExternalObjectSerializerFactory.TryRegisterExternalObjectSerializer(type);
 					}
 					catch (Exception ex)
 					{
@@ -811,69 +810,6 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Adds the specified type to the list of external object serializers, if appropriate.
-		/// </summary>
-		/// <param name="type">Type to add to the list of external object serializers.</param>
-		private static void TryToAddExternalObjectSerializer(Type type)
-		{
-			if (type.IsClass)
-			{
-				// a class
-				var attributes = type.GetCustomAttributes<ExternalObjectSerializerAttribute>(false).ToArray();
-				bool attributeOk = attributes.Length > 0;
-				bool interfaceOk = typeof(IExternalObjectSerializer).IsAssignableFrom(type);
-				bool constructorOk = type.GetConstructor(BindingFlags.ExactBinding | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, Type.DefaultBinder, Type.EmptyTypes, null) != null;
-
-				if (attributeOk && interfaceOk && constructorOk)
-				{
-					// class is annotated with the external object serializer attribute and implements the appropriate interface
-					lock (sSync)
-					{
-						// create an instance of the external object serializer
-						var eos = FastActivator.CreateInstance(type) as IExternalObjectSerializer;
-
-						// add types the external object serializer supports
-						var eosDictCopy = new TypeKeyedDictionary<ExternalObjectSerializerInfo>(sExternalObjectSerializersBySerializee);
-						foreach (var attribute in attributes) eosDictCopy[attribute.TypeToSerialize] = new ExternalObjectSerializerInfo(eos, attribute.Version);
-						Thread.MemoryBarrier();
-						sExternalObjectSerializersBySerializee = eosDictCopy;
-					}
-				}
-				else if (attributeOk || interfaceOk) // || constructorOk <-- do not check this, since this will create false alarms for all classes with a parameterless constructor
-				{
-					if (!attributeOk)
-					{
-						// attribute is missing
-						sLog.Write(
-							LogLevel.Error,
-							"Class '{0}' seems to be an external serializer class, but it is not annotated with the '{1}' attribute.",
-							type.FullName,
-							typeof(ExternalObjectSerializerAttribute).FullName);
-					}
-
-					if (!interfaceOk)
-					{
-						// interface is missing
-						sLog.Write(
-							LogLevel.Error,
-							"Class '{0}' seems to be an external serializer class, but does not implement the '{1}' interface.",
-							type.FullName,
-							typeof(IExternalObjectSerializer).FullName);
-					}
-
-					if (!constructorOk)
-					{
-						// default constructor is missing
-						sLog.Write(
-							LogLevel.Error,
-							"Class '{0}' seems to be an external serializer class, but it does not have a public parameterless constructor.",
-							type.FullName);
-					}
-				}
-			}
-		}
-
-		/// <summary>
 		/// Prints information about internal object serializers and external object serializers to the log.
 		/// </summary>
 		private static void PrintToLog(LogLevel level)
@@ -894,27 +830,23 @@ namespace GriffinPlus.Lib.Serialization
 				Debug.Assert(kvp.Key.FullName != null, "kvp.Key.FullName != null");
 				linesByTypeName.Add(
 					new Tuple<string, string>(
-						kvp.Key.FullName,
-						$"-> {kvp.Key.FullName}" + Environment.NewLine +
+						kvp.Key.ToCSharpFormattedString(),
+						$"-> {kvp.Key.ToCSharpFormattedString()}" + Environment.NewLine +
 						$"   o Assembly: {ConditionAssemblyPath(kvp.Key.Assembly)}" + Environment.NewLine +
 						"   o Serializer: Internal Object Serializer" + Environment.NewLine +
 						$"   o Version: {kvp.Value.SerializerVersion}"));
 			}
 
 			// external object serializers
-			foreach (var kvp in sExternalObjectSerializersBySerializee)
+			foreach (var info in ExternalObjectSerializerFactory.RegisteredSerializers)
 			{
-				Debug.Assert(kvp.Key.FullName != null, "kvp.Key.FullName != null");
-				var serializeeType = kvp.Key;
-				var eosType = kvp.Value.Serializer.GetType();
-				uint version = kvp.Value.SerializerVersion;
 				linesByTypeName.Add(
 					new Tuple<string, string>(
-						kvp.Key.FullName,
-						$"-> {serializeeType.FullName}" + Environment.NewLine +
-						$"   o Assembly: {ConditionAssemblyPath(serializeeType.Assembly)}" + Environment.NewLine +
-						$"   o Serializer: External Object Serializer, {eosType.FullName} ({ConditionAssemblyPath(eosType.Assembly)})" + Environment.NewLine +
-						$"   o Version: {version}"));
+						info.SerializeeType.ToCSharpFormattedString(),
+						$"-> {info.SerializeeType.ToCSharpFormattedString()}" + Environment.NewLine +
+						$"   o Assembly: {ConditionAssemblyPath(info.SerializeeType.Assembly)}" + Environment.NewLine +
+						$"   o Serializer: External Object Serializer, {info.SerializerType.ToCSharpFormattedString()} ({ConditionAssemblyPath(info.SerializerType.Assembly)})" + Environment.NewLine +
+						$"   o Version: {info.Version}"));
 			}
 
 			// sort type names
@@ -1596,12 +1528,12 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			// try to use an external object serializer
-			var eos = GetExternalObjectSerializer(type, out _);
+			var eos = ExternalObjectSerializerFactory.GetExternalObjectSerializer(type, out _);
 			if (eos != null)
 			{
 				// the type has an external object serializer
 				// => create a serializer delegate that handles it and store it to speed up the serializer lookup next time
-				serializer = AddSerializerForType(type, () => CreateExternalObjectSerializer(type, eos));
+				serializer = AddSerializerForType(type, () => CreateSerializerDelegateForExternalObjectSerializer(type, eos));
 				serializer(this, writer, obj, context);
 				return;
 			}
@@ -1797,7 +1729,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="typeToSerialize">Type the delegate will handle.</param>
 		/// <param name="eos">Receives the created external object serializer.</param>
 		/// <returns>A delegate that handles the serialization of the specified type.</returns>
-		private static SerializerDelegate CreateExternalObjectSerializer(Type typeToSerialize, IExternalObjectSerializer eos)
+		private static SerializerDelegate CreateSerializerDelegateForExternalObjectSerializer(Type typeToSerialize, IExternalObjectSerializer eos)
 		{
 			return (
 				serializer,
@@ -2275,17 +2207,11 @@ namespace GriffinPlus.Lib.Serialization
 
 			#region External Object Serializer
 
-			// try to get an external object serializer for exactly the deserialized type, fallback to a serializer for a generic type, if available...
-			if (!sExternalObjectSerializersBySerializee.TryGetValue(mCurrentDeserializedType.Type, out var eosi))
-			{
-				if (mCurrentDeserializedType.Type.IsGenericType)
-					sExternalObjectSerializersBySerializee.TryGetValue(mCurrentDeserializedType.Type.GetGenericTypeDefinition(), out eosi);
-			}
+			// try to get an external object serializer
+			var eos = ExternalObjectSerializerFactory.GetExternalObjectSerializer(mCurrentDeserializedType.Type, out currentVersion);
 
-			if (eosi != null)
+			if (eos != null)
 			{
-				currentVersion = eosi.SerializerVersion;
-
 				if (deserializedVersion > currentVersion)
 				{
 					// version of the archive that is about to be deserialized is greater than
@@ -2297,7 +2223,7 @@ namespace GriffinPlus.Lib.Serialization
 
 				// version is ok, deserialize...
 				var archive = new DeserializationArchive(this, stream, mCurrentDeserializedType.Type, deserializedVersion, context);
-				object obj = eosi.Serializer.Deserialize(archive);
+				object obj = eos.Deserialize(archive);
 
 				// assign an object id to the deserialized object, the serialization stream may refer to it later on
 				if (!mCurrentDeserializedType.Type.IsValueType)
@@ -2795,57 +2721,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// </returns>
 		internal static bool HasExternalObjectSerializer(Type type, out uint version)
 		{
-			// check whether a serializer for exactly the specified type is available
-			if (sExternalObjectSerializersBySerializee.TryGetValue(type, out var eosi))
-			{
-				version = eosi.SerializerVersion;
-				return true;
-			}
-
-			// check, whether a serializer for the generic type definition is available
-			if (type.IsGenericType)
-			{
-				if (sExternalObjectSerializersBySerializee.TryGetValue(type.GetGenericTypeDefinition(), out eosi))
-				{
-					version = eosi.SerializerVersion;
-					return true;
-				}
-			}
-
-			version = 0;
-			return false;
-		}
-
-		/// <summary>
-		/// Gets the external object serializer for the specified type.
-		/// </summary>
-		/// <param name="type">Type to get an external object serializer for.</param>
-		/// <param name="version">Receives the version of the serializer.</param>
-		/// <returns>
-		/// The external object serializer for the specified type;
-		/// <c>null</c>, if the type does not have an external object serializer.
-		/// </returns>
-		internal static IExternalObjectSerializer GetExternalObjectSerializer(Type type, out uint version)
-		{
-			// check whether a serializer for exactly the specified type is available
-			if (sExternalObjectSerializersBySerializee.TryGetValue(type, out var eosi))
-			{
-				version = eosi.SerializerVersion;
-				return eosi.Serializer;
-			}
-
-			// check, whether a serializer for the generic type definition is available
-			if (type.IsGenericType)
-			{
-				if (sExternalObjectSerializersBySerializee.TryGetValue(type.GetGenericTypeDefinition(), out eosi))
-				{
-					version = eosi.SerializerVersion;
-					return eosi.Serializer;
-				}
-			}
-
-			version = 0;
-			return null;
+			return ExternalObjectSerializerFactory.GetExternalObjectSerializer(type, out version) != null;
 		}
 
 		/// <summary>

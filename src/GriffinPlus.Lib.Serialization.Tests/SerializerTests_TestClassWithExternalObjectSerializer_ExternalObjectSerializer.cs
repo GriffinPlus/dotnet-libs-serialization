@@ -14,61 +14,59 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 	public partial class SerializerTests
 	{
-		[ExternalObjectSerializer(typeof(TestClassWithExternalObjectSerializer), 1)]
-		public class TestClassWithGenericObjectSerializer_ExternalObjectSerializer : IExternalObjectSerializer
+		[ExternalObjectSerializer(1)]
+		public class TestClassWithGenericObjectSerializer_ExternalObjectSerializer : ExternalObjectSerializer<TestClassWithExternalObjectSerializer>
 		{
-			public unsafe void Serialize(SerializationArchive archive, object obj)
+			public override unsafe void Serialize(SerializationArchive archive, TestClassWithExternalObjectSerializer obj)
 			{
-				var other = (TestClassWithExternalObjectSerializer)obj;
-
 				if (archive.Version == 1)
 				{
-					archive.Write(other.BooleanFalse);
-					archive.Write(other.BooleanTrue);
-					archive.Write(other.Char);
-					archive.Write(other.SByte);
-					archive.Write(other.Byte);
-					archive.Write(other.Int16);
-					archive.Write(other.UInt16);
-					archive.Write(other.Int32);
-					archive.Write(other.UInt32);
-					archive.Write(other.Int64);
-					archive.Write(other.UInt64);
-					archive.Write(other.Single);
-					archive.Write(other.Double);
-					archive.Write(other.Decimal);
-					archive.Write(other.String);
-					archive.Write(other.DateTime);
-					archive.Write(other.DateTimeOffset);
-					archive.Write(other.Guid);
-					archive.Write(other.NonGenericType);
-					archive.Write(other.GenericTypeDefinition);
-					archive.Write(other.ClosedConstructedGenericType);
-					archive.Write(other.NullReference);
-					archive.Write(other.Enum_S8);
-					archive.Write(other.Enum_U8);
-					archive.Write(other.Enum_S16);
-					archive.Write(other.Enum_U16);
-					archive.Write(other.Enum_S32);
-					archive.Write(other.Enum_U32);
-					archive.Write(other.Enum_S64);
-					archive.Write(other.Enum_U64);
-					archive.Write(other.SerializableObject);
+					archive.Write(obj.BooleanFalse);
+					archive.Write(obj.BooleanTrue);
+					archive.Write(obj.Char);
+					archive.Write(obj.SByte);
+					archive.Write(obj.Byte);
+					archive.Write(obj.Int16);
+					archive.Write(obj.UInt16);
+					archive.Write(obj.Int32);
+					archive.Write(obj.UInt32);
+					archive.Write(obj.Int64);
+					archive.Write(obj.UInt64);
+					archive.Write(obj.Single);
+					archive.Write(obj.Double);
+					archive.Write(obj.Decimal);
+					archive.Write(obj.String);
+					archive.Write(obj.DateTime);
+					archive.Write(obj.DateTimeOffset);
+					archive.Write(obj.Guid);
+					archive.Write(obj.NonGenericType);
+					archive.Write(obj.GenericTypeDefinition);
+					archive.Write(obj.ClosedConstructedGenericType);
+					archive.Write(obj.NullReference);
+					archive.Write(obj.Enum_S8);
+					archive.Write(obj.Enum_U8);
+					archive.Write(obj.Enum_S16);
+					archive.Write(obj.Enum_U16);
+					archive.Write(obj.Enum_S32);
+					archive.Write(obj.Enum_U32);
+					archive.Write(obj.Enum_S64);
+					archive.Write(obj.Enum_U64);
+					archive.Write(obj.SerializableObject);
 
 					// deserialize buffer via pointer
-					archive.Write(other.Buffer1.Length);
-					fixed (byte* pBuffer = &other.Buffer1[0]) archive.Write(pBuffer, other.Buffer1.Length);
+					archive.Write(obj.Buffer1.Length);
+					fixed (byte* pBuffer = &obj.Buffer1[0]) archive.Write(pBuffer, obj.Buffer1.Length);
 
 					// serializer buffer via stream
-					archive.Write(other.Buffer2.Length);
-					archive.Write(new MemoryStream(other.Buffer2));
+					archive.Write(obj.Buffer2.Length);
+					archive.Write(new MemoryStream(obj.Buffer2));
 					return;
 				}
 
 				throw new VersionNotSupportedException(archive);
 			}
 
-			public unsafe object Deserialize(DeserializationArchive archive)
+			public override unsafe TestClassWithExternalObjectSerializer Deserialize(DeserializationArchive archive)
 			{
 				var obj = new TestClassWithExternalObjectSerializer();
 
