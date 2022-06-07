@@ -79,6 +79,13 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		public Serializer Serializer => mSerializer;
 
+		/// <summary>
+		/// Gets the <see cref="IBufferWriter{T}"/> that is used to write to the stream.
+		/// Usually it is more convenient to use the archive's Write() methods to write to the stream,
+		/// but if you need more control the <see cref="IBufferWriter{T}"/> allows to write byte-wise.
+		/// </summary>
+		public IBufferWriter<byte> Writer => mBufferWriter;
+
 		#endregion
 
 		#region System.SByte
