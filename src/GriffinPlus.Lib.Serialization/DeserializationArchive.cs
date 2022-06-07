@@ -96,6 +96,13 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		public Serializer Serializer => mSerializer;
 
+		/// <summary>
+		/// Gets the stream containing the serialized object.
+		/// Usually it is more convenient to use the archive's Read() methods, but if you need more control over the deserialization
+		/// you can directly read from this stream as well.
+		/// </summary>
+		public Stream Stream => mStream;
+
 		#endregion
 
 		#region System.SByte
