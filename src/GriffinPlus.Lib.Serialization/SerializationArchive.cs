@@ -74,6 +74,11 @@ namespace GriffinPlus.Lib.Serialization
 		/// </remarks>
 		public object Context { get; }
 
+		/// <summary>
+		/// Gets the <see cref="Serializer"/> the archive belongs to.
+		/// </summary>
+		public Serializer Serializer => mSerializer;
+
 		#endregion
 
 		#region System.SByte
