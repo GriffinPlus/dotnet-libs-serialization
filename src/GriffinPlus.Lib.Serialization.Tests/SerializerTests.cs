@@ -425,6 +425,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		/// </summary>
 		[Theory]
 		[InlineData(typeof(int))]                     // non-generic type
+		[InlineData(typeof(int[]))]                   // szarray type
+		[InlineData(typeof(int[,]))]                  // mdarray type
 		[InlineData(typeof(Dictionary<int, string>))] // closed constructed generic type
 		[InlineData(typeof(Dictionary<,>))]           // generic type definition
 		public void SerializeAndDeserialize_Type(Type type)

@@ -14,6 +14,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 using GriffinPlus.Lib.Collections;
@@ -893,6 +894,7 @@ namespace GriffinPlus.Lib.Serialization
 		private static readonly object                      sTypeTableLock                    = new object();                      // lock protecting the type table
 		private static          TypeKeyedDictionary<byte[]> sSerializedTypeSnippetsByType     = new TypeKeyedDictionary<byte[]>(); // type => UTF-8 encoded assembly-qualified type name
 		private static readonly object                      sSerializedTypeSnippetsByTypeLock = new object();                      // lock protecting the type snippet table
+		private static readonly Regex                       sExtractFullTypeNameRegex         = new Regex(@"^([^[\[,]*)(\[[, ]*\])?(?:, )(.*)", RegexOptions.Compiled);
 
 		/// <summary>
 		/// Serializes metadata about a type.
@@ -1177,11 +1179,37 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Type could be resolved, but tolerant deserialization is disabled and the type was not resolved exactly.</exception>
 		private Type ResolveType(string assemblyQualifiedTypeName)
 		{
-			// split assembly name and type name
-			int index = assemblyQualifiedTypeName.IndexOf(',');
-			if (index < 0 || index + 1 == assemblyQualifiedTypeName.Length) throw new SerializationException($"Detected invalid type name ({assemblyQualifiedTypeName}) during deserialization.");
-			string fullTypeName = assemblyQualifiedTypeName.Substring(0, index).Trim();
-			var assemblyName = new AssemblyName(assemblyQualifiedTypeName.Substring(index + 1).Trim());
+			// -----------------------------------------------------------------------------------------------------------------
+			// split assembly name and type name, condition array types
+			// -----------------------------------------------------------------------------------------------------------------
+			var match = sExtractFullTypeNameRegex.Match(assemblyQualifiedTypeName);
+			if (!match.Success) throw new SerializationException($"Detected invalid type name ({assemblyQualifiedTypeName}) during deserialization.");
+			string originalAssemblyQualifiedTypeName = assemblyQualifiedTypeName;
+			var assemblyName = new AssemblyName(match.Groups[3].Value);
+			string fullTypeName;
+			int arrayRank = 0;
+
+			if (match.Groups[2].Length > 0)
+			{
+				// type name identifies an array
+				// => strip array brackets, otherwise they will break the look up
+
+				arrayRank = match.Groups[2].Value.Count(x => x == ',') + 1;
+				fullTypeName = match.Groups[1].Value;
+				assemblyQualifiedTypeName = fullTypeName + ", " + match.Groups[3].Value;
+
+				sLog.Write(
+					LogLevel.Debug,
+					"Trying to look up {0}. It's an array type, looking up {1} instead...",
+					originalAssemblyQualifiedTypeName,
+					assemblyQualifiedTypeName);
+			}
+			else
+			{
+				Debug.Assert(match.Groups[2].Value.Length == 0);
+				fullTypeName = match.Groups[1].Value;
+				assemblyQualifiedTypeName = fullTypeName + ", " + match.Groups[3].Value;
+			}
 
 			// -----------------------------------------------------------------------------------------------------------------
 			// determine types with the same full name (independent of the assembly the type is declared in)
@@ -1299,6 +1327,10 @@ namespace GriffinPlus.Lib.Serialization
 						assemblyQualifiedTypeName);
 				}
 			}
+
+			// reconstruct array type, if the type to lookup was an array
+			if (arrayRank == 1) resolvedType = resolvedType.MakeArrayType();
+			else if (arrayRank > 1) resolvedType = resolvedType.MakeArrayType(arrayRank);
 
 			return resolvedType;
 		}
