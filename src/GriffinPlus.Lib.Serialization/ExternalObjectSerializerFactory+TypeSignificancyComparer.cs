@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace GriffinPlus.Lib.Serialization
 {
@@ -55,11 +56,25 @@ namespace GriffinPlus.Lib.Serialization
 				if (x.IsGenericType && !y.IsGenericType) return -1;
 				if (!x.IsGenericType && y.IsGenericType) return 1;
 
-				// if one interface is not generic, we we can check whether it is extended by the other interface
+				// if one interface is not generic, we can check whether it is extended by the other interface (Mark X1; see below)
 				if (!x.IsGenericType && x.IsAssignableFrom(y)) return 1;
 				if (!y.IsGenericType && y.IsAssignableFrom(x)) return -1;
 
-				// TODO: Add further comparison steps to fix the order of generic interfaces
+
+				// if both interfaces are generic, we can check which one is more specific by counting the non-generic type parameters
+				if (x.IsGenericType && y.IsGenericType)
+				{
+					int genericParameterCountX = x.GetGenericArguments().Count(t => !t.IsGenericParameter);
+					int genericParameterCountY = y.GetGenericArguments().Count(t => !t.IsGenericParameter);
+					if (genericParameterCountX > genericParameterCountY) return -1;
+					if (genericParameterCountX < genericParameterCountY) return 1;
+				}
+
+				// addition to X1 (see above): if the current interface x (e.g., IDictionary<TKey,TValue>) extends another interface with more
+				// specified type-parameters (e.g., ICollection<KeyValuePair<TKey,TValue>>) check whether the extended interface (e.g., ICollection<KeyValuePair<TKey,TValue>>)
+				// is a specific version of y (e.g., ICollection<T>) by checking the generic type definitions
+				if (x.GetInterfaces().Any(t => t.IsGenericType && y.IsGenericType && t.GetGenericTypeDefinition() == y.GetGenericTypeDefinition())) return -1;
+				if (y.GetInterfaces().Any(t => t.IsGenericType && x.IsGenericType && t.GetGenericTypeDefinition() == x.GetGenericTypeDefinition())) return 1;
 
 				// no further preference
 				// => sort by name to ensure the order of types in the list is always the same
