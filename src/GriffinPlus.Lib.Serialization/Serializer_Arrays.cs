@@ -166,61 +166,6 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Writes an array of <see cref="System.DateTime"/> values (for arrays with zero-based indexing).
-		/// </summary>
-		/// <param name="array">Array to write.</param>
-		/// <param name="writer">Buffer writer to write the array to.</param>
-		private void WriteArrayOfDateTime(DateTime[] array, IBufferWriter<byte> writer)
-		{
-			const int elementSize = 8;
-
-			// write payload type and array length
-			int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-			var buffer = writer.GetSpan(maxBufferSize);
-			int bufferIndex = 0;
-			buffer[bufferIndex++] = (byte)PayloadType.ArrayOfDateTime;
-			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
-			writer.Advance(bufferIndex);
-
-			// write array elements
-			int fromIndex = 0;
-#if NETSTANDARD2_0 || NET461
-			Span<long> temp = stackalloc long[1];
-			while (fromIndex < array.Length)
-			{
-				int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
-				int bytesToCopy = elementsToCopy * elementSize;
-				buffer = writer.GetSpan(bytesToCopy);
-				for (int i = 0; i < elementsToCopy; i++)
-				{
-					temp[0] = array[fromIndex++].ToBinary();
-					MemoryMarshal.Cast<long, byte>(temp).CopyTo(buffer.Slice(i * elementSize));
-				}
-
-				writer.Advance(bytesToCopy);
-			}
-#elif NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
-			while (fromIndex < array.Length)
-			{
-				int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
-				int bytesToCopy = elementsToCopy * elementSize;
-				buffer = writer.GetSpan(bytesToCopy);
-				var intBuffer = MemoryMarshal.Cast<byte, int>(buffer);
-				for (int i = 0; i < elementsToCopy; i++)
-				{
-					BitConverter.TryWriteBytes(buffer.Slice(i * elementSize), array[fromIndex++].ToBinary());
-				}
-
-				writer.Advance(bytesToCopy);
-			}
-#else
-			#error Unhandled .NET framework
-#endif
-
-			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
-		}
-
-		/// <summary>
 		/// Writes an array of objects (for arrays with zero-based indexing).
 		/// </summary>
 		/// <param name="array">Array to write.</param>
@@ -347,30 +292,6 @@ namespace GriffinPlus.Lib.Serialization
 				array[i] = (string)obj;
 			}
 
-			return array;
-		}
-
-		/// <summary>
-		/// Reads an array of <see cref="System.DateTime"/> from a stream (for arrays with zero-based indexing).
-		/// </summary>
-		/// <param name="stream">Stream to read the array from.</param>
-		/// <returns>The read array.</returns>
-		private DateTime[] ReadDateTimeArray(Stream stream)
-		{
-			const int elementSize = 8;
-
-			// read array length
-			int length = Leb128EncodingHelper.ReadInt32(stream);
-			int size = length * elementSize;
-
-			// read array data
-			var array = new DateTime[length];
-			EnsureTemporaryByteBufferSize(size);
-			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
-			for (int i = 0; i < length; i++) array[i] = DateTime.FromBinary(BitConverter.ToInt64(TempBuffer_Buffer, i * elementSize));
-
-			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
 		}
 
@@ -572,65 +493,6 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Writes a multidimensional array of <see cref="System.DateTime"/> to a stream (for arrays with non-zero-based indexing and/or multiple dimensions).
-		/// </summary>
-		/// <param name="array">Array to serialize.</param>
-		/// <param name="writer">Buffer writer to write the array to.</param>
-		private void WriteMultidimensionalArrayOfDateTime(Array array, IBufferWriter<byte> writer)
-		{
-			// write payload type and array dimensions
-			int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
-			var buffer = writer.GetSpan(maxBufferSize);
-			int bufferIndex = 0;
-			buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfDateTime;
-			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
-			int[] indices = new int[array.Rank];
-			for (int i = 0; i < array.Rank; i++)
-			{
-				// ...dimension information...
-				indices[i] = array.GetLowerBound(i);
-				int count = array.GetLength(i);
-				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), indices[i]); // lower bound of the dimension
-				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
-			}
-
-			writer.Advance(bufferIndex);
-
-			// assign an object id to the array
-			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
-
-			// write array elements
-			const int elementSize = 8;
-			int remaining = array.Length;
-			Span<long> temp = stackalloc long[1];
-			while (remaining > 0)
-			{
-				int elementsToCopy = Math.Min(remaining, MaxChunkSize / elementSize);
-				int bytesToCopy = elementsToCopy * elementSize;
-				buffer = writer.GetSpan(bytesToCopy);
-				bufferIndex = 0;
-				for (int i = 0; i < elementsToCopy; i++)
-				{
-					// ReSharper disable once PossibleNullReferenceException
-					var dt = (DateTime)array.GetValue(indices);
-#if NETSTANDARD2_0 || NET461
-					temp[0] = dt.ToBinary();
-					MemoryMarshal.Cast<long, byte>(temp).CopyTo(buffer.Slice(bufferIndex));
-#elif NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
-					BitConverter.TryWriteBytes(buffer.Slice(bufferIndex), dt.ToBinary());
-#else
-					#error Unhandled .NET framework
-#endif
-					IncrementArrayIndices(indices, array);
-					bufferIndex += elementSize;
-				}
-
-				writer.Advance(bytesToCopy);
-				remaining -= elementsToCopy;
-			}
-		}
-
-		/// <summary>
 		/// Writes a multidimensional array of objects (for arrays with non-zero-based indexing and/or multiple dimensions).
 		/// </summary>
 		/// <param name="array">Array to serialize.</param>
@@ -812,44 +674,6 @@ namespace GriffinPlus.Lib.Serialization
 				Buffer.BlockCopy(TempBuffer_Buffer, 0, TempBuffer_Int32, 0, elementSize);
 				decimal value = new decimal(TempBuffer_Int32);
 				array.SetValue(value, indices);
-				IncrementArrayIndices(indices, array);
-			}
-
-			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
-			return array;
-		}
-
-		/// <summary>
-		/// Reads an array of <see cref="System.DateTime"/> from a stream (for arrays with non-zero-based indexing and/or multiple dimensions).
-		/// </summary>
-		/// <param name="stream">Stream to read the array from.</param>
-		/// <returns>The read array.</returns>
-		private Array ReadMultidimensionalDateTimeArray(Stream stream)
-		{
-			const int elementSize = 8;
-
-			// read header
-			int ranks = Leb128EncodingHelper.ReadInt32(stream);
-			int[] lowerBounds = new int[ranks];
-			int[] lengths = new int[ranks];
-			int[] indices = new int[ranks];
-			for (int i = 0; i < ranks; i++)
-			{
-				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
-				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
-				indices[i] = lowerBounds[i];
-			}
-
-			// create an array of DateTime
-			var array = Array.CreateInstance(typeof(DateTime), lengths, lowerBounds);
-
-			// read array elements
-			for (int i = 0; i < array.Length; i++)
-			{
-				int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
-				if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
-				long l = BitConverter.ToInt64(TempBuffer_Buffer, 0);
-				array.SetValue(DateTime.FromBinary(l), indices);
 				IncrementArrayIndices(indices, array);
 			}
 

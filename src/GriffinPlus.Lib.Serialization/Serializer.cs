@@ -451,16 +451,6 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteArrayOfString(array as string[], writer);
 				});
-			sSerializers.Add(
-				typeof(DateTime[]),
-				(
-					serializer,
-					writer,
-					array,
-					context) =>
-				{
-					serializer.WriteArrayOfDateTime(array as DateTime[], writer);
-				});
 
 			// multidimensional arrays
 			sMultidimensionalArraySerializers.Add(
@@ -603,16 +593,6 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteMultidimensionalArrayOfString(array as Array, writer);
 				});
-			sMultidimensionalArraySerializers.Add(
-				typeof(DateTime),
-				(
-					serializer,
-					writer,
-					array,
-					context) =>
-				{
-					serializer.WriteMultidimensionalArrayOfDateTime(array as Array, writer);
-				});
 		}
 
 		/// <summary>
@@ -671,7 +651,6 @@ namespace GriffinPlus.Lib.Serialization
 			sDeserializersByPayloadType[(int)PayloadType.ArrayOfDouble] = (serializer,   stream, context) => serializer.ReadArrayOfPrimitives(stream, typeof(double), sizeof(double));
 			sDeserializersByPayloadType[(int)PayloadType.ArrayOfDecimal] = (serializer,  stream, context) => serializer.ReadArrayOfDecimal(stream);
 			sDeserializersByPayloadType[(int)PayloadType.ArrayOfString] = (serializer,   stream, context) => serializer.ReadStringArray(stream);
-			sDeserializersByPayloadType[(int)PayloadType.ArrayOfDateTime] = (serializer, stream, context) => serializer.ReadDateTimeArray(stream);
 			sDeserializersByPayloadType[(int)PayloadType.ArrayOfObjects] = (serializer,  stream, context) => serializer.ReadArrayOfObjects(stream, context);
 
 			// multidimensional arrays
@@ -689,7 +668,6 @@ namespace GriffinPlus.Lib.Serialization
 			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfDouble] = (serializer,   stream, context) => serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(double), sizeof(double));
 			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfDecimal] = (serializer,  stream, context) => serializer.ReadMultidimensionalArrayOfDecimal(stream);
 			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfString] = (serializer,   stream, context) => serializer.ReadMultidimensionalStringArray(stream);
-			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfDateTime] = (serializer, stream, context) => serializer.ReadMultidimensionalDateTimeArray(stream);
 			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfObjects] = (serializer,  stream, context) => serializer.ReadMultidimensionalArrayOfObjects(stream, context);
 
 			// generic type
@@ -1963,6 +1941,12 @@ namespace GriffinPlus.Lib.Serialization
 		private static readonly DeserializerDelegate[]                                        sDeserializersByPayloadType        = new DeserializerDelegate[(int)PayloadType.Terminator];
 		private static          TypeKeyedDictionary<EnumCasterDelegate>                       sEnumCasters                       = new TypeKeyedDictionary<EnumCasterDelegate>();
 		private static          TypeKeyedDictionary<DeserializationConstructorCallerDelegate> sDeserializationConstructorCallers = new TypeKeyedDictionary<DeserializationConstructorCallerDelegate>();
+
+		/// <summary>
+		/// Gets a value indicating whether the serializer is currently deserializing an object that was serialized
+		/// on a little endian system.
+		/// </summary>
+		public bool IsDeserializingLittleEndian => mDeserializingLittleEndian;
 
 		/// <summary>
 		/// Deserializes an object from a stream.

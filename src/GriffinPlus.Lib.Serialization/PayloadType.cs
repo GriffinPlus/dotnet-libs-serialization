@@ -255,11 +255,6 @@ namespace GriffinPlus.Lib.Serialization
 		ArrayOfString,
 
 		/// <summary>
-		/// An one-dimensional, zero-based array of <see cref="System.DateTime"/>.
-		/// </summary>
-		ArrayOfDateTime,
-
-		/// <summary>
 		/// An one-dimensional, zero-based array of serializable objects.
 		/// </summary>
 		ArrayOfObjects,
@@ -343,11 +338,6 @@ namespace GriffinPlus.Lib.Serialization
 		/// A multi-dimensional array of <see cref="System.String"/>.
 		/// </summary>
 		MultidimensionalArrayOfString,
-
-		/// <summary>
-		/// A multi-dimensional array of <see cref="System.DateTime"/>.
-		/// </summary>
-		MultidimensionalArrayOfDateTime,
 
 		/// <summary>
 		/// A multi-dimensional array of serializable objects.
