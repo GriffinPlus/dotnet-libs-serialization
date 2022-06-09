@@ -3,21 +3,18 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// ReSharper disable NonReadonlyMemberInGetHashCode
+
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-
-// ReSharper disable NonReadonlyMemberInGetHashCode
 
 namespace GriffinPlus.Lib.Serialization.Tests
 {
 
-	public partial class SerializerTests
+	public partial class SerializerTests_Base
 	{
-		[InternalObjectSerializer(1)]
-		public class TestClassWithInternalObjectSerializer : IInternalObjectSerializer
+		public class TestClassWithExternalObjectSerializer
 		{
 			internal bool           BooleanFalse                 { get; set; }
 			internal bool           BooleanTrue                  { get; set; }
@@ -53,7 +50,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			internal byte[]         Buffer1                      { get; set; }
 			internal byte[]         Buffer2                      { get; set; }
 
-			public TestClassWithInternalObjectSerializer()
+			public TestClassWithExternalObjectSerializer()
 			{
 				BooleanFalse = false;
 				BooleanTrue = true;
@@ -88,111 +85,6 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				SerializableObject = new List<int> { 1, 2, 3, 4, 5 };
 				Buffer1 = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 				Buffer2 = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-			}
-
-			public unsafe TestClassWithInternalObjectSerializer(DeserializationArchive archive)
-			{
-				if (archive.Version == 1)
-				{
-					BooleanFalse = archive.ReadBoolean();
-					BooleanTrue = archive.ReadBoolean();
-					Char = archive.ReadChar();
-					SByte = archive.ReadSByte();
-					Byte = archive.ReadByte();
-					Int16 = archive.ReadInt16();
-					UInt16 = archive.ReadUInt16();
-					Int32 = archive.ReadInt32();
-					UInt32 = archive.ReadUInt32();
-					Int64 = archive.ReadInt64();
-					UInt64 = archive.ReadUInt64();
-					Single = archive.ReadSingle();
-					Double = archive.ReadDouble();
-					Decimal = archive.ReadDecimal();
-					String = archive.ReadString();
-					DateTime = archive.ReadDateTime();
-					DateTimeOffset = archive.ReadDateTimeOffset();
-					Guid = archive.ReadGuid();
-					NonGenericType = archive.ReadType();
-					GenericTypeDefinition = archive.ReadType();
-					ClosedConstructedGenericType = archive.ReadType();
-					NullReference = archive.ReadObject();
-					Enum_S8 = archive.ReadEnum<TestEnum_S8>();
-					Enum_U8 = archive.ReadEnum<TestEnum_U8>();
-					Enum_S16 = archive.ReadEnum<TestEnum_S16>();
-					Enum_U16 = archive.ReadEnum<TestEnum_U16>();
-					Enum_S32 = archive.ReadEnum<TestEnum_S32>();
-					Enum_U32 = archive.ReadEnum<TestEnum_U32>();
-					Enum_S64 = archive.ReadEnum<TestEnum_S64>();
-					Enum_U64 = archive.ReadEnum<TestEnum_U64>();
-					SerializableObject = (List<int>)archive.ReadObject();
-
-					// deserialize buffer via pointer
-					int buffer1Size = archive.ReadInt32();
-					Buffer1 = new byte[buffer1Size];
-					fixed (byte* pBuffer = &Buffer1[0]) archive.ReadBuffer(pBuffer, buffer1Size);
-
-					// deserialize buffer via Stream
-					int buffer2Size = archive.ReadInt32();
-					var stream = archive.ReadStream();
-					Buffer2 = new byte[buffer2Size];
-					int readByteCount = stream.Read(Buffer2, 0, Buffer2.Length);
-					stream.Dispose();
-					Debug.Assert(readByteCount == Buffer2.Length);
-					Debug.Assert(stream.Length == Buffer2.Length);
-				}
-				else
-				{
-					throw new VersionNotSupportedException(archive);
-				}
-			}
-
-			public unsafe void Serialize(SerializationArchive archive)
-			{
-				if (archive.Version == 1)
-				{
-					archive.Write(BooleanFalse);
-					archive.Write(BooleanTrue);
-					archive.Write(Char);
-					archive.Write(SByte);
-					archive.Write(Byte);
-					archive.Write(Int16);
-					archive.Write(UInt16);
-					archive.Write(Int32);
-					archive.Write(UInt32);
-					archive.Write(Int64);
-					archive.Write(UInt64);
-					archive.Write(Single);
-					archive.Write(Double);
-					archive.Write(Decimal);
-					archive.Write(String);
-					archive.Write(DateTime);
-					archive.Write(DateTimeOffset);
-					archive.Write(Guid);
-					archive.Write(NonGenericType);
-					archive.Write(GenericTypeDefinition);
-					archive.Write(ClosedConstructedGenericType);
-					archive.Write(NullReference);
-					archive.Write(Enum_S8);
-					archive.Write(Enum_U8);
-					archive.Write(Enum_S16);
-					archive.Write(Enum_U16);
-					archive.Write(Enum_S32);
-					archive.Write(Enum_U32);
-					archive.Write(Enum_S64);
-					archive.Write(Enum_U64);
-					archive.Write(SerializableObject);
-
-					// serialize buffer via pointer
-					archive.Write(Buffer1.Length);
-					fixed (byte* pBuffer = &Buffer1[0]) archive.Write(pBuffer, Buffer1.Length);
-
-					// serializer buffer via stream
-					archive.Write(Buffer2.Length);
-					archive.Write(new MemoryStream(Buffer2));
-					return;
-				}
-
-				throw new VersionNotSupportedException(archive);
 			}
 
 			public override int GetHashCode()
@@ -231,11 +123,12 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					hashCode = (hashCode * 397) ^ Enum_U64.GetHashCode();
 					hashCode = (hashCode * 397) ^ SerializableObject.GetHashCode();
 					hashCode = (hashCode * 397) ^ ByteArrayEqualityComparer.GetHashCode(Buffer1);
+					hashCode = (hashCode * 397) ^ ByteArrayEqualityComparer.GetHashCode(Buffer2);
 					return hashCode;
 				}
 			}
 
-			protected bool Equals(TestClassWithInternalObjectSerializer other)
+			protected bool Equals(TestClassWithExternalObjectSerializer other)
 			{
 				return BooleanFalse == other.BooleanFalse &&
 				       BooleanTrue == other.BooleanTrue &&
@@ -268,12 +161,14 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				       Enum_S64 == other.Enum_S64 &&
 				       Enum_U64 == other.Enum_U64 &&
 				       SerializableObject.SequenceEqual(other.SerializableObject) &&
-				       ByteArrayEqualityComparer.AreEqual(Buffer1, other.Buffer1);
+				       ByteArrayEqualityComparer.AreEqual(Buffer1, other.Buffer1) &&
+				       ByteArrayEqualityComparer.AreEqual(Buffer2, other.Buffer2);
 			}
 
 			public override bool Equals(object obj)
 			{
-				if (!(obj is TestClassWithInternalObjectSerializer other)) return false;
+				var other = obj as TestClassWithExternalObjectSerializer;
+				if (other == null) return false;
 				return Equals(other);
 			}
 		}

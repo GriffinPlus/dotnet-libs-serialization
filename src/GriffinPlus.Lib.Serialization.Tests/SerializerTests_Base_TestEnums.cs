@@ -6,7 +6,7 @@
 namespace GriffinPlus.Lib.Serialization.Tests
 {
 
-	public partial class SerializerTests
+	public partial class SerializerTests_Base
 	{
 		public enum TestEnum_S8 : sbyte
 		{

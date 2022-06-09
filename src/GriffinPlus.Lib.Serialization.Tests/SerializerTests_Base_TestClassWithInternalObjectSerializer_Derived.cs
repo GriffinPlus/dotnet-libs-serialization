@@ -10,7 +10,7 @@
 namespace GriffinPlus.Lib.Serialization.Tests
 {
 
-	public partial class SerializerTests
+	public partial class SerializerTests_Base
 	{
 		[InternalObjectSerializer(1)]
 		public class TestClassWithInternalObjectSerializer_Derived : TestClassWithInternalObjectSerializer

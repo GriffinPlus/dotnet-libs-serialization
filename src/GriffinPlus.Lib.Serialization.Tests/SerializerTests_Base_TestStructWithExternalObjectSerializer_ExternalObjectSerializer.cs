@@ -12,7 +12,7 @@ using System.IO;
 namespace GriffinPlus.Lib.Serialization.Tests
 {
 
-	public partial class SerializerTests
+	public partial class SerializerTests_Base
 	{
 		[ExternalObjectSerializer(1)]
 		public class TestStructWithGenericObjectSerializer_ExternalObjectSerializer : ExternalObjectSerializer<TestStructWithExternalObjectSerializer>

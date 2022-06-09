@@ -15,7 +15,7 @@ using System.Linq;
 namespace GriffinPlus.Lib.Serialization.Tests
 {
 
-	public partial class SerializerTests
+	public partial class SerializerTests_Base
 	{
 		[InternalObjectSerializer(1)]
 		internal class GenericTestClassWithInternalObjectSerializer<T1, T2> : IInternalObjectSerializer

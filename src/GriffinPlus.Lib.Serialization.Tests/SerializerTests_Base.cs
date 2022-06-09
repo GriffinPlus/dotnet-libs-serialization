@@ -13,8 +13,18 @@ using Xunit;
 namespace GriffinPlus.Lib.Serialization.Tests
 {
 
-	public partial class SerializerTests
+	public abstract partial class SerializerTests_Base
 	{
+		#region Creating Serializer to Test
+
+		/// <summary>
+		/// Creates an instance of the <see cref="Serializer"/> class and configures it for the test.
+		/// </summary>
+		/// <returns>The <see cref="Serializer"/> instance to test.</returns>
+		protected abstract Serializer CreateSerializer();
+
+		#endregion
+
 		#region Boolean
 
 		/// <summary>
@@ -95,11 +105,13 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			var minValueField = type.GetField("MinValue");
 			var maxValueField = type.GetField("MaxValue");
-			object min = minValueField.GetValue(null);
-			object max = maxValueField.GetValue(null);
+			dynamic min = minValueField.GetValue(null);
+			dynamic max = maxValueField.GetValue(null);
+			dynamic mid = Convert.ChangeType((max + min) / 2, type);
 
 			object minCopy = SerializeAndDeserializeObject(min);
 			object maxCopy = SerializeAndDeserializeObject(max);
+			object midCopy = SerializeAndDeserializeObject(mid);
 
 			Assert.Equal(min, minCopy);
 			Assert.Equal(max, maxCopy);
@@ -128,7 +140,6 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			var maxValueField = type.GetField("MaxValue");
 			dynamic min = minValueField.GetValue(null);
 			dynamic max = maxValueField.GetValue(null);
-
 			dynamic mid = Convert.ChangeType((max + min) / 2, type);
 
 			dynamic array = Array.CreateInstance(type, 3);
@@ -815,10 +826,10 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		/// </summary>
 		/// <param name="obj">Object to copy.</param>
 		/// <returns>Copy of the specified object.</returns>
-		private static object SerializeAndDeserializeObject(object obj)
+		private object SerializeAndDeserializeObject(object obj)
 		{
 			var stream = new MemoryStream();
-			var serializer = new Serializer();
+			var serializer = CreateSerializer();
 			serializer.Serialize(stream, obj, null);
 			stream.Position = 0;
 			return serializer.Deserialize(stream, null);

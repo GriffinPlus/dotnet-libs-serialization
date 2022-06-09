@@ -9,7 +9,7 @@ using System.Collections.Generic;
 namespace GriffinPlus.Lib.Serialization.Tests
 {
 
-	public partial class SerializerTests
+	public partial class SerializerTests_Base
 	{
 		[InternalObjectSerializer(1)]
 		internal class GraphNodeWithInternalObjectSerializer : GraphNode, IInternalObjectSerializer

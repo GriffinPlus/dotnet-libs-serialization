@@ -10,7 +10,7 @@ using System.Diagnostics;
 namespace GriffinPlus.Lib.Serialization.Tests
 {
 
-	public partial class SerializerTests
+	public partial class SerializerTests_Base
 	{
 		[DebuggerDisplay("{Name}")]
 		public class GraphNode
