@@ -268,3 +268,6 @@ External object serializers **do not** need to be explicitly registered with the
 
 The serializer will throw a `GriffinPlus.Lib.Serialization.CyclicDependencyDetectedException` if it detects a cyclic dependency when serializing. If you really need cyclic dependencies in your type you can use a context object to pass references downstream.
 
+### No support for comparers in collections
+
+When serializing collections the serializer will not carry along comparers associated with them. This may lead to unexpected behavior, especially when expecting a deep copy to be identically. The copy of a collection will contain copies of the original collection's elements, but depending on the type of collection the behavior of the collection may differ. As long as collections are used with their default comparer everything will run as expected. Serializing a collection that has been created with a custom comparer is likely to behave differently.
