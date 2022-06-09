@@ -2482,7 +2482,7 @@ namespace GriffinPlus.Lib.Serialization
 			try
 			{
 				stream = GetPooledMemoryBlockStream();
-				serializer = GetPooledSerializer(false);
+				serializer = GetPooledSerializer(false, SerializationOptimization.Speed);
 				serializer.Serialize(stream, obj, serializationContext);
 				stream.Position = 0;
 				copy = serializer.Deserialize(stream, deserializationContext);
@@ -2547,7 +2547,7 @@ namespace GriffinPlus.Lib.Serialization
 			try
 			{
 				stream = GetPooledMemoryBlockStream();
-				serializer = GetPooledSerializer(false);
+				serializer = GetPooledSerializer(false, SerializationOptimization.Speed);
 				serializer.Serialize(stream, obj, serializationContext);
 				stream.Position = 0;
 				copy = serializer.Deserialize(stream, deserializationContext);
@@ -2632,7 +2632,7 @@ namespace GriffinPlus.Lib.Serialization
 			try
 			{
 				stream = GetPooledMemoryBlockStream();
-				serializer = GetPooledSerializer(false);
+				serializer = GetPooledSerializer(false, SerializationOptimization.Speed);
 				serializer.Serialize(stream, obj, serializationContext);
 				for (int i = 0; i < count; i++)
 				{
@@ -2662,10 +2662,19 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="context">Context object to pass to the serializer.</param>
 		public static void Serialize<T>(string filename, T obj, object context = null)
 		{
-			var serializer = new Serializer();
-			using (var fs = new FileStream(filename, FileMode.Create, FileAccess.Write, FileShare.None))
+			Serializer serializer = null;
+
+			try
 			{
-				serializer.Serialize(fs, obj, context);
+				serializer = GetPooledSerializer(true, SerializationOptimization.Size);
+				using (var fs = new FileStream(filename, FileMode.Create, FileAccess.Write, FileShare.None))
+				{
+					serializer.Serialize(fs, obj, context);
+				}
+			}
+			finally
+			{
+				ReturnSerializerToPool(serializer);
 			}
 		}
 
@@ -2678,10 +2687,19 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The deserialized object.</returns>
 		public static T Deserialize<T>(string filename, object context = null)
 		{
-			var serializer = new Serializer();
-			using (var fs = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read))
+			Serializer serializer = null;
+
+			try
 			{
-				return (T)serializer.Deserialize(fs, context);
+				serializer = GetPooledSerializer(true, SerializationOptimization.Size);
+				using (var fs = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read))
+				{
+					return (T)serializer.Deserialize(fs, context);
+				}
+			}
+			finally
+			{
+				ReturnSerializerToPool(serializer);
 			}
 		}
 
@@ -2794,16 +2812,25 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Gets a serializer from the pool.
 		/// </summary>
+		/// <param name="useTolerantDeserialization"><c>true</c> to enable tolerant deserialization; otherwise <c>false</c>.</param>
+		/// <param name="optimization">Determines whether the serializer optimizes for size or for speed.</param>
 		/// <returns>A serializer.</returns>
-		private static Serializer GetPooledSerializer(bool useTolerantDeserialization)
+		private static Serializer GetPooledSerializer(
+			bool                      useTolerantDeserialization,
+			SerializationOptimization optimization)
 		{
 			if (sSerializerPool.TryTake(out var serializer))
 			{
 				serializer.UseTolerantDeserialization = useTolerantDeserialization;
+				serializer.SerializationOptimization = optimization;
 				return serializer;
 			}
 
-			return new Serializer { UseTolerantDeserialization = useTolerantDeserialization };
+			return new Serializer
+			{
+				UseTolerantDeserialization = useTolerantDeserialization,
+				SerializationOptimization = optimization
+			};
 		}
 
 		/// <summary>
