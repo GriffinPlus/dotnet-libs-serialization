@@ -16,6 +16,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		private readonly byte[] mBuffer = new byte[20];
 
 		[Theory]
+		[InlineData(unchecked((int)0xFFFFFFFF), 1)]
 		[InlineData(unchecked((int)0xFFFFFFC0), 1)]
 		[InlineData(unchecked((int)0xFFFFFFBF), 2)]
 		[InlineData(unchecked((int)0xFFFFE000), 2)]
@@ -24,6 +25,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData(unchecked((int)0xFFEFFFFF), 4)]
 		[InlineData(unchecked((int)0xF8000000), 4)]
 		[InlineData(unchecked((int)0xF7FFFFFF), 5)]
+		[InlineData(unchecked((int)0x80000000), 5)]
 		[InlineData(0x0000003F, 1)]
 		[InlineData(0x00000040, 2)]
 		[InlineData(0x00001FFF, 2)]
@@ -32,6 +34,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData(0x00100000, 4)]
 		[InlineData(0x07FFFFFF, 4)]
 		[InlineData(0x08000000, 5)]
+		[InlineData(0x7FFFFFFF, 5)]
 		public void LEB128_Int32(int value, int byteCount)
 		{
 			int count1 = Leb128EncodingHelper.GetByteCount(value);
@@ -45,6 +48,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		}
 
 		[Theory]
+		[InlineData((uint)0x00000000, 1)]
 		[InlineData((uint)0x0000007F, 1)]
 		[InlineData((uint)0x00000080, 2)]
 		[InlineData((uint)0x00003FFF, 2)]
@@ -53,6 +57,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData((uint)0x00200000, 4)]
 		[InlineData((uint)0x0FFFFFFF, 4)]
 		[InlineData((uint)0x10000000, 5)]
+		[InlineData(0xFFFFFFFF, 5)]
 		public void LEB128_UInt32(uint value, int byteCount)
 		{
 			int count1 = Leb128EncodingHelper.GetByteCount(value);
@@ -66,6 +71,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		}
 
 		[Theory]
+		[InlineData(unchecked((long)0xFFFFFFFFFFFFFFFF), 1)]
 		[InlineData(unchecked((long)0xFFFFFFFFFFFFFFC0), 1)]
 		[InlineData(unchecked((long)0xFFFFFFFFFFFFFFBF), 2)]
 		[InlineData(unchecked((long)0xFFFFFFFFFFFFE000), 2)]
@@ -84,6 +90,8 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData(unchecked((long)0xFF7FFFFFFFFFFFFF), 9)]
 		[InlineData(unchecked((long)0xC000000000000000), 9)]
 		[InlineData(unchecked((long)0xBFFFFFFFFFFFFFFF), 10)]
+		[InlineData(unchecked((long)0x8000000000000000), 10)]
+		[InlineData((long)0x0000000000000000, 1)]
 		[InlineData((long)0x000000000000003F, 1)]
 		[InlineData((long)0x0000000000000040, 2)]
 		[InlineData((long)0x0000000000001FFF, 2)]
@@ -102,6 +110,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData(0x0080000000000000, 9)]
 		[InlineData(0x3FFFFFFFFFFFFFFF, 9)]
 		[InlineData(0x4000000000000000, 10)]
+		[InlineData(0x7fffffffffffffff, 10)]
 		public void LEB128_Int64(long value, int byteCount)
 		{
 			int count1 = Leb128EncodingHelper.GetByteCount(value);
@@ -115,6 +124,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		}
 
 		[Theory]
+		[InlineData((ulong)0x0000000000000000, 1)]
 		[InlineData((ulong)0x000000000000007F, 1)]
 		[InlineData((ulong)0x0000000000000080, 2)]
 		[InlineData((ulong)0x0000000000003FFF, 2)]
@@ -133,6 +143,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData((ulong)0x0100000000000000, 9)]
 		[InlineData((ulong)0x7FFFFFFFFFFFFFFF, 9)]
 		[InlineData(0x8000000000000000, 10)]
+		[InlineData(0xFFFFFFFFFFFFFFFF, 10)]
 		public void LEB128_UInt64(ulong value, int byteCount)
 		{
 			int count1 = Leb128EncodingHelper.GetByteCount(value);
