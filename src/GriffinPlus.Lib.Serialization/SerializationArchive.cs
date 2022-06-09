@@ -311,7 +311,7 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 
-		#region System.DateTime
+		#region System.DateTimeOffset
 
 		/// <summary>
 		/// Writes a <see cref="System.DateTimeOffset"/> value to the archive.
