@@ -441,16 +441,6 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteArray(array as decimal[], writer);
 				});
-			sSerializers.Add(
-				typeof(string[]),
-				(
-					serializer,
-					writer,
-					array,
-					context) =>
-				{
-					serializer.WriteArray(array as string[], writer);
-				});
 
 			// multidimensional arrays
 			sMultidimensionalArraySerializers.Add(
@@ -583,16 +573,6 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteMultidimensionalArrayOfDecimal(array as Array, writer);
 				});
-			sMultidimensionalArraySerializers.Add(
-				typeof(string),
-				(
-					serializer,
-					writer,
-					array,
-					context) =>
-				{
-					serializer.WriteMultidimensionalArrayOfString(array as Array, writer);
-				});
 		}
 
 		/// <summary>
@@ -658,7 +638,6 @@ namespace GriffinPlus.Lib.Serialization
 			sDeserializersByPayloadType[(int)PayloadType.ArrayOfSingle] = (serializer,          stream, context) => serializer.ReadArrayOfSingle(stream);
 			sDeserializersByPayloadType[(int)PayloadType.ArrayOfDouble] = (serializer,          stream, context) => serializer.ReadArrayOfDouble(stream);
 			sDeserializersByPayloadType[(int)PayloadType.ArrayOfDecimal] = (serializer,         stream, context) => serializer.ReadArrayOfDecimal(stream);
-			sDeserializersByPayloadType[(int)PayloadType.ArrayOfString] = (serializer,          stream, context) => serializer.ReadStringArray(stream);
 			sDeserializersByPayloadType[(int)PayloadType.ArrayOfObjects] = (serializer,         stream, context) => serializer.ReadArrayOfObjects(stream, context);
 
 			// multidimensional arrays
@@ -675,7 +654,6 @@ namespace GriffinPlus.Lib.Serialization
 			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfSingle] = (serializer,  stream, context) => serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(float), sizeof(float));
 			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfDouble] = (serializer,  stream, context) => serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(double), sizeof(double));
 			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfDecimal] = (serializer, stream, context) => serializer.ReadMultidimensionalArrayOfDecimal(stream);
-			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfString] = (serializer,  stream, context) => serializer.ReadMultidimensionalStringArray(stream);
 			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfObjects] = (serializer, stream, context) => serializer.ReadMultidimensionalArrayOfObjects(stream, context);
 
 			// generic type

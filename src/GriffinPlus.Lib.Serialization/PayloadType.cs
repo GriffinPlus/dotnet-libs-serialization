@@ -290,11 +290,6 @@ namespace GriffinPlus.Lib.Serialization
 		ArrayOfDecimal,
 
 		/// <summary>
-		/// An one-dimensional, zero-based array of <see cref="System.String"/>.
-		/// </summary>
-		ArrayOfString,
-
-		/// <summary>
 		/// An one-dimensional, zero-based array of serializable objects.
 		/// </summary>
 		ArrayOfObjects,
@@ -373,11 +368,6 @@ namespace GriffinPlus.Lib.Serialization
 		/// A multi-dimensional array of <see cref="System.Decimal"/>.
 		/// </summary>
 		MultidimensionalArrayOfDecimal,
-
-		/// <summary>
-		/// A multi-dimensional array of <see cref="System.String"/>.
-		/// </summary>
-		MultidimensionalArrayOfString,
 
 		/// <summary>
 		/// A multi-dimensional array of serializable objects.

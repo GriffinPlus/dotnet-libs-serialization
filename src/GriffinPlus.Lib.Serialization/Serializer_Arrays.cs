@@ -939,48 +939,6 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 
-		#region System.String
-
-		/// <summary>
-		/// Writes an array of <see cref="System.String"/> values (for arrays with zero-based indexing).
-		/// </summary>
-		/// <param name="array">Array to write.</param>
-		/// <param name="writer">Buffer writer to write the array to.</param>
-		private void WriteArray(string[] array, IBufferWriter<byte> writer)
-		{
-			// write payload type and array length
-			int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-			var buffer = writer.GetSpan(maxBufferSize);
-			int bufferIndex = 0;
-			buffer[bufferIndex++] = (byte)PayloadType.ArrayOfString;
-			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
-			writer.Advance(bufferIndex);
-
-			// assign an object id to the array before serializing its elements
-			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
-
-			// write array elements
-			foreach (string s in array)
-			{
-				if (s == null)
-				{
-					buffer = writer.GetSpan(1);
-					buffer[0] = (byte)PayloadType.NullReference;
-					writer.Advance(1);
-				}
-				else if (mSerializedObjectIdTable.TryGetValue(s, out uint id))
-				{
-					SerializeObjectId(writer, id);
-				}
-				else
-				{
-					WritePrimitive_String(s, writer);
-				}
-			}
-		}
-
-		#endregion
-
 		#region Other Objects
 
 		/// <summary>
@@ -1960,34 +1918,6 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 
-		#region System.String
-
-		/// <summary>
-		/// Reads an array of <see cref="System.String"/> from a stream (for arrays with zero-based indexing).
-		/// </summary>
-		/// <param name="stream">Stream to read the array from.</param>
-		/// <returns>The read array.</returns>
-		private string[] ReadStringArray(Stream stream)
-		{
-			// read array length and create an uninitialized array
-			int length = Leb128EncodingHelper.ReadInt32(stream);
-			string[] array = new string[length];
-
-			// assign an object id to the array before deserializing its elements
-			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
-
-			// deserialize array elements
-			for (int i = 0; i < length; i++)
-			{
-				object obj = InnerDeserialize(stream, null);
-				array[i] = (string)obj;
-			}
-
-			return array;
-		}
-
-		#endregion
-
 		#region Other Objects
 
 		/// <summary>
@@ -2134,62 +2064,6 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Writes a multidimensional array of <see cref="System.String"/> to a stream (for arrays with non-zero-based indexing and/or multiple dimensions).
-		/// </summary>
-		/// <param name="array">Array to serialize.</param>
-		/// <param name="writer">Buffer writer to write the array to.</param>
-		private void WriteMultidimensionalArrayOfString(Array array, IBufferWriter<byte> writer)
-		{
-			// write payload type and array dimensions
-			int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
-			var buffer = writer.GetSpan(maxBufferSize);
-			int bufferIndex = 0;
-			buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfString;
-			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
-			int[] indices = new int[array.Rank];
-			for (int i = 0; i < array.Rank; i++)
-			{
-				// ...dimension information...
-				indices[i] = array.GetLowerBound(i);
-				int count = array.GetLength(i);
-				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), indices[i]); // lower bound of the dimension
-				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
-			}
-
-			writer.Advance(bufferIndex);
-
-			// assign an object id to the array before serializing its elements
-			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
-
-			// serialize array elements
-			// ReSharper disable once ForCanBeConvertedToForeach
-			for (int i = 0; i < array.Length; i++)
-			{
-				string s = (string)array.GetValue(indices);
-
-				if (s != null)
-				{
-					if (mSerializedObjectIdTable.TryGetValue(s, out uint id))
-					{
-						SerializeObjectId(writer, id);
-					}
-					else
-					{
-						WritePrimitive_String(s, writer);
-					}
-				}
-				else
-				{
-					buffer = writer.GetSpan(1);
-					buffer[0] = (byte)PayloadType.NullReference;
-					writer.Advance(1);
-				}
-
-				IncrementArrayIndices(indices, array);
-			}
-		}
-
-		/// <summary>
 		/// Writes a multidimensional array of objects (for arrays with non-zero-based indexing and/or multiple dimensions).
 		/// </summary>
 		/// <param name="array">Array to serialize.</param>
@@ -2300,42 +2174,6 @@ namespace GriffinPlus.Lib.Serialization
 			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
-			return array;
-		}
-
-		/// <summary>
-		/// Reads an array of <see cref="System.String"/> from a stream (for arrays with non-zero-based indexing and/or multiple dimensions).
-		/// </summary>
-		/// <param name="stream">Stream to read the array from.</param>
-		/// <returns>The read array.</returns>
-		private Array ReadMultidimensionalStringArray(Stream stream)
-		{
-			// read header
-			int ranks = Leb128EncodingHelper.ReadInt32(stream);
-			int[] lowerBounds = new int[ranks];
-			int[] lengths = new int[ranks];
-			int[] indices = new int[ranks];
-			for (int i = 0; i < ranks; i++)
-			{
-				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
-				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
-				indices[i] = lowerBounds[i];
-			}
-
-			// create an array of strings
-			var array = Array.CreateInstance(typeof(string), lengths, lowerBounds);
-
-			// assign an object id to the array before deserializing its elements
-			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
-
-			// read array elements
-			for (int i = 0; i < array.Length; i++)
-			{
-				object obj = InnerDeserialize(stream, null);
-				array.SetValue(obj, indices);
-				IncrementArrayIndices(indices, array);
-			}
-
 			return array;
 		}
 
