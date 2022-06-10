@@ -20,6 +20,11 @@ namespace GriffinPlus.Lib.Serialization
 		NullReference,
 
 		/// <summary>
+		/// An object which was already serialized before.
+		/// </summary>
+		AlreadySerialized,
+
+		/// <summary>
 		/// A generic type (may be a generic type definition or a closed constructed generic type).
 		/// </summary>
 		GenericType,
@@ -33,6 +38,26 @@ namespace GriffinPlus.Lib.Serialization
 		/// A reference to a previously serialized type
 		/// </summary>
 		TypeId,
+
+		/// <summary>
+		/// A type object.
+		/// </summary>
+		TypeObject,
+
+		/// <summary>
+		/// An instance of <see cref="System.Object"/>.
+		/// </summary>
+		Object,
+
+		/// <summary>
+		/// A buffer.
+		/// </summary>
+		Buffer,
+
+		/// <summary>
+		/// An enumeration type.
+		/// </summary>
+		Enum,
 
 		/// <summary>
 		/// Start of a serializer archive.
@@ -49,10 +74,9 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		BaseArchiveStart, // archives containing base class data do not have an end tag
 
-		/// <summary>
-		/// A buffer.
-		/// </summary>
-		Buffer,
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// System.Boolean
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 		/// <summary>
 		/// A <see cref="System.Boolean"/> value being <c>false</c>.
@@ -65,126 +89,6 @@ namespace GriffinPlus.Lib.Serialization
 		BooleanTrue,
 
 		/// <summary>
-		/// A <see cref="System.Char"/> value (native encoding).
-		/// </summary>
-		Char_Native,
-
-		/// <summary>
-		/// A <see cref="System.Char"/> value (LEB128 encoding).
-		/// </summary>
-		Char_LEB128,
-
-		/// <summary>
-		/// A <see cref="System.SByte"/> value.
-		/// </summary>
-		SByte,
-
-		/// <summary>
-		/// A <see cref="System.Int16"/> value (native encoding).
-		/// </summary>
-		Int16_Native,
-
-		/// <summary>
-		/// A <see cref="System.Int16"/> value (LEB128 encoding).
-		/// </summary>
-		Int16_LEB128,
-
-		/// <summary>
-		/// A <see cref="System.Int32"/> value (native encoding).
-		/// </summary>
-		Int32_Native,
-
-		/// <summary>
-		/// A <see cref="System.Int32"/> value (LEB128 encoding).
-		/// </summary>
-		Int32_LEB128,
-
-		/// <summary>
-		/// A <see cref="System.Int64"/> value (native encoding).
-		/// </summary>
-		Int64_Native,
-
-		/// <summary>
-		/// A <see cref="System.Int64"/> value (LEB128 encoding).
-		/// </summary>
-		Int64_LEB128,
-
-		/// <summary>
-		/// A <see cref="System.Byte"/> value.
-		/// </summary>
-		Byte,
-
-		/// <summary>
-		/// A <see cref="System.UInt16"/> value (native encoding).
-		/// </summary>
-		UInt16_Native,
-
-		/// <summary>
-		/// A <see cref="System.UInt16"/> value (LEB128 encoding).
-		/// </summary>
-		UInt16_LEB128,
-
-		/// <summary>
-		/// A <see cref="System.UInt32"/> value (native encoding).
-		/// </summary>
-		UInt32_Native,
-
-		/// <summary>
-		/// A <see cref="System.UInt32"/> value (LEB128 encoding).
-		/// </summary>
-		UInt32_LEB128,
-
-		/// <summary>
-		/// A <see cref="System.UInt64"/> value (native encoding).
-		/// </summary>
-		UInt64_Native,
-
-		/// <summary>
-		/// A <see cref="System.UInt64"/> value (LEB128 encoding).
-		/// </summary>
-		UInt64_LEB128,
-
-		/// <summary>
-		/// A <see cref="System.Single"/> value.
-		/// </summary>
-		Single,
-
-		/// <summary>
-		/// A <see cref="System.Double"/> value.
-		/// </summary>
-		Double,
-
-		/// <summary>
-		/// A <see cref="System.Decimal"/> value.
-		/// </summary>
-		Decimal,
-
-		/// <summary>
-		/// A <see cref="System.String"/> value (UTF-8 encoding).
-		/// </summary>
-		String_UTF8,
-
-		/// <summary>
-		/// A <see cref="System.String"/> value (UTF-16 encoding, endianness depends on the system).
-		/// </summary>
-		String_UTF16,
-
-		/// <summary>
-		/// A <see cref="System.DateTime"/> value.
-		/// </summary>
-		DateTime,
-
-		/// <summary>
-		/// A <see cref="System.DateTimeOffset"/> value.
-		/// </summary>
-		DateTimeOffset,
-
-		/// <summary>
-		/// A <see cref="System.Guid"/> value.
-		/// </summary>
-		Guid,
-
-		/// <summary>
 		/// An one-dimensional, zero-based array of <see cref="System.Boolean"/> (native encoding).
 		/// </summary>
 		ArrayOfBoolean_Native,
@@ -193,6 +97,25 @@ namespace GriffinPlus.Lib.Serialization
 		/// An one-dimensional, zero-based array of <see cref="System.Boolean"/> (compact encoding)
 		/// </summary>
 		ArrayOfBoolean_Compact,
+
+		/// <summary>
+		/// A multi-dimensional array of <see cref="System.Boolean"/>.
+		/// </summary>
+		MultidimensionalArrayOfBoolean,
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// System.Char
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		/// <summary>
+		/// A <see cref="System.Char"/> value (native encoding).
+		/// </summary>
+		Char_Native,
+
+		/// <summary>
+		/// A <see cref="System.Char"/> value (LEB128 encoding).
+		/// </summary>
+		Char_LEB128,
 
 		/// <summary>
 		/// An one-dimensional, zero-based array of <see cref="System.Char"/> (native encoding).
@@ -205,9 +128,42 @@ namespace GriffinPlus.Lib.Serialization
 		ArrayOfChar_Compact,
 
 		/// <summary>
+		/// A multi-dimensional array of <see cref="System.Char"/>.
+		/// </summary>
+		MultidimensionalArrayOfChar,
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// System.SByte
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		/// <summary>
+		/// A <see cref="System.SByte"/> value.
+		/// </summary>
+		SByte,
+
+		/// <summary>
 		/// An one-dimensional, zero-based array of <see cref="System.SByte"/>.
 		/// </summary>
 		ArrayOfSByte,
+
+		/// <summary>
+		/// A multi-dimensional array of <see cref="System.SByte"/>.
+		/// </summary>
+		MultidimensionalArrayOfSByte,
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// System.Int16
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		/// <summary>
+		/// A <see cref="System.Int16"/> value (native encoding).
+		/// </summary>
+		Int16_Native,
+
+		/// <summary>
+		/// A <see cref="System.Int16"/> value (LEB128 encoding).
+		/// </summary>
+		Int16_LEB128,
 
 		/// <summary>
 		/// An one-dimensional, zero-based array of <see cref="System.Int16"/> (native encoding).
@@ -220,6 +176,25 @@ namespace GriffinPlus.Lib.Serialization
 		ArrayOfInt16_Compact,
 
 		/// <summary>
+		/// A multi-dimensional array of <see cref="System.Int16"/>.
+		/// </summary>
+		MultidimensionalArrayOfInt16,
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// System.Int32
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		/// <summary>
+		/// A <see cref="System.Int32"/> value (native encoding).
+		/// </summary>
+		Int32_Native,
+
+		/// <summary>
+		/// A <see cref="System.Int32"/> value (LEB128 encoding).
+		/// </summary>
+		Int32_LEB128,
+
+		/// <summary>
 		/// An one-dimensional, zero-based array of <see cref="System.Int32"/> (native encoding).
 		/// </summary>
 		ArrayOfInt32_Native,
@@ -228,6 +203,25 @@ namespace GriffinPlus.Lib.Serialization
 		/// An one-dimensional, zero-based array of <see cref="System.Int32"/> (compact encoding).
 		/// </summary>
 		ArrayOfInt32_Compact,
+
+		/// <summary>
+		/// A multi-dimensional array of <see cref="System.Int32"/>.
+		/// </summary>
+		MultidimensionalArrayOfInt32,
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// System.Int64
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		/// <summary>
+		/// A <see cref="System.Int64"/> value (native encoding).
+		/// </summary>
+		Int64_Native,
+
+		/// <summary>
+		/// A <see cref="System.Int64"/> value (LEB128 encoding).
+		/// </summary>
+		Int64_LEB128,
 
 		/// <summary>
 		/// An one-dimensional, zero-based array of <see cref="System.Int64"/> (native encoding).
@@ -240,9 +234,42 @@ namespace GriffinPlus.Lib.Serialization
 		ArrayOfInt64_Compact,
 
 		/// <summary>
+		/// A multi-dimensional array of <see cref="System.Int64"/>.
+		/// </summary>
+		MultidimensionalArrayOfInt64,
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// System.Byte
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		/// <summary>
+		/// A <see cref="System.Byte"/> value.
+		/// </summary>
+		Byte,
+
+		/// <summary>
 		/// An one-dimensional, zero-based array of <see cref="System.Byte"/>.
 		/// </summary>
 		ArrayOfByte,
+
+		/// <summary>
+		/// A multi-dimensional array of <see cref="System.Byte"/>.
+		/// </summary>
+		MultidimensionalArrayOfByte,
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// System.UInt16
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		/// <summary>
+		/// A <see cref="System.UInt16"/> value (native encoding).
+		/// </summary>
+		UInt16_Native,
+
+		/// <summary>
+		/// A <see cref="System.UInt16"/> value (LEB128 encoding).
+		/// </summary>
+		UInt16_LEB128,
 
 		/// <summary>
 		/// An one-dimensional, zero-based array of <see cref="System.UInt16"/> (native encoding).
@@ -255,6 +282,25 @@ namespace GriffinPlus.Lib.Serialization
 		ArrayOfUInt16_Compact,
 
 		/// <summary>
+		/// A multi-dimensional array of <see cref="System.UInt16"/>.
+		/// </summary>
+		MultidimensionalArrayOfUInt16,
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// System.UInt32
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		/// <summary>
+		/// A <see cref="System.UInt32"/> value (native encoding).
+		/// </summary>
+		UInt32_Native,
+
+		/// <summary>
+		/// A <see cref="System.UInt32"/> value (LEB128 encoding).
+		/// </summary>
+		UInt32_LEB128,
+
+		/// <summary>
 		/// An one-dimensional, zero-based array of <see cref="System.UInt32"/> (native encoding).
 		/// </summary>
 		ArrayOfUInt32_Native,
@@ -263,6 +309,25 @@ namespace GriffinPlus.Lib.Serialization
 		/// An one-dimensional, zero-based array of <see cref="System.UInt32"/> (compact encoding).
 		/// </summary>
 		ArrayOfUInt32_Compact,
+
+		/// <summary>
+		/// A multi-dimensional array of <see cref="System.UInt32"/>.
+		/// </summary>
+		MultidimensionalArrayOfUInt32,
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// System.UInt64
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		/// <summary>
+		/// A <see cref="System.UInt64"/> value (native encoding).
+		/// </summary>
+		UInt64_Native,
+
+		/// <summary>
+		/// A <see cref="System.UInt64"/> value (LEB128 encoding).
+		/// </summary>
+		UInt64_LEB128,
 
 		/// <summary>
 		/// An one-dimensional, zero-based array of <see cref="System.UInt64"/> (native encoding).
@@ -275,14 +340,56 @@ namespace GriffinPlus.Lib.Serialization
 		ArrayOfUInt64_Compact,
 
 		/// <summary>
-		/// An one-dimensional, zero-based array of <see cref="System.Single"/>.
+		/// A multi-dimensional array of <see cref="System.UInt64"/>.
+		/// </summary>
+		MultidimensionalArrayOfUInt64,
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// System.Single
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		/// <summary>
+		/// A <see cref="System.Single"/> value.
+		/// </summary>
+		Single,
+
+		/// <summary>
+		/// An one-dimensional, zero-based array of <see cref="System.Single"/> (native encoding).
 		/// </summary>
 		ArrayOfSingle,
 
 		/// <summary>
-		/// An one-dimensional, zero-based array of <see cref="System.Double"/>.
+		/// A multi-dimensional array of <see cref="System.Single"/> (native encoding).
+		/// </summary>
+		MultidimensionalArrayOfSingle,
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// System.Double
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		/// <summary>
+		/// A <see cref="System.Double"/> value.
+		/// </summary>
+		Double,
+
+		/// <summary>
+		/// An one-dimensional, zero-based array of <see cref="System.Double"/> (native encoding).
 		/// </summary>
 		ArrayOfDouble,
+
+		/// <summary>
+		/// A multi-dimensional array of <see cref="System.Double"/> (native encoding).
+		/// </summary>
+		MultidimensionalArrayOfDouble,
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// System.Decimal
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		/// <summary>
+		/// A <see cref="System.Decimal"/> value.
+		/// </summary>
+		Decimal,
 
 		/// <summary>
 		/// An one-dimensional, zero-based array of <see cref="System.Decimal"/>.
@@ -290,99 +397,68 @@ namespace GriffinPlus.Lib.Serialization
 		ArrayOfDecimal,
 
 		/// <summary>
-		/// An one-dimensional, zero-based array of serializable objects.
-		/// </summary>
-		ArrayOfObjects,
-
-		/// <summary>
-		/// An object which was already serialized before.
-		/// </summary>
-		AlreadySerialized,
-
-		/// <summary>
-		/// An enumeration type.
-		/// </summary>
-		Enum,
-
-		/// <summary>
-		/// A multi-dimensional array of <see cref="System.Boolean"/>.
-		/// </summary>
-		MultidimensionalArrayOfBoolean,
-
-		/// <summary>
-		/// A multi-dimensional array of <see cref="System.Char"/>.
-		/// </summary>
-		MultidimensionalArrayOfChar,
-
-		/// <summary>
-		/// A multi-dimensional array of <see cref="System.SByte"/>.
-		/// </summary>
-		MultidimensionalArrayOfSByte,
-
-		/// <summary>
-		/// A multi-dimensional array of <see cref="System.Int16"/>.
-		/// </summary>
-		MultidimensionalArrayOfInt16,
-
-		/// <summary>
-		/// A multi-dimensional array of <see cref="System.Int32"/>.
-		/// </summary>
-		MultidimensionalArrayOfInt32,
-
-		/// <summary>
-		/// A multi-dimensional array of <see cref="System.Int64"/>.
-		/// </summary>
-		MultidimensionalArrayOfInt64,
-
-		/// <summary>
-		/// A multi-dimensional array of <see cref="System.Byte"/>.
-		/// </summary>
-		MultidimensionalArrayOfByte,
-
-		/// <summary>
-		/// A multi-dimensional array of <see cref="System.UInt16"/>.
-		/// </summary>
-		MultidimensionalArrayOfUInt16,
-
-		/// <summary>
-		/// A multi-dimensional array of <see cref="System.UInt32"/>.
-		/// </summary>
-		MultidimensionalArrayOfUInt32,
-
-		/// <summary>
-		/// A multi-dimensional array of <see cref="System.UInt64"/>.
-		/// </summary>
-		MultidimensionalArrayOfUInt64,
-
-		/// <summary>
-		/// A multi-dimensional array of <see cref="System.Single"/>.
-		/// </summary>
-		MultidimensionalArrayOfSingle,
-
-		/// <summary>
-		/// A multi-dimensional array of <see cref="System.Double"/>.
-		/// </summary>
-		MultidimensionalArrayOfDouble,
-
-		/// <summary>
 		/// A multi-dimensional array of <see cref="System.Decimal"/>.
 		/// </summary>
 		MultidimensionalArrayOfDecimal,
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// System.String
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		/// <summary>
+		/// A <see cref="System.String"/> value (UTF-8 encoding).
+		/// </summary>
+		String_UTF8,
+
+		/// <summary>
+		/// A <see cref="System.String"/> value (UTF-16 encoding, endianness depends on the system).
+		/// </summary>
+		String_UTF16,
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// System.DateTime
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		/// <summary>
+		/// A <see cref="System.DateTime"/> value.
+		/// </summary>
+		DateTime,
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// System.DateTimeOffset
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		/// <summary>
+		/// A <see cref="System.DateTimeOffset"/> value.
+		/// </summary>
+		DateTimeOffset,
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// System.Guid
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		/// <summary>
+		/// A <see cref="System.Guid"/> value.
+		/// </summary>
+		Guid,
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// Arrays of serializable objects
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		/// <summary>
+		/// An one-dimensional, zero-based array of serializable objects.
+		/// </summary>
+		ArrayOfObjects,
 
 		/// <summary>
 		/// A multi-dimensional array of serializable objects.
 		/// </summary>
 		MultidimensionalArrayOfObjects,
 
-		/// <summary>
-		/// A type object.
-		/// </summary>
-		TypeObject,
-
-		/// <summary>
-		/// An instance of <see cref="System.Object"/>.
-		/// </summary>
-		Object,
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// End of the payload types
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 		/// <summary>
 		/// Terminator (last enumeration value + 1).
