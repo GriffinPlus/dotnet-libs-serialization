@@ -451,7 +451,7 @@ namespace GriffinPlus.Lib.Serialization
 					array,
 					context) =>
 				{
-					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfBoolean, array as Array, sizeof(bool), writer);
+					serializer.WriteMultidimensionalArrayOfBoolean(array as Array, writer);
 				});
 			sMultidimensionalArraySerializers.Add(
 				typeof(char),
@@ -461,7 +461,7 @@ namespace GriffinPlus.Lib.Serialization
 					array,
 					context) =>
 				{
-					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfChar, array as Array, sizeof(char), writer);
+					serializer.WriteMultidimensionalArrayOfChar(array as Array, writer);
 				});
 			sMultidimensionalArraySerializers.Add(
 				typeof(sbyte),
@@ -471,7 +471,7 @@ namespace GriffinPlus.Lib.Serialization
 					array,
 					context) =>
 				{
-					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfSByte, array as Array, sizeof(sbyte), writer);
+					serializer.WriteMultidimensionalArrayOfSByte(array as Array, writer);
 				});
 			sMultidimensionalArraySerializers.Add(
 				typeof(short),
@@ -481,7 +481,7 @@ namespace GriffinPlus.Lib.Serialization
 					array,
 					context) =>
 				{
-					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfInt16, array as Array, sizeof(short), writer);
+					serializer.WriteMultidimensionalArrayOfInt16(array as Array, writer);
 				});
 			sMultidimensionalArraySerializers.Add(
 				typeof(int),
@@ -491,7 +491,7 @@ namespace GriffinPlus.Lib.Serialization
 					array,
 					context) =>
 				{
-					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfInt32, array as Array, sizeof(int), writer);
+					serializer.WriteMultidimensionalArrayOfInt32(array as Array, writer);
 				});
 			sMultidimensionalArraySerializers.Add(
 				typeof(long),
@@ -501,7 +501,7 @@ namespace GriffinPlus.Lib.Serialization
 					array,
 					context) =>
 				{
-					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfInt64, array as Array, sizeof(long), writer);
+					serializer.WriteMultidimensionalArrayOfInt64(array as Array, writer);
 				});
 			sMultidimensionalArraySerializers.Add(
 				typeof(byte),
@@ -511,7 +511,7 @@ namespace GriffinPlus.Lib.Serialization
 					array,
 					context) =>
 				{
-					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfByte, array as Array, sizeof(byte), writer);
+					serializer.WriteMultidimensionalArrayOfByte(array as Array, writer);
 				});
 			sMultidimensionalArraySerializers.Add(
 				typeof(ushort),
@@ -521,7 +521,7 @@ namespace GriffinPlus.Lib.Serialization
 					array,
 					context) =>
 				{
-					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfUInt16, array as Array, sizeof(ushort), writer);
+					serializer.WriteMultidimensionalArrayOfUInt16(array as Array, writer);
 				});
 			sMultidimensionalArraySerializers.Add(
 				typeof(uint),
@@ -531,7 +531,7 @@ namespace GriffinPlus.Lib.Serialization
 					array,
 					context) =>
 				{
-					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfUInt32, array as Array, sizeof(uint), writer);
+					serializer.WriteMultidimensionalArrayOfUInt32(array as Array, writer);
 				});
 			sMultidimensionalArraySerializers.Add(
 				typeof(ulong),
@@ -541,7 +541,7 @@ namespace GriffinPlus.Lib.Serialization
 					array,
 					context) =>
 				{
-					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfUInt64, array as Array, sizeof(ulong), writer);
+					serializer.WriteMultidimensionalArrayOfUInt64(array as Array, writer);
 				});
 			sMultidimensionalArraySerializers.Add(
 				typeof(float),
@@ -551,7 +551,7 @@ namespace GriffinPlus.Lib.Serialization
 					array,
 					context) =>
 				{
-					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfSingle, array as Array, sizeof(float), writer);
+					serializer.WriteMultidimensionalArrayOfSingle(array as Array, writer);
 				});
 			sMultidimensionalArraySerializers.Add(
 				typeof(double),
@@ -561,7 +561,7 @@ namespace GriffinPlus.Lib.Serialization
 					array,
 					context) =>
 				{
-					serializer.WriteMultidimensionalArrayOfPrimitives(PayloadType.MultidimensionalArrayOfDouble, array as Array, sizeof(double), writer);
+					serializer.WriteMultidimensionalArrayOfDouble(array as Array, writer);
 				});
 			sMultidimensionalArraySerializers.Add(
 				typeof(decimal),
@@ -641,20 +641,28 @@ namespace GriffinPlus.Lib.Serialization
 			sDeserializersByPayloadType[(int)PayloadType.ArrayOfObjects] = (serializer,         stream, context) => serializer.ReadArrayOfObjects(stream, context);
 
 			// multidimensional arrays
-			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfBoolean] = (serializer, stream, context) => serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(bool), sizeof(bool));
-			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfChar] = (serializer,    stream, context) => serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(char), sizeof(char));
-			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfSByte] = (serializer,   stream, context) => serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(sbyte), sizeof(sbyte));
-			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfInt16] = (serializer,   stream, context) => serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(short), sizeof(short));
-			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfInt32] = (serializer,   stream, context) => serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(int), sizeof(int));
-			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfInt64] = (serializer,   stream, context) => serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(long), sizeof(long));
-			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfByte] = (serializer,    stream, context) => serializer.DeserializeMultidimensionalByteArray(stream);
-			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfUInt16] = (serializer,  stream, context) => serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(ushort), sizeof(ushort));
-			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfUInt32] = (serializer,  stream, context) => serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(uint), sizeof(uint));
-			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfUInt64] = (serializer,  stream, context) => serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(ulong), sizeof(ulong));
-			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfSingle] = (serializer,  stream, context) => serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(float), sizeof(float));
-			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfDouble] = (serializer,  stream, context) => serializer.ReadMultidimensionalArrayOfPrimitives(stream, typeof(double), sizeof(double));
-			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfDecimal] = (serializer, stream, context) => serializer.ReadMultidimensionalArrayOfDecimal(stream);
-			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfObjects] = (serializer, stream, context) => serializer.ReadMultidimensionalArrayOfObjects(stream, context);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfBoolean_Native] = (serializer,  stream, context) => serializer.ReadMultidimensionalArrayOfBoolean_Native(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfBoolean_Compact] = (serializer, stream, context) => serializer.ReadMultidimensionalArrayOfBoolean_Compact(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfChar_Native] = (serializer,     stream, context) => serializer.ReadMultidimensionalArrayOfChar_Native(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfChar_Compact] = (serializer,    stream, context) => serializer.ReadMultidimensionalArrayOfChar_Compact(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfSByte] = (serializer,           stream, context) => serializer.ReadMultidimensionalArrayOfSByte(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfInt16_Native] = (serializer,    stream, context) => serializer.ReadMultidimensionalArrayOfInt16_Native(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfInt16_Compact] = (serializer,   stream, context) => serializer.ReadMultidimensionalArrayOfInt16_Compact(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfInt32_Native] = (serializer,    stream, context) => serializer.ReadMultidimensionalArrayOfInt32_Native(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfInt32_Compact] = (serializer,   stream, context) => serializer.ReadMultidimensionalArrayOfInt32_Compact(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfInt64_Native] = (serializer,    stream, context) => serializer.ReadMultidimensionalArrayOfInt64_Native(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfInt64_Compact] = (serializer,   stream, context) => serializer.ReadMultidimensionalArrayOfInt64_Compact(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfByte] = (serializer,            stream, context) => serializer.DeserializeMultidimensionalArrayOfByte(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfUInt16_Native] = (serializer,   stream, context) => serializer.ReadMultidimensionalArrayOfUInt16_Native(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfUInt16_Compact] = (serializer,  stream, context) => serializer.ReadMultidimensionalArrayOfUInt16_Compact(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfUInt32_Native] = (serializer,   stream, context) => serializer.ReadMultidimensionalArrayOfUInt32_Native(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfUInt32_Compact] = (serializer,  stream, context) => serializer.ReadMultidimensionalArrayOfUInt32_Compact(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfUInt64_Native] = (serializer,   stream, context) => serializer.ReadMultidimensionalArrayOfUInt64_Native(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfUInt64_Compact] = (serializer,  stream, context) => serializer.ReadMultidimensionalArrayOfUInt64_Compact(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfSingle] = (serializer,          stream, context) => serializer.ReadMultidimensionalArrayOfSingle(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfDouble] = (serializer,          stream, context) => serializer.ReadMultidimensionalArrayOfDouble(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfDecimal] = (serializer,         stream, context) => serializer.ReadMultidimensionalArrayOfDecimal(stream);
+			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfObjects] = (serializer,         stream, context) => serializer.ReadMultidimensionalArrayOfObjects(stream, context);
 
 			// generic type
 			sDeserializersByPayloadType[(int)PayloadType.GenericType] = (serializer, stream, context) =>

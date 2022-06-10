@@ -5,6 +5,7 @@
 
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -1847,14 +1848,614 @@ namespace GriffinPlus.Lib.Serialization
 
 		#region Serialization of MDARRAYs (Multiple Dimensions and/or Non-Zero-Based Indexing)
 
-		#region System.Byte
+		#region System.Boolean
 
 		/// <summary>
-		/// Reads an array of <see cref="System.Byte"/> from a stream (for arrays with non-zero-based indexing and/or multiple dimensions)
+		/// Writes an array of <see cref="System.Boolean"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions).
+		/// </summary>
+		/// <param name="array">Array to write.</param>
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private unsafe void WriteMultidimensionalArrayOfBoolean(Array array, IBufferWriter<byte> writer)
+		{
+			const int elementSize = sizeof(bool);
+
+			// pin array in memory and get a pointer to it
+			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			bool* pArray = (bool*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+			Debug.Assert(pArray != null);
+
+			try
+			{
+				if (SerializationOptimization == SerializationOptimization.Speed)
+				{
+					// optimization for speed
+					// => all elements should be written using native encoding
+
+					// write payload type and array dimensions
+					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
+					var buffer = writer.GetSpan(maxBufferSize);
+					int bufferIndex = 0;
+					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfBoolean_Native;
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+					for (int i = 0; i < array.Rank; i++)
+					{
+						// ...dimension information...
+						int lowerBound = array.GetLowerBound(i);
+						int count = array.GetLength(i);
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+					}
+
+					writer.Advance(bufferIndex);
+
+					// write array elements
+					int fromIndex = 0;
+					while (fromIndex < array.Length)
+					{
+						int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+						int bytesToCopy = elementsToCopy * elementSize;
+						buffer = writer.GetSpan(bytesToCopy);
+						new Span<byte>(pArray + fromIndex, bytesToCopy).CopyTo(buffer);
+						writer.Advance(bytesToCopy);
+						fromIndex += elementsToCopy;
+					}
+				}
+				else
+				{
+					// optimization for size
+					// => use compact encoding
+
+					// write payload type and array dimensions
+					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
+					var buffer = writer.GetSpan(maxBufferSize);
+					int bufferIndex = 0;
+					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfBoolean_Compact;
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+					for (int i = 0; i < array.Rank; i++)
+					{
+						// ...dimension information...
+						int lowerBound = array.GetLowerBound(i);
+						int count = array.GetLength(i);
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+					}
+
+					writer.Advance(bufferIndex);
+
+					// write array elements
+					byte byteToWrite = 0;
+					for (int i = 0; i < array.Length; i++)
+					{
+						bool value = pArray[i];
+
+						if (value) byteToWrite |= (byte)(1 << (i % 8));
+						if (i % 8 == 7)
+						{
+							var valueBuffer = writer.GetSpan(elementSize);
+							valueBuffer[0] = byteToWrite;
+							writer.Advance(elementSize);
+							byteToWrite = 0;
+						}
+					}
+
+					if (array.Length % 8 != 0)
+					{
+						var valueBuffer = writer.GetSpan(elementSize);
+						valueBuffer[0] = byteToWrite;
+						writer.Advance(elementSize);
+					}
+				}
+			}
+			finally
+			{
+				// release GC handle to array
+				arrayGcHandle.Free();
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.Boolean"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, native encoding).
 		/// </summary>
 		/// <param name="stream">Stream to read the array from.</param>
 		/// <returns>The read array.</returns>
-		private Array DeserializeMultidimensionalByteArray(Stream stream)
+		private Array ReadMultidimensionalArrayOfBoolean_Native(Stream stream)
+		{
+			const int elementSize = sizeof(bool);
+
+			// read header
+			int totalCount = 1;
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
+			int[] lowerBounds = new int[ranks];
+			int[] lengths = new int[ranks];
+			for (int i = 0; i < ranks; i++)
+			{
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
+				totalCount *= lengths[i];
+			}
+
+			// create an array with the specified size
+			var array = Array.CreateInstance(typeof(bool), lengths, lowerBounds);
+
+			// read array data data into temporary buffer, then copy into the final array
+			// => avoids pinning the array while reading from the stream
+			//    (can have a negative impact on the performance of the garbage collector)
+			int bytesToRead = totalCount * elementSize;
+			EnsureTemporaryByteBufferSize(bytesToRead);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, bytesToRead);
+
+			// assign an object id to the array to allow referencing it later on
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			return array;
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.Boolean"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, compact encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the array from.</param>
+		/// <returns>The read array.</returns>
+		private Array ReadMultidimensionalArrayOfBoolean_Compact(Stream stream)
+		{
+			// read header
+			int totalCount = 1;
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
+			int[] lowerBounds = new int[ranks];
+			int[] lengths = new int[ranks];
+			int[] indices = new int[ranks];
+			for (int i = 0; i < ranks; i++)
+			{
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
+				indices[i] = lowerBounds[i];
+				totalCount *= lengths[i];
+			}
+
+			// create array of the specified type
+			var array = Array.CreateInstance(typeof(bool), lengths, lowerBounds);
+
+			// read compacted boolean array
+			int compactedArrayLength = (totalCount + 7) / 8;
+			EnsureTemporaryByteBufferSize(compactedArrayLength);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, compactedArrayLength);
+			if (bytesRead < compactedArrayLength) throw new SerializationException("Unexpected end of stream.");
+
+			// build boolean array to return
+			for (int i = 0; i < totalCount; i++)
+			{
+				bool value = (TempBuffer_Buffer[i / 8] & (byte)(1 << (i % 8))) != 0;
+				array.SetValue(value, indices);
+				IncrementArrayIndices(indices, array);
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			return array;
+		}
+
+		#endregion
+
+		#region System.Char
+
+		/// <summary>
+		/// Writes an array of <see cref="System.Char"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions).
+		/// </summary>
+		/// <param name="array">Array to write.</param>
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private unsafe void WriteMultidimensionalArrayOfChar(Array array, IBufferWriter<byte> writer)
+		{
+			const int elementSize = sizeof(char);
+
+			// pin array in memory and get a pointer to it
+			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			char* pArray = (char*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+			Debug.Assert(pArray != null);
+
+			try
+			{
+				if (SerializationOptimization == SerializationOptimization.Speed)
+				{
+					// optimization for speed
+					// => all elements should be written using native encoding
+
+					// write payload type and array dimensions
+					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
+					var buffer = writer.GetSpan(maxBufferSize);
+					int bufferIndex = 0;
+					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfChar_Native;
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+					for (int i = 0; i < array.Rank; i++)
+					{
+						// ...dimension information...
+						int lowerBound = array.GetLowerBound(i);
+						int count = array.GetLength(i);
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+					}
+
+					writer.Advance(bufferIndex);
+
+					// write array elements
+					int fromIndex = 0;
+					while (fromIndex < array.Length)
+					{
+						int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+						int bytesToCopy = elementsToCopy * elementSize;
+						buffer = writer.GetSpan(bytesToCopy);
+						new Span<byte>(pArray + fromIndex, bytesToCopy).CopyTo(buffer);
+						writer.Advance(bytesToCopy);
+						fromIndex += elementsToCopy;
+					}
+				}
+				else
+				{
+					// optimization for size
+					// => choose best encoding for every element 
+
+					// choose encoding and store the decision bitwise
+					// (bitwise, 0 = native encoding, 1 = LEB128 encoding, C# initializes the memory to zero)
+					Span<byte> encoding = stackalloc byte[(array.Length + 7) / 8];
+					for (int i = 0; i < array.Length; i++)
+					{
+						char value = pArray[i];
+
+						// pre-initialization indicates to use native encoding
+						// => set bits that indicate LEB128 encoding
+						if (IsLeb128EncodingMoreEfficient(value))
+						{
+							// use LEB128 encoding for this element
+							encoding[i / 8] |= (byte)(1 << (i % 8));
+						}
+					}
+
+					// write payload type, array dimensions and encoding
+					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
+					var buffer = writer.GetSpan(maxBufferSize);
+					int bufferIndex = 0;
+					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfChar_Compact;
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+					for (int i = 0; i < array.Rank; i++)
+					{
+						// ...dimension information...
+						int lowerBound = array.GetLowerBound(i);
+						int count = array.GetLength(i);
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+					}
+
+					encoding.CopyTo(buffer.Slice(bufferIndex));
+					bufferIndex += encoding.Length;
+					writer.Advance(bufferIndex);
+
+					// write array elements
+					for (int i = 0; i < array.Length; i++)
+					{
+						char value = pArray[i];
+
+						if (IsLeb128EncodingMoreEfficient(value))
+						{
+							// use LEB128 encoding
+							var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
+							int count = Leb128EncodingHelper.Write(valueBuffer, (uint)value);
+							writer.Advance(count);
+						}
+						else
+						{
+							// use native encoding
+							var valueBuffer = writer.GetSpan(elementSize);
+							MemoryMarshal.Write(valueBuffer, ref value);
+							writer.Advance(elementSize);
+						}
+					}
+				}
+			}
+			finally
+			{
+				// release GC handle to array
+				arrayGcHandle.Free();
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.Char"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, native encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the array from.</param>
+		/// <returns>The read array.</returns>
+		private unsafe Array ReadMultidimensionalArrayOfChar_Native(Stream stream)
+		{
+			const int elementSize = sizeof(char);
+
+			// read header
+			int totalCount = 1;
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
+			int[] lowerBounds = new int[ranks];
+			int[] lengths = new int[ranks];
+			for (int i = 0; i < ranks; i++)
+			{
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
+				totalCount *= lengths[i];
+			}
+
+			// create an array with the specified size
+			var array = Array.CreateInstance(typeof(char), lengths, lowerBounds);
+
+			// read array data data into temporary buffer, then copy into the final array
+			// => avoids pinning the array while reading from the stream
+			//    (can have a negative impact on the performance of the garbage collector)
+			int bytesToRead = totalCount * elementSize;
+			EnsureTemporaryByteBufferSize(bytesToRead);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, bytesToRead);
+
+			// swap bytes if the endianness of the system that has serialized the array is different
+			// from the current system
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			{
+				var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+				char* pArray = (char*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+				Debug.Assert(pArray != null);
+				for (int i = 0; i < totalCount; i++) EndiannessHelper.SwapBytes(ref pArray[i]);
+				arrayGcHandle.Free();
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			return array;
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.Char"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, compact encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the array from.</param>
+		/// <returns>The read array.</returns>
+		private Array ReadMultidimensionalArrayOfChar_Compact(Stream stream)
+		{
+			int elementSize = sizeof(char);
+
+			// read header
+			int totalCount = 1;
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
+			int[] lowerBounds = new int[ranks];
+			int[] lengths = new int[ranks];
+			int[] indices = new int[ranks];
+			for (int i = 0; i < ranks; i++)
+			{
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
+				indices[i] = lowerBounds[i];
+				totalCount *= lengths[i];
+			}
+
+			// read encoding information
+			int bytesToRead = (totalCount + 7) / 8;
+			EnsureTemporaryByteBufferSize(bytesToRead + elementSize);
+			int bytesRead = stream.Read(TempBuffer_Buffer, elementSize, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+
+			// create an array with the specified size
+			var array = Array.CreateInstance(typeof(char), lengths, lowerBounds);
+
+			// read array elements
+			for (int i = 0; i < totalCount; i++)
+			{
+				bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
+
+				if (useLeb128Encoding)
+				{
+					// use LEB128 encoding
+					array.SetValue((char)Leb128EncodingHelper.ReadUInt32(stream), indices);
+				}
+				else
+				{
+					// use native encoding
+					// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
+					bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+					if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+					char value = BitConverter.ToChar(TempBuffer_Buffer, 0);
+
+					// swap bytes if the endianness of the system that has serialized the value is different
+					// from the current system
+					if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+						EndiannessHelper.SwapBytes(ref value);
+
+					// store value in array
+					array.SetValue(value, indices);
+				}
+
+				IncrementArrayIndices(indices, array);
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			return array;
+		}
+
+		#endregion
+
+		#region System.SByte
+
+		/// <summary>
+		/// Writes an array of <see cref="System.SByte"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions).
+		/// </summary>
+		/// <param name="array">Array to write.</param>
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private unsafe void WriteMultidimensionalArrayOfSByte(Array array, IBufferWriter<byte> writer)
+		{
+			const int elementSize = sizeof(sbyte);
+
+			// pin array in memory and get a pointer to it
+			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			sbyte* pArray = (sbyte*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+			Debug.Assert(pArray != null);
+
+			try
+			{
+				// write payload type and array dimensions
+				int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
+				var buffer = writer.GetSpan(maxBufferSize);
+				int bufferIndex = 0;
+				buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfSByte;
+				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+				for (int i = 0; i < array.Rank; i++)
+				{
+					// ...dimension information...
+					int lowerBound = array.GetLowerBound(i);
+					int count = array.GetLength(i);
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+				}
+
+				writer.Advance(bufferIndex);
+
+				// write array elements
+				int fromIndex = 0;
+				while (fromIndex < array.Length)
+				{
+					int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+					int bytesToCopy = elementsToCopy * elementSize;
+					buffer = writer.GetSpan(bytesToCopy);
+					new Span<byte>(pArray + fromIndex, bytesToCopy).CopyTo(buffer);
+					writer.Advance(bytesToCopy);
+					fromIndex += elementsToCopy;
+				}
+
+				// assign an object id to the array to allow referencing it later on
+				mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
+			}
+			finally
+			{
+				// release GC handle to array
+				arrayGcHandle.Free();
+			}
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.SByte"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, native encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the array from.</param>
+		/// <returns>The read array.</returns>
+		private Array ReadMultidimensionalArrayOfSByte(Stream stream)
+		{
+			const int elementSize = sizeof(sbyte);
+
+			// read header
+			int totalCount = 1;
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
+			int[] lowerBounds = new int[ranks];
+			int[] lengths = new int[ranks];
+			for (int i = 0; i < ranks; i++)
+			{
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
+				totalCount *= lengths[i];
+			}
+
+			// create an array with the specified size
+			var array = Array.CreateInstance(typeof(sbyte), lengths, lowerBounds);
+
+			// read array data data into temporary buffer, then copy into the final array
+			// => avoids pinning the array while reading from the stream
+			//    (can have a negative impact on the performance of the garbage collector)
+			int bytesToRead = totalCount * elementSize;
+			EnsureTemporaryByteBufferSize(bytesToRead);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, bytesToRead);
+
+			// assign an object id to the array to allow referencing it later on
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			return array;
+		}
+
+		#endregion
+
+		#region System.Byte
+
+		/// <summary>
+		/// Writes an array of <see cref="System.Byte"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions).
+		/// </summary>
+		/// <param name="array">Array to write.</param>
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private unsafe void WriteMultidimensionalArrayOfByte(Array array, IBufferWriter<byte> writer)
+		{
+			const int elementSize = sizeof(byte);
+
+			// pin array in memory and get a pointer to it
+			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			byte* pArray = (byte*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+			Debug.Assert(pArray != null);
+
+			try
+			{
+				// write payload type and array dimensions
+				int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
+				var buffer = writer.GetSpan(maxBufferSize);
+				int bufferIndex = 0;
+				buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfByte;
+				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+				for (int i = 0; i < array.Rank; i++)
+				{
+					// ...dimension information...
+					int lowerBound = array.GetLowerBound(i);
+					int count = array.GetLength(i);
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+				}
+
+				writer.Advance(bufferIndex);
+
+				// write array elements
+				int fromIndex = 0;
+				while (fromIndex < array.Length)
+				{
+					int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+					int bytesToCopy = elementsToCopy * elementSize;
+					buffer = writer.GetSpan(bytesToCopy);
+					new Span<byte>(pArray + fromIndex, bytesToCopy).CopyTo(buffer);
+					writer.Advance(bytesToCopy);
+					fromIndex += elementsToCopy;
+				}
+
+				// assign an object id to the array to allow referencing it later on
+				mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
+			}
+			finally
+			{
+				// release GC handle to array
+				arrayGcHandle.Free();
+			}
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.Byte"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions)
+		/// </summary>
+		/// <param name="stream">Stream to read the array from.</param>
+		/// <returns>The read array.</returns>
+		private Array DeserializeMultidimensionalArrayOfByte(Stream stream)
 		{
 			// read header
 			int totalCount = 1;
@@ -1884,65 +2485,136 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 
-		#region Primitive Types
+		#region System.Int16
 
 		/// <summary>
-		/// Writes an array of primitive value types (for arrays with non-zero-based indexing and/or multiple dimensions).
+		/// Writes an array of <see cref="System.Int16"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions).
 		/// </summary>
-		/// <param name="payloadType">Payload type corresponding to the type of the array.</param>
 		/// <param name="array">Array to write.</param>
-		/// <param name="elementSize">Size of an array element.</param>
 		/// <param name="writer">Buffer writer to write the array to.</param>
-		private unsafe void WriteMultidimensionalArrayOfPrimitives(
-			PayloadType         payloadType,
-			Array               array,
-			int                 elementSize,
-			IBufferWriter<byte> writer)
+		private unsafe void WriteMultidimensionalArrayOfInt16(Array array, IBufferWriter<byte> writer)
 		{
-			// write payload type and array dimensions
-			int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
-			var buffer = writer.GetSpan(maxBufferSize);
-			int bufferIndex = 0;
-			buffer[bufferIndex++] = (byte)payloadType;
-			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
-			for (int i = 0; i < array.Rank; i++)
+			const int elementSize = sizeof(short);
+
+			// pin array in memory and get a pointer to it
+			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			short* pArray = (short*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+			Debug.Assert(pArray != null);
+
+			try
 			{
-				// ...dimension information...
-				int lowerBound = array.GetLowerBound(i);
-				int count = array.GetLength(i);
-				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
-				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+				if (SerializationOptimization == SerializationOptimization.Speed)
+				{
+					// optimization for speed
+					// => all elements should be written using native encoding
+
+					// write payload type and array dimensions
+					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
+					var buffer = writer.GetSpan(maxBufferSize);
+					int bufferIndex = 0;
+					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfInt16_Native;
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+					for (int i = 0; i < array.Rank; i++)
+					{
+						// ...dimension information...
+						int lowerBound = array.GetLowerBound(i);
+						int count = array.GetLength(i);
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+					}
+
+					writer.Advance(bufferIndex);
+
+					// write array elements
+					int fromIndex = 0;
+					while (fromIndex < array.Length)
+					{
+						int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+						int bytesToCopy = elementsToCopy * elementSize;
+						buffer = writer.GetSpan(bytesToCopy);
+						new Span<byte>(pArray + fromIndex, bytesToCopy).CopyTo(buffer);
+						writer.Advance(bytesToCopy);
+						fromIndex += elementsToCopy;
+					}
+				}
+				else
+				{
+					// optimization for size
+					// => choose best encoding for every element 
+
+					// choose encoding and store the decision bitwise
+					// (bitwise, 0 = native encoding, 1 = LEB128 encoding, C# initializes the memory to zero)
+					Span<byte> encoding = stackalloc byte[(array.Length + 7) / 8];
+					for (int i = 0; i < array.Length; i++)
+					{
+						// pre-initialization indicates to use native encoding
+						// => set bits that indicate LEB128 encoding
+						if (IsLeb128EncodingMoreEfficient(pArray[i]))
+							encoding[i / 8] |= (byte)(1 << (i % 8));
+					}
+
+					// write payload type, array dimensions and encoding
+					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
+					var buffer = writer.GetSpan(maxBufferSize);
+					int bufferIndex = 0;
+					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfInt16_Compact;
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+					for (int i = 0; i < array.Rank; i++)
+					{
+						// ...dimension information...
+						int lowerBound = array.GetLowerBound(i);
+						int count = array.GetLength(i);
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+					}
+
+					encoding.CopyTo(buffer.Slice(bufferIndex));
+					bufferIndex += encoding.Length;
+					writer.Advance(bufferIndex);
+
+					// write array elements
+					for (int i = 0; i < array.Length; i++)
+					{
+						short value = pArray[i];
+
+						if (IsLeb128EncodingMoreEfficient(value))
+						{
+							// use LEB128 encoding
+							var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
+							int count = Leb128EncodingHelper.Write(valueBuffer, value);
+							writer.Advance(count);
+						}
+						else
+						{
+							// use native encoding
+							var valueBuffer = writer.GetSpan(elementSize);
+							MemoryMarshal.Write(valueBuffer, ref value);
+							writer.Advance(elementSize);
+						}
+					}
+				}
 			}
-
-			writer.Advance(bufferIndex);
-
-			// write array elements
-			int fromIndex = 0;
-			while (fromIndex < array.Length)
+			finally
 			{
-				int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
-				int bytesToCopy = elementsToCopy * elementSize;
-				buffer = writer.GetSpan(bytesToCopy);
-				var arrayGcHandle = GCHandle.Alloc(array);
-				var pSource = Marshal.UnsafeAddrOfPinnedArrayElement(array, fromIndex);
-				new Span<byte>(pSource.ToPointer(), bytesToCopy).CopyTo(buffer);
+				// release GC handle to array
 				arrayGcHandle.Free();
-				writer.Advance(bytesToCopy);
-				fromIndex += elementsToCopy;
 			}
 
+			// assign an object id to the array to allow referencing it later on
 			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
 		}
 
 		/// <summary>
-		/// Reads an array of primitive value types (for arrays with non-zero-based indexing and/or multiple dimensions).
+		/// Reads an array of <see cref="System.Int16"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, native encoding).
 		/// </summary>
 		/// <param name="stream">Stream to read the array from.</param>
-		/// <param name="type">Type of an array element.</param>
-		/// <param name="elementSize">Size of an array element.</param>
 		/// <returns>The read array.</returns>
-		private Array ReadMultidimensionalArrayOfPrimitives(Stream stream, Type type, int elementSize)
+		private unsafe Array ReadMultidimensionalArrayOfInt16_Native(Stream stream)
 		{
+			const int elementSize = sizeof(short);
+
 			// read header
 			int totalCount = 1;
 			int ranks = Leb128EncodingHelper.ReadInt32(stream);
@@ -1955,17 +2627,1533 @@ namespace GriffinPlus.Lib.Serialization
 				totalCount *= lengths[i];
 			}
 
-			// create an array of the specified type
-			var array = Array.CreateInstance(type, lengths, lowerBounds);
+			// create an array with the specified size
+			var array = Array.CreateInstance(typeof(short), lengths, lowerBounds);
 
-			// read array data
-			int size = totalCount * elementSize;
-			EnsureTemporaryByteBufferSize(size);
-			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
-			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
+			// read array data data into temporary buffer, then copy into the final array
+			// => avoids pinning the array while reading from the stream
+			//    (can have a negative impact on the performance of the garbage collector)
+			int bytesToRead = totalCount * elementSize;
+			EnsureTemporaryByteBufferSize(bytesToRead);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, bytesToRead);
 
+			// swap bytes if the endianness of the system that has serialized the array is different
+			// from the current system
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			{
+				var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+				short* pArray = (short*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+				Debug.Assert(pArray != null);
+				for (int i = 0; i < totalCount; i++) EndiannessHelper.SwapBytes(ref pArray[i]);
+				arrayGcHandle.Free();
+			}
+
+			// assign an object id to the array to allow referencing it later on
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			return array;
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.Int16"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, compact encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the array from.</param>
+		/// <returns>The read array.</returns>
+		private Array ReadMultidimensionalArrayOfInt16_Compact(Stream stream)
+		{
+			int elementSize = sizeof(short);
+
+			// read header
+			int totalCount = 1;
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
+			int[] lowerBounds = new int[ranks];
+			int[] lengths = new int[ranks];
+			int[] indices = new int[ranks];
+			for (int i = 0; i < ranks; i++)
+			{
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
+				indices[i] = lowerBounds[i];
+				totalCount *= lengths[i];
+			}
+
+			// read encoding information
+			int bytesToRead = (totalCount + 7) / 8;
+			EnsureTemporaryByteBufferSize(bytesToRead + elementSize);
+			int bytesRead = stream.Read(TempBuffer_Buffer, elementSize, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+
+			// create an array with the specified size
+			var array = Array.CreateInstance(typeof(short), lengths, lowerBounds);
+
+			// read array elements
+			for (int i = 0; i < totalCount; i++)
+			{
+				bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
+
+				if (useLeb128Encoding)
+				{
+					// use LEB128 encoding
+					array.SetValue((short)Leb128EncodingHelper.ReadInt32(stream), indices);
+				}
+				else
+				{
+					// use native encoding
+					// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
+					bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+					if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+					short value = BitConverter.ToInt16(TempBuffer_Buffer, 0);
+
+					// swap bytes if the endianness of the system that has serialized the value is different
+					// from the current system
+					if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+						EndiannessHelper.SwapBytes(ref value);
+
+					// store value in array
+					array.SetValue(value, indices);
+				}
+
+				IncrementArrayIndices(indices, array);
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			return array;
+		}
+
+		#endregion
+
+		#region System.UInt16
+
+		/// <summary>
+		/// Writes an array of <see cref="System.UInt16"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions).
+		/// </summary>
+		/// <param name="array">Array to write.</param>
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private unsafe void WriteMultidimensionalArrayOfUInt16(Array array, IBufferWriter<byte> writer)
+		{
+			const int elementSize = sizeof(ushort);
+
+			// pin array in memory and get a pointer to it
+			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			ushort* pArray = (ushort*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+			Debug.Assert(pArray != null);
+
+			try
+			{
+				if (SerializationOptimization == SerializationOptimization.Speed)
+				{
+					// optimization for speed
+					// => all elements should be written using native encoding
+
+					// write payload type and array dimensions
+					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
+					var buffer = writer.GetSpan(maxBufferSize);
+					int bufferIndex = 0;
+					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfUInt16_Native;
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+					for (int i = 0; i < array.Rank; i++)
+					{
+						// ...dimension information...
+						int lowerBound = array.GetLowerBound(i);
+						int count = array.GetLength(i);
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+					}
+
+					writer.Advance(bufferIndex);
+
+					// write array elements
+					int fromIndex = 0;
+					while (fromIndex < array.Length)
+					{
+						int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+						int bytesToCopy = elementsToCopy * elementSize;
+						buffer = writer.GetSpan(bytesToCopy);
+						new Span<byte>(pArray + fromIndex, bytesToCopy).CopyTo(buffer);
+						writer.Advance(bytesToCopy);
+						fromIndex += elementsToCopy;
+					}
+				}
+				else
+				{
+					// optimization for size
+					// => choose best encoding for every element 
+
+					// choose encoding and store the decision bitwise
+					// (bitwise, 0 = native encoding, 1 = LEB128 encoding, C# initializes the memory to zero)
+					Span<byte> encoding = stackalloc byte[(array.Length + 7) / 8];
+					for (int i = 0; i < array.Length; i++)
+					{
+						// pre-initialization indicates to use native encoding
+						// => set bits that indicate LEB128 encoding
+						if (IsLeb128EncodingMoreEfficient(pArray[i]))
+							encoding[i / 8] |= (byte)(1 << (i % 8));
+					}
+
+					// write payload type, array dimensions and encoding
+					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
+					var buffer = writer.GetSpan(maxBufferSize);
+					int bufferIndex = 0;
+					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfUInt16_Compact;
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+					for (int i = 0; i < array.Rank; i++)
+					{
+						// ...dimension information...
+						int lowerBound = array.GetLowerBound(i);
+						int count = array.GetLength(i);
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+					}
+
+					encoding.CopyTo(buffer.Slice(bufferIndex));
+					bufferIndex += encoding.Length;
+					writer.Advance(bufferIndex);
+
+					// write array elements
+					for (int i = 0; i < array.Length; i++)
+					{
+						ushort value = pArray[i];
+
+						if (IsLeb128EncodingMoreEfficient(value))
+						{
+							// use LEB128 encoding
+							var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
+							int count = Leb128EncodingHelper.Write(valueBuffer, (uint)value);
+							writer.Advance(count);
+						}
+						else
+						{
+							// use native encoding
+							var valueBuffer = writer.GetSpan(elementSize);
+							MemoryMarshal.Write(valueBuffer, ref value);
+							writer.Advance(elementSize);
+						}
+					}
+				}
+			}
+			finally
+			{
+				// release GC handle to array
+				arrayGcHandle.Free();
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.UInt16"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, native encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the array from.</param>
+		/// <returns>The read array.</returns>
+		private unsafe Array ReadMultidimensionalArrayOfUInt16_Native(Stream stream)
+		{
+			const int elementSize = sizeof(ushort);
+
+			// read header
+			int totalCount = 1;
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
+			int[] lowerBounds = new int[ranks];
+			int[] lengths = new int[ranks];
+			for (int i = 0; i < ranks; i++)
+			{
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
+				totalCount *= lengths[i];
+			}
+
+			// create an array with the specified size
+			var array = Array.CreateInstance(typeof(ushort), lengths, lowerBounds);
+
+			// read array data data into temporary buffer, then copy into the final array
+			// => avoids pinning the array while reading from the stream
+			//    (can have a negative impact on the performance of the garbage collector)
+			int bytesToRead = totalCount * elementSize;
+			EnsureTemporaryByteBufferSize(bytesToRead);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, bytesToRead);
+
+			// swap bytes if the endianness of the system that has serialized the array is different
+			// from the current system
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			{
+				var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+				ushort* pArray = (ushort*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+				Debug.Assert(pArray != null);
+				for (int i = 0; i < totalCount; i++) EndiannessHelper.SwapBytes(ref pArray[i]);
+				arrayGcHandle.Free();
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			return array;
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.UInt16"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, compact encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the array from.</param>
+		/// <returns>The read array.</returns>
+		private Array ReadMultidimensionalArrayOfUInt16_Compact(Stream stream)
+		{
+			int elementSize = sizeof(ushort);
+
+			// read header
+			int totalCount = 1;
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
+			int[] lowerBounds = new int[ranks];
+			int[] lengths = new int[ranks];
+			int[] indices = new int[ranks];
+			for (int i = 0; i < ranks; i++)
+			{
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
+				indices[i] = lowerBounds[i];
+				totalCount *= lengths[i];
+			}
+
+			// read encoding information
+			int bytesToRead = (totalCount + 7) / 8;
+			EnsureTemporaryByteBufferSize(bytesToRead + elementSize);
+			int bytesRead = stream.Read(TempBuffer_Buffer, elementSize, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+
+			// create an array with the specified size
+			var array = Array.CreateInstance(typeof(ushort), lengths, lowerBounds);
+
+			// read array elements
+			for (int i = 0; i < totalCount; i++)
+			{
+				bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
+
+				if (useLeb128Encoding)
+				{
+					// use LEB128 encoding
+					array.SetValue((ushort)Leb128EncodingHelper.ReadUInt32(stream), indices);
+				}
+				else
+				{
+					// use native encoding
+					// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
+					bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+					if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+					ushort value = BitConverter.ToUInt16(TempBuffer_Buffer, 0);
+
+					// swap bytes if the endianness of the system that has serialized the value is different
+					// from the current system
+					if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+						EndiannessHelper.SwapBytes(ref value);
+
+					// store value in array
+					array.SetValue(value, indices);
+				}
+
+				IncrementArrayIndices(indices, array);
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			return array;
+		}
+
+		#endregion
+
+		#region System.Int32
+
+		/// <summary>
+		/// Writes an array of <see cref="System.Int32"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions).
+		/// </summary>
+		/// <param name="array">Array to write.</param>
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private unsafe void WriteMultidimensionalArrayOfInt32(Array array, IBufferWriter<byte> writer)
+		{
+			const int elementSize = sizeof(int);
+
+			// pin array in memory and get a pointer to it
+			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			int* pArray = (int*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+			Debug.Assert(pArray != null);
+
+			try
+			{
+				if (SerializationOptimization == SerializationOptimization.Speed)
+				{
+					// optimization for speed
+					// => all elements should be written using native encoding
+
+					// write payload type and array dimensions
+					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
+					var buffer = writer.GetSpan(maxBufferSize);
+					int bufferIndex = 0;
+					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfInt32_Native;
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+					for (int i = 0; i < array.Rank; i++)
+					{
+						// ...dimension information...
+						int lowerBound = array.GetLowerBound(i);
+						int count = array.GetLength(i);
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+					}
+
+					writer.Advance(bufferIndex);
+
+					// write array elements
+					int fromIndex = 0;
+					while (fromIndex < array.Length)
+					{
+						int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+						int bytesToCopy = elementsToCopy * elementSize;
+						buffer = writer.GetSpan(bytesToCopy);
+						new Span<byte>(pArray + fromIndex, bytesToCopy).CopyTo(buffer);
+						writer.Advance(bytesToCopy);
+						fromIndex += elementsToCopy;
+					}
+				}
+				else
+				{
+					// optimization for size
+					// => choose best encoding for every element 
+
+					// choose encoding and store the decision bitwise
+					// (bitwise, 0 = native encoding, 1 = LEB128 encoding, C# initializes the memory to zero)
+					Span<byte> encoding = stackalloc byte[(array.Length + 7) / 8];
+					for (int i = 0; i < array.Length; i++)
+					{
+						// pre-initialization indicates to use native encoding
+						// => set bits that indicate LEB128 encoding
+						if (IsLeb128EncodingMoreEfficient(pArray[i]))
+							encoding[i / 8] |= (byte)(1 << (i % 8));
+					}
+
+					// write payload type, array dimensions and encoding
+					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
+					var buffer = writer.GetSpan(maxBufferSize);
+					int bufferIndex = 0;
+					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfInt32_Compact;
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+					for (int i = 0; i < array.Rank; i++)
+					{
+						// ...dimension information...
+						int lowerBound = array.GetLowerBound(i);
+						int count = array.GetLength(i);
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+					}
+
+					encoding.CopyTo(buffer.Slice(bufferIndex));
+					bufferIndex += encoding.Length;
+					writer.Advance(bufferIndex);
+
+					// write array elements
+					for (int i = 0; i < array.Length; i++)
+					{
+						int value = pArray[i];
+
+						if (IsLeb128EncodingMoreEfficient(value))
+						{
+							// use LEB128 encoding
+							var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
+							int count = Leb128EncodingHelper.Write(valueBuffer, value);
+							writer.Advance(count);
+						}
+						else
+						{
+							// use native encoding
+							var valueBuffer = writer.GetSpan(elementSize);
+							MemoryMarshal.Write(valueBuffer, ref value);
+							writer.Advance(elementSize);
+						}
+					}
+				}
+			}
+			finally
+			{
+				// release GC handle to array
+				arrayGcHandle.Free();
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.Int32"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, native encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the array from.</param>
+		/// <returns>The read array.</returns>
+		private unsafe Array ReadMultidimensionalArrayOfInt32_Native(Stream stream)
+		{
+			const int elementSize = sizeof(int);
+
+			// read header
+			int totalCount = 1;
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
+			int[] lowerBounds = new int[ranks];
+			int[] lengths = new int[ranks];
+			for (int i = 0; i < ranks; i++)
+			{
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
+				totalCount *= lengths[i];
+			}
+
+			// create an array with the specified size
+			var array = Array.CreateInstance(typeof(int), lengths, lowerBounds);
+
+			// read array data data into temporary buffer, then copy into the final array
+			// => avoids pinning the array while reading from the stream
+			//    (can have a negative impact on the performance of the garbage collector)
+			int bytesToRead = totalCount * elementSize;
+			EnsureTemporaryByteBufferSize(bytesToRead);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, bytesToRead);
+
+			// swap bytes if the endianness of the system that has serialized the array is different
+			// from the current system
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			{
+				var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+				int* pArray = (int*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+				Debug.Assert(pArray != null);
+				for (int i = 0; i < totalCount; i++) EndiannessHelper.SwapBytes(ref pArray[i]);
+				arrayGcHandle.Free();
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			return array;
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.Int32"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, compact encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the array from.</param>
+		/// <returns>The read array.</returns>
+		private Array ReadMultidimensionalArrayOfInt32_Compact(Stream stream)
+		{
+			int elementSize = sizeof(int);
+
+			// read header
+			int totalCount = 1;
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
+			int[] lowerBounds = new int[ranks];
+			int[] lengths = new int[ranks];
+			int[] indices = new int[ranks];
+			for (int i = 0; i < ranks; i++)
+			{
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
+				indices[i] = lowerBounds[i];
+				totalCount *= lengths[i];
+			}
+
+			// read encoding information
+			int bytesToRead = (totalCount + 7) / 8;
+			EnsureTemporaryByteBufferSize(bytesToRead + elementSize);
+			int bytesRead = stream.Read(TempBuffer_Buffer, elementSize, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+
+			// create an array with the specified size
+			var array = Array.CreateInstance(typeof(int), lengths, lowerBounds);
+
+			// read array elements
+			for (int i = 0; i < totalCount; i++)
+			{
+				bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
+
+				if (useLeb128Encoding)
+				{
+					// use LEB128 encoding
+					array.SetValue(Leb128EncodingHelper.ReadInt32(stream), indices);
+				}
+				else
+				{
+					// use native encoding
+					// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
+					bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+					if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+					int value = BitConverter.ToInt32(TempBuffer_Buffer, 0);
+
+					// swap bytes if the endianness of the system that has serialized the value is different
+					// from the current system
+					if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+						EndiannessHelper.SwapBytes(ref value);
+
+					// store value in array
+					array.SetValue(value, indices);
+				}
+
+				IncrementArrayIndices(indices, array);
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			return array;
+		}
+
+		#endregion
+
+		#region System.UInt32
+
+		/// <summary>
+		/// Writes an array of <see cref="System.UInt32"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions).
+		/// </summary>
+		/// <param name="array">Array to write.</param>
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private unsafe void WriteMultidimensionalArrayOfUInt32(Array array, IBufferWriter<byte> writer)
+		{
+			const int elementSize = sizeof(uint);
+
+			// pin array in memory and get a pointer to it
+			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			uint* pArray = (uint*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+			Debug.Assert(pArray != null);
+
+			try
+			{
+				if (SerializationOptimization == SerializationOptimization.Speed)
+				{
+					// optimization for speed
+					// => all elements should be written using native encoding
+
+					// write payload type and array dimensions
+					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
+					var buffer = writer.GetSpan(maxBufferSize);
+					int bufferIndex = 0;
+					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfUInt32_Native;
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+					for (int i = 0; i < array.Rank; i++)
+					{
+						// ...dimension information...
+						int lowerBound = array.GetLowerBound(i);
+						int count = array.GetLength(i);
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+					}
+
+					writer.Advance(bufferIndex);
+
+					// write array elements
+					int fromIndex = 0;
+					while (fromIndex < array.Length)
+					{
+						int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+						int bytesToCopy = elementsToCopy * elementSize;
+						buffer = writer.GetSpan(bytesToCopy);
+						new Span<byte>(pArray + fromIndex, bytesToCopy).CopyTo(buffer);
+						writer.Advance(bytesToCopy);
+						fromIndex += elementsToCopy;
+					}
+				}
+				else
+				{
+					// optimization for size
+					// => choose best encoding for every element 
+
+					// choose encoding and store the decision bitwise
+					// (bitwise, 0 = native encoding, 1 = LEB128 encoding, C# initializes the memory to zero)
+					Span<byte> encoding = stackalloc byte[(array.Length + 7) / 8];
+					for (int i = 0; i < array.Length; i++)
+					{
+						// pre-initialization indicates to use native encoding
+						// => set bits that indicate LEB128 encoding
+						if (IsLeb128EncodingMoreEfficient(pArray[i]))
+							encoding[i / 8] |= (byte)(1 << (i % 8));
+					}
+
+					// write payload type, array dimensions and encoding
+					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
+					var buffer = writer.GetSpan(maxBufferSize);
+					int bufferIndex = 0;
+					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfUInt32_Compact;
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+					for (int i = 0; i < array.Rank; i++)
+					{
+						// ...dimension information...
+						int lowerBound = array.GetLowerBound(i);
+						int count = array.GetLength(i);
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+					}
+
+					encoding.CopyTo(buffer.Slice(bufferIndex));
+					bufferIndex += encoding.Length;
+					writer.Advance(bufferIndex);
+
+					// write array elements
+					for (int i = 0; i < array.Length; i++)
+					{
+						uint value = pArray[i];
+
+						if (IsLeb128EncodingMoreEfficient(value))
+						{
+							// use LEB128 encoding
+							var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
+							int count = Leb128EncodingHelper.Write(valueBuffer, value);
+							writer.Advance(count);
+						}
+						else
+						{
+							// use native encoding
+							var valueBuffer = writer.GetSpan(elementSize);
+							MemoryMarshal.Write(valueBuffer, ref value);
+							writer.Advance(elementSize);
+						}
+					}
+				}
+			}
+			finally
+			{
+				// release GC handle to array
+				arrayGcHandle.Free();
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.UInt32"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, native encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the array from.</param>
+		/// <returns>The read array.</returns>
+		private unsafe Array ReadMultidimensionalArrayOfUInt32_Native(Stream stream)
+		{
+			const int elementSize = sizeof(uint);
+
+			// read header
+			int totalCount = 1;
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
+			int[] lowerBounds = new int[ranks];
+			int[] lengths = new int[ranks];
+			for (int i = 0; i < ranks; i++)
+			{
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
+				totalCount *= lengths[i];
+			}
+
+			// create an array with the specified size
+			var array = Array.CreateInstance(typeof(uint), lengths, lowerBounds);
+
+			// read array data data into temporary buffer, then copy into the final array
+			// => avoids pinning the array while reading from the stream
+			//    (can have a negative impact on the performance of the garbage collector)
+			int bytesToRead = totalCount * elementSize;
+			EnsureTemporaryByteBufferSize(bytesToRead);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, bytesToRead);
+
+			// swap bytes if the endianness of the system that has serialized the array is different
+			// from the current system
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			{
+				var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+				uint* pArray = (uint*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+				Debug.Assert(pArray != null);
+				for (int i = 0; i < totalCount; i++) EndiannessHelper.SwapBytes(ref pArray[i]);
+				arrayGcHandle.Free();
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			return array;
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.UInt32"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, compact encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the array from.</param>
+		/// <returns>The read array.</returns>
+		private Array ReadMultidimensionalArrayOfUInt32_Compact(Stream stream)
+		{
+			int elementSize = sizeof(uint);
+
+			// read header
+			int totalCount = 1;
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
+			int[] lowerBounds = new int[ranks];
+			int[] lengths = new int[ranks];
+			int[] indices = new int[ranks];
+			for (int i = 0; i < ranks; i++)
+			{
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
+				indices[i] = lowerBounds[i];
+				totalCount *= lengths[i];
+			}
+
+			// read encoding information
+			int bytesToRead = (totalCount + 7) / 8;
+			EnsureTemporaryByteBufferSize(bytesToRead + elementSize);
+			int bytesRead = stream.Read(TempBuffer_Buffer, elementSize, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+
+			// create an array with the specified size
+			var array = Array.CreateInstance(typeof(uint), lengths, lowerBounds);
+
+			// read array elements
+			for (int i = 0; i < totalCount; i++)
+			{
+				bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
+
+				if (useLeb128Encoding)
+				{
+					// use LEB128 encoding
+					array.SetValue(Leb128EncodingHelper.ReadUInt32(stream), indices);
+				}
+				else
+				{
+					// use native encoding
+					// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
+					bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+					if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+					uint value = BitConverter.ToUInt32(TempBuffer_Buffer, 0);
+
+					// swap bytes if the endianness of the system that has serialized the value is different
+					// from the current system
+					if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+						EndiannessHelper.SwapBytes(ref value);
+
+					// store value in array
+					array.SetValue(value, indices);
+				}
+
+				IncrementArrayIndices(indices, array);
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			return array;
+		}
+
+		#endregion
+
+		#region System.Int64
+
+		/// <summary>
+		/// Writes an array of <see cref="System.Int64"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions).
+		/// </summary>
+		/// <param name="array">Array to write.</param>
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private unsafe void WriteMultidimensionalArrayOfInt64(Array array, IBufferWriter<byte> writer)
+		{
+			const int elementSize = sizeof(long);
+
+			// pin array in memory and get a pointer to it
+			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			long* pArray = (long*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+			Debug.Assert(pArray != null);
+
+			try
+			{
+				if (SerializationOptimization == SerializationOptimization.Speed)
+				{
+					// optimization for speed
+					// => all elements should be written using native encoding
+
+					// write payload type and array dimensions
+					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
+					var buffer = writer.GetSpan(maxBufferSize);
+					int bufferIndex = 0;
+					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfInt64_Native;
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+					for (int i = 0; i < array.Rank; i++)
+					{
+						// ...dimension information...
+						int lowerBound = array.GetLowerBound(i);
+						int count = array.GetLength(i);
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+					}
+
+					writer.Advance(bufferIndex);
+
+					// write array elements
+					int fromIndex = 0;
+					while (fromIndex < array.Length)
+					{
+						int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+						int bytesToCopy = elementsToCopy * elementSize;
+						buffer = writer.GetSpan(bytesToCopy);
+						new Span<byte>(pArray + fromIndex, bytesToCopy).CopyTo(buffer);
+						writer.Advance(bytesToCopy);
+						fromIndex += elementsToCopy;
+					}
+				}
+				else
+				{
+					// optimization for size
+					// => choose best encoding for every element 
+
+					// choose encoding and store the decision bitwise
+					// (bitwise, 0 = native encoding, 1 = LEB128 encoding, C# initializes the memory to zero)
+					Span<byte> encoding = stackalloc byte[(array.Length + 7) / 8];
+					for (int i = 0; i < array.Length; i++)
+					{
+						// pre-initialization indicates to use native encoding
+						// => set bits that indicate LEB128 encoding
+						if (IsLeb128EncodingMoreEfficient(pArray[i]))
+							encoding[i / 8] |= (byte)(1 << (i % 8));
+					}
+
+					// write payload type, array dimensions and encoding
+					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
+					var buffer = writer.GetSpan(maxBufferSize);
+					int bufferIndex = 0;
+					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfInt64_Compact;
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+					for (int i = 0; i < array.Rank; i++)
+					{
+						// ...dimension information...
+						int lowerBound = array.GetLowerBound(i);
+						int count = array.GetLength(i);
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+					}
+
+					encoding.CopyTo(buffer.Slice(bufferIndex));
+					bufferIndex += encoding.Length;
+					writer.Advance(bufferIndex);
+
+					// write array elements
+					for (int i = 0; i < array.Length; i++)
+					{
+						long value = pArray[i];
+
+						if (IsLeb128EncodingMoreEfficient(value))
+						{
+							// use LEB128 encoding
+							var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor64BitValue);
+							int count = Leb128EncodingHelper.Write(valueBuffer, value);
+							writer.Advance(count);
+						}
+						else
+						{
+							// use native encoding
+							var valueBuffer = writer.GetSpan(elementSize);
+							MemoryMarshal.Write(valueBuffer, ref value);
+							writer.Advance(elementSize);
+						}
+					}
+				}
+			}
+			finally
+			{
+				// release GC handle to array
+				arrayGcHandle.Free();
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.Int64"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, native encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the array from.</param>
+		/// <returns>The read array.</returns>
+		private unsafe Array ReadMultidimensionalArrayOfInt64_Native(Stream stream)
+		{
+			const int elementSize = sizeof(long);
+
+			// read header
+			int totalCount = 1;
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
+			int[] lowerBounds = new int[ranks];
+			int[] lengths = new int[ranks];
+			for (int i = 0; i < ranks; i++)
+			{
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
+				totalCount *= lengths[i];
+			}
+
+			// create an array with the specified size
+			var array = Array.CreateInstance(typeof(long), lengths, lowerBounds);
+
+			// read array data data into temporary buffer, then copy into the final array
+			// => avoids pinning the array while reading from the stream
+			//    (can have a negative impact on the performance of the garbage collector)
+			int bytesToRead = totalCount * elementSize;
+			EnsureTemporaryByteBufferSize(bytesToRead);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, bytesToRead);
+
+			// swap bytes if the endianness of the system that has serialized the array is different
+			// from the current system
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			{
+				var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+				long* pArray = (long*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+				Debug.Assert(pArray != null);
+				for (int i = 0; i < totalCount; i++) EndiannessHelper.SwapBytes(ref pArray[i]);
+				arrayGcHandle.Free();
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			return array;
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.Int64"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, compact encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the array from.</param>
+		/// <returns>The read array.</returns>
+		private Array ReadMultidimensionalArrayOfInt64_Compact(Stream stream)
+		{
+			int elementSize = sizeof(long);
+
+			// read header
+			int totalCount = 1;
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
+			int[] lowerBounds = new int[ranks];
+			int[] lengths = new int[ranks];
+			int[] indices = new int[ranks];
+			for (int i = 0; i < ranks; i++)
+			{
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
+				indices[i] = lowerBounds[i];
+				totalCount *= lengths[i];
+			}
+
+			// read encoding information
+			int bytesToRead = (totalCount + 7) / 8;
+			EnsureTemporaryByteBufferSize(bytesToRead + elementSize);
+			int bytesRead = stream.Read(TempBuffer_Buffer, elementSize, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+
+			// create an array with the specified size
+			var array = Array.CreateInstance(typeof(long), lengths, lowerBounds);
+
+			// read array elements
+			for (int i = 0; i < totalCount; i++)
+			{
+				bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
+
+				if (useLeb128Encoding)
+				{
+					// use LEB128 encoding
+					array.SetValue(Leb128EncodingHelper.ReadInt64(stream), indices);
+				}
+				else
+				{
+					// use native encoding
+					// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
+					bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+					if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+					long value = BitConverter.ToInt64(TempBuffer_Buffer, 0);
+
+					// swap bytes if the endianness of the system that has serialized the value is different
+					// from the current system
+					if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+						EndiannessHelper.SwapBytes(ref value);
+
+					// store value in array
+					array.SetValue(value, indices);
+				}
+
+				IncrementArrayIndices(indices, array);
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			return array;
+		}
+
+		#endregion
+
+		#region System.UInt64
+
+		/// <summary>
+		/// Writes an array of <see cref="System.UInt64"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions).
+		/// </summary>
+		/// <param name="array">Array to write.</param>
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private unsafe void WriteMultidimensionalArrayOfUInt64(Array array, IBufferWriter<byte> writer)
+		{
+			const int elementSize = sizeof(ulong);
+
+			// pin array in memory and get a pointer to it
+			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			ulong* pArray = (ulong*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+			Debug.Assert(pArray != null);
+
+			try
+			{
+				if (SerializationOptimization == SerializationOptimization.Speed)
+				{
+					// optimization for speed
+					// => all elements should be written using native encoding
+
+					// write payload type and array dimensions
+					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
+					var buffer = writer.GetSpan(maxBufferSize);
+					int bufferIndex = 0;
+					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfUInt64_Native;
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+					for (int i = 0; i < array.Rank; i++)
+					{
+						// ...dimension information...
+						int lowerBound = array.GetLowerBound(i);
+						int count = array.GetLength(i);
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+					}
+
+					writer.Advance(bufferIndex);
+
+					// write array elements
+					int fromIndex = 0;
+					while (fromIndex < array.Length)
+					{
+						int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+						int bytesToCopy = elementsToCopy * elementSize;
+						buffer = writer.GetSpan(bytesToCopy);
+						new Span<byte>(pArray + fromIndex, bytesToCopy).CopyTo(buffer);
+						writer.Advance(bytesToCopy);
+						fromIndex += elementsToCopy;
+					}
+				}
+				else
+				{
+					// optimization for size
+					// => choose best encoding for every element 
+
+					// choose encoding and store the decision bitwise
+					// (bitwise, 0 = native encoding, 1 = LEB128 encoding, C# initializes the memory to zero)
+					Span<byte> encoding = stackalloc byte[(array.Length + 7) / 8];
+					for (int i = 0; i < array.Length; i++)
+					{
+						// pre-initialization indicates to use native encoding
+						// => set bits that indicate LEB128 encoding
+						if (IsLeb128EncodingMoreEfficient(pArray[i]))
+							encoding[i / 8] |= (byte)(1 << (i % 8));
+					}
+
+					// write payload type, array dimensions and encoding
+					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
+					var buffer = writer.GetSpan(maxBufferSize);
+					int bufferIndex = 0;
+					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfUInt64_Compact;
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+					for (int i = 0; i < array.Rank; i++)
+					{
+						// ...dimension information...
+						int lowerBound = array.GetLowerBound(i);
+						int count = array.GetLength(i);
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+						bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+					}
+
+					encoding.CopyTo(buffer.Slice(bufferIndex));
+					bufferIndex += encoding.Length;
+					writer.Advance(bufferIndex);
+
+					// write array elements
+					for (int i = 0; i < array.Length; i++)
+					{
+						ulong value = pArray[i];
+
+						if (IsLeb128EncodingMoreEfficient(value))
+						{
+							// use LEB128 encoding
+							var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor64BitValue);
+							int count = Leb128EncodingHelper.Write(valueBuffer, value);
+							writer.Advance(count);
+						}
+						else
+						{
+							// use native encoding
+							var valueBuffer = writer.GetSpan(elementSize);
+							MemoryMarshal.Write(valueBuffer, ref value);
+							writer.Advance(elementSize);
+						}
+					}
+				}
+			}
+			finally
+			{
+				// release GC handle to array
+				arrayGcHandle.Free();
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.UInt64"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, native encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the array from.</param>
+		/// <returns>The read array.</returns>
+		private unsafe Array ReadMultidimensionalArrayOfUInt64_Native(Stream stream)
+		{
+			const int elementSize = sizeof(ulong);
+
+			// read header
+			int totalCount = 1;
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
+			int[] lowerBounds = new int[ranks];
+			int[] lengths = new int[ranks];
+			for (int i = 0; i < ranks; i++)
+			{
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
+				totalCount *= lengths[i];
+			}
+
+			// create an array with the specified size
+			var array = Array.CreateInstance(typeof(ulong), lengths, lowerBounds);
+
+			// read array data data into temporary buffer, then copy into the final array
+			// => avoids pinning the array while reading from the stream
+			//    (can have a negative impact on the performance of the garbage collector)
+			int bytesToRead = totalCount * elementSize;
+			EnsureTemporaryByteBufferSize(bytesToRead);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, bytesToRead);
+
+			// swap bytes if the endianness of the system that has serialized the array is different
+			// from the current system
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			{
+				var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+				ulong* pArray = (ulong*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+				Debug.Assert(pArray != null);
+				for (int i = 0; i < totalCount; i++) EndiannessHelper.SwapBytes(ref pArray[i]);
+				arrayGcHandle.Free();
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			return array;
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.UInt64"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, compact encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the array from.</param>
+		/// <returns>The read array.</returns>
+		private Array ReadMultidimensionalArrayOfUInt64_Compact(Stream stream)
+		{
+			int elementSize = sizeof(ulong);
+
+			// read header
+			int totalCount = 1;
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
+			int[] lowerBounds = new int[ranks];
+			int[] lengths = new int[ranks];
+			int[] indices = new int[ranks];
+			for (int i = 0; i < ranks; i++)
+			{
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
+				indices[i] = lowerBounds[i];
+				totalCount *= lengths[i];
+			}
+
+			// read encoding information
+			int bytesToRead = (totalCount + 7) / 8;
+			EnsureTemporaryByteBufferSize(bytesToRead + elementSize);
+			int bytesRead = stream.Read(TempBuffer_Buffer, elementSize, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+
+			// create an array with the specified size
+			var array = Array.CreateInstance(typeof(ulong), lengths, lowerBounds);
+
+			// read array elements
+			for (int i = 0; i < totalCount; i++)
+			{
+				bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
+
+				if (useLeb128Encoding)
+				{
+					// use LEB128 encoding
+					array.SetValue(Leb128EncodingHelper.ReadUInt64(stream), indices);
+				}
+				else
+				{
+					// use native encoding
+					// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
+					bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+					if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+					ulong value = BitConverter.ToUInt64(TempBuffer_Buffer, 0);
+
+					// swap bytes if the endianness of the system that has serialized the value is different
+					// from the current system
+					if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+						EndiannessHelper.SwapBytes(ref value);
+
+					// store value in array
+					array.SetValue(value, indices);
+				}
+
+				IncrementArrayIndices(indices, array);
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			return array;
+		}
+
+		#endregion
+
+		#region System.Single
+
+		/// <summary>
+		/// Writes an array of <see cref="System.Single"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions).
+		/// </summary>
+		/// <param name="array">Array to write.</param>
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private unsafe void WriteMultidimensionalArrayOfSingle(Array array, IBufferWriter<byte> writer)
+		{
+			const int elementSize = sizeof(float);
+
+			// pin array in memory and get a pointer to it
+			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			float* pArray = (float*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+			Debug.Assert(pArray != null);
+
+			try
+			{
+				// write payload type and array dimensions
+				int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
+				var buffer = writer.GetSpan(maxBufferSize);
+				int bufferIndex = 0;
+				buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfSingle;
+				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+				for (int i = 0; i < array.Rank; i++)
+				{
+					// ...dimension information...
+					int lowerBound = array.GetLowerBound(i);
+					int count = array.GetLength(i);
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+				}
+
+				writer.Advance(bufferIndex);
+
+				// write array elements
+				int fromIndex = 0;
+				while (fromIndex < array.Length)
+				{
+					int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+					int bytesToCopy = elementsToCopy * elementSize;
+					buffer = writer.GetSpan(bytesToCopy);
+					new Span<byte>(pArray + fromIndex, bytesToCopy).CopyTo(buffer);
+					writer.Advance(bytesToCopy);
+					fromIndex += elementsToCopy;
+				}
+
+				// assign an object id to the array to allow referencing it later on
+				mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
+			}
+			finally
+			{
+				// release GC handle to array
+				arrayGcHandle.Free();
+			}
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.Single"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, native encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the array from.</param>
+		/// <returns>The read array.</returns>
+		private unsafe Array ReadMultidimensionalArrayOfSingle(Stream stream)
+		{
+			const int elementSize = sizeof(float);
+
+			// read header
+			int totalCount = 1;
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
+			int[] lowerBounds = new int[ranks];
+			int[] lengths = new int[ranks];
+			for (int i = 0; i < ranks; i++)
+			{
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
+				totalCount *= lengths[i];
+			}
+
+			// create an array with the specified size
+			var array = Array.CreateInstance(typeof(float), lengths, lowerBounds);
+
+			// read array data data into temporary buffer, then copy into the final array
+			// => avoids pinning the array while reading from the stream
+			//    (can have a negative impact on the performance of the garbage collector)
+			int bytesToRead = totalCount * elementSize;
+			EnsureTemporaryByteBufferSize(bytesToRead);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, bytesToRead);
+
+			// swap bytes if the endianness of the system that has serialized the array is different
+			// from the current system
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			{
+				var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+				float* pArray = (float*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+				Debug.Assert(pArray != null);
+				for (int i = 0; i < totalCount; i++) EndiannessHelper.SwapBytes(ref pArray[i]);
+				arrayGcHandle.Free();
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
+			return array;
+		}
+
+		#endregion
+
+		#region System.Double
+
+		/// <summary>
+		/// Writes an array of <see cref="System.Double"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions).
+		/// </summary>
+		/// <param name="array">Array to write.</param>
+		/// <param name="writer">Buffer writer to write the array to.</param>
+		private unsafe void WriteMultidimensionalArrayOfDouble(Array array, IBufferWriter<byte> writer)
+		{
+			const int elementSize = sizeof(double);
+
+			// pin array in memory and get a pointer to it
+			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			double* pArray = (double*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+			Debug.Assert(pArray != null);
+
+			try
+			{
+				// write payload type and array dimensions
+				int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
+				var buffer = writer.GetSpan(maxBufferSize);
+				int bufferIndex = 0;
+				buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfDouble;
+				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
+				for (int i = 0; i < array.Rank; i++)
+				{
+					// ...dimension information...
+					int lowerBound = array.GetLowerBound(i);
+					int count = array.GetLength(i);
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), lowerBound); // lower bound of the dimension
+					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), count);      // number of elements in the dimension
+				}
+
+				writer.Advance(bufferIndex);
+
+				// write array elements
+				int fromIndex = 0;
+				while (fromIndex < array.Length)
+				{
+					int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+					int bytesToCopy = elementsToCopy * elementSize;
+					buffer = writer.GetSpan(bytesToCopy);
+					new Span<byte>(pArray + fromIndex, bytesToCopy).CopyTo(buffer);
+					writer.Advance(bytesToCopy);
+					fromIndex += elementsToCopy;
+				}
+
+				// assign an object id to the array to allow referencing it later on
+				mSerializedObjectIdTable.Add(array, mNextSerializedObjectId++);
+			}
+			finally
+			{
+				// release GC handle to array
+				arrayGcHandle.Free();
+			}
+		}
+
+		/// <summary>
+		/// Reads an array of <see cref="System.Double"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions, native encoding).
+		/// </summary>
+		/// <param name="stream">Stream to read the array from.</param>
+		/// <returns>The read array.</returns>
+		private unsafe Array ReadMultidimensionalArrayOfDouble(Stream stream)
+		{
+			const int elementSize = sizeof(double);
+
+			// read header
+			int totalCount = 1;
+			int ranks = Leb128EncodingHelper.ReadInt32(stream);
+			int[] lowerBounds = new int[ranks];
+			int[] lengths = new int[ranks];
+			for (int i = 0; i < ranks; i++)
+			{
+				lowerBounds[i] = Leb128EncodingHelper.ReadInt32(stream);
+				lengths[i] = Leb128EncodingHelper.ReadInt32(stream);
+				totalCount *= lengths[i];
+			}
+
+			// create an array with the specified size
+			var array = Array.CreateInstance(typeof(double), lengths, lowerBounds);
+
+			// read array data data into temporary buffer, then copy into the final array
+			// => avoids pinning the array while reading from the stream
+			//    (can have a negative impact on the performance of the garbage collector)
+			int bytesToRead = totalCount * elementSize;
+			EnsureTemporaryByteBufferSize(bytesToRead);
+			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
+			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
+			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, bytesToRead);
+
+			// swap bytes if the endianness of the system that has serialized the array is different
+			// from the current system
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			{
+				var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+				double* pArray = (double*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+				Debug.Assert(pArray != null);
+				for (int i = 0; i < totalCount; i++) EndiannessHelper.SwapBytes(ref pArray[i]);
+				arrayGcHandle.Free();
+			}
+
+			// assign an object id to the array to allow referencing it later on
+			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
+
 			return array;
 		}
 
@@ -1974,7 +4162,8 @@ namespace GriffinPlus.Lib.Serialization
 		#region System.Decimal
 
 		/// <summary>
-		/// Writes an array of <see cref="System.Decimal"/> (for arrays with non-zero-based indexing and/or multiple dimensions).
+		/// Writes an array of <see cref="System.Decimal"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions).
 		/// </summary>
 		/// <param name="array">Array to write.</param>
 		/// <param name="writer">Buffer writer to write the array to.</param>
@@ -2014,7 +4203,7 @@ namespace GriffinPlus.Lib.Serialization
 					decimal value = (decimal)array.GetValue(indices);
 #if NETSTANDARD2_0 || NETSTANDARD2_1 || NET461
 					int[] bits = decimal.GetBits(value);
-					MemoryMarshal.Cast<int, byte>(bits).CopyTo(buffer.Slice(bufferIndex));
+					MemoryMarshal.Cast<int, byte>(bits.AsSpan()).CopyTo(buffer.Slice(bufferIndex));
 #elif NET5_0_OR_GREATER
 					var intBuffer = MemoryMarshal.Cast<byte, int>(buffer.Slice(bufferIndex));
 					decimal.GetBits(value, intBuffer);
@@ -2033,7 +4222,8 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Reads an array of <see cref="System.Decimal"/> from a stream (for arrays with non-zero-based indexing and/or multiple dimensions).
+		/// Reads an array of <see cref="System.Decimal"/>
+		/// (for arrays with non-zero-based indexing and/or multiple dimensions).
 		/// </summary>
 		/// <param name="stream">Stream to read the array from.</param>
 		/// <returns>The read array.</returns>
@@ -2059,9 +4249,21 @@ namespace GriffinPlus.Lib.Serialization
 			// read array elements
 			for (int i = 0; i < array.Length; i++)
 			{
+				// read four 32-bit integer values representing the decimal value
 				int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
 				if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
 				Buffer.BlockCopy(TempBuffer_Buffer, 0, TempBuffer_Int32, 0, elementSize);
+
+				// swap bytes if the endianness of the system that has serialized the array is different from the current system
+				if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+				{
+					EndiannessHelper.SwapBytes(ref TempBuffer_Int32[0]);
+					EndiannessHelper.SwapBytes(ref TempBuffer_Int32[1]);
+					EndiannessHelper.SwapBytes(ref TempBuffer_Int32[2]);
+					EndiannessHelper.SwapBytes(ref TempBuffer_Int32[3]);
+				}
+
+				// create decimal value and store it in the array
 				decimal value = new decimal(TempBuffer_Int32);
 				array.SetValue(value, indices);
 				IncrementArrayIndices(indices, array);
@@ -2160,8 +4362,6 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 
-		#endregion
-
 		#region Helpers
 
 		/// <summary>
@@ -2183,6 +4383,8 @@ namespace GriffinPlus.Lib.Serialization
 				return;
 			}
 		}
+
+		#endregion
 
 		#endregion
 	}

@@ -99,9 +99,15 @@ namespace GriffinPlus.Lib.Serialization
 		ArrayOfBoolean_Compact,
 
 		/// <summary>
-		/// A multi-dimensional array of <see cref="System.Boolean"/>.
+		/// A multi-dimensional array of <see cref="System.Boolean"/> (native encoding).
 		/// </summary>
-		MultidimensionalArrayOfBoolean,
+		MultidimensionalArrayOfBoolean_Native,
+
+		/// <summary>
+		/// A multi-dimensional array of <see cref="System.Boolean"/> (compact encoding).
+		/// </summary>
+		MultidimensionalArrayOfBoolean_Compact,
+
 
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// System.Char
@@ -128,26 +134,31 @@ namespace GriffinPlus.Lib.Serialization
 		ArrayOfChar_Compact,
 
 		/// <summary>
-		/// A multi-dimensional array of <see cref="System.Char"/>.
+		/// A multi-dimensional array of <see cref="System.Char"/> (native encoding).
 		/// </summary>
-		MultidimensionalArrayOfChar,
+		MultidimensionalArrayOfChar_Native,
+
+		/// <summary>
+		/// A multi-dimensional array of <see cref="System.Char"/> (compact encoding).
+		/// </summary>
+		MultidimensionalArrayOfChar_Compact,
 
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// System.SByte
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 		/// <summary>
-		/// A <see cref="System.SByte"/> value.
+		/// A <see cref="System.SByte"/> value (native encoding).
 		/// </summary>
 		SByte,
 
 		/// <summary>
-		/// An one-dimensional, zero-based array of <see cref="System.SByte"/>.
+		/// An one-dimensional, zero-based array of <see cref="System.SByte"/> (native encoding).
 		/// </summary>
 		ArrayOfSByte,
 
 		/// <summary>
-		/// A multi-dimensional array of <see cref="System.SByte"/>.
+		/// A multi-dimensional array of <see cref="System.SByte"/> (native encoding).
 		/// </summary>
 		MultidimensionalArrayOfSByte,
 
@@ -176,9 +187,14 @@ namespace GriffinPlus.Lib.Serialization
 		ArrayOfInt16_Compact,
 
 		/// <summary>
-		/// A multi-dimensional array of <see cref="System.Int16"/>.
+		/// A multi-dimensional array of <see cref="System.Int16"/> (native encoding).
 		/// </summary>
-		MultidimensionalArrayOfInt16,
+		MultidimensionalArrayOfInt16_Native,
+
+		/// <summary>
+		/// A multi-dimensional array of <see cref="System.Int16"/> (compact encoding).
+		/// </summary>
+		MultidimensionalArrayOfInt16_Compact,
 
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// System.Int32
@@ -205,9 +221,14 @@ namespace GriffinPlus.Lib.Serialization
 		ArrayOfInt32_Compact,
 
 		/// <summary>
-		/// A multi-dimensional array of <see cref="System.Int32"/>.
+		/// A multi-dimensional array of <see cref="System.Int32"/> (native encoding).
 		/// </summary>
-		MultidimensionalArrayOfInt32,
+		MultidimensionalArrayOfInt32_Native,
+
+		/// <summary>
+		/// A multi-dimensional array of <see cref="System.Int32"/> (compact encoding).
+		/// </summary>
+		MultidimensionalArrayOfInt32_Compact,
 
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// System.Int64
@@ -234,26 +255,31 @@ namespace GriffinPlus.Lib.Serialization
 		ArrayOfInt64_Compact,
 
 		/// <summary>
-		/// A multi-dimensional array of <see cref="System.Int64"/>.
+		/// A multi-dimensional array of <see cref="System.Int64"/> (native encoding).
 		/// </summary>
-		MultidimensionalArrayOfInt64,
+		MultidimensionalArrayOfInt64_Native,
+
+		/// <summary>
+		/// A multi-dimensional array of <see cref="System.Int64"/> (compact encoding).
+		/// </summary>
+		MultidimensionalArrayOfInt64_Compact,
 
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// System.Byte
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 		/// <summary>
-		/// A <see cref="System.Byte"/> value.
+		/// A <see cref="System.Byte"/> value (native encoding).
 		/// </summary>
 		Byte,
 
 		/// <summary>
-		/// An one-dimensional, zero-based array of <see cref="System.Byte"/>.
+		/// An one-dimensional, zero-based array of <see cref="System.Byte"/> (native encoding).
 		/// </summary>
 		ArrayOfByte,
 
 		/// <summary>
-		/// A multi-dimensional array of <see cref="System.Byte"/>.
+		/// A multi-dimensional array of <see cref="System.Byte"/> (native encoding).
 		/// </summary>
 		MultidimensionalArrayOfByte,
 
@@ -282,9 +308,14 @@ namespace GriffinPlus.Lib.Serialization
 		ArrayOfUInt16_Compact,
 
 		/// <summary>
-		/// A multi-dimensional array of <see cref="System.UInt16"/>.
+		/// A multi-dimensional array of <see cref="System.UInt16"/> (native encoding).
 		/// </summary>
-		MultidimensionalArrayOfUInt16,
+		MultidimensionalArrayOfUInt16_Native,
+
+		/// <summary>
+		/// A multi-dimensional array of <see cref="System.UInt16"/> (compact encoding).
+		/// </summary>
+		MultidimensionalArrayOfUInt16_Compact,
 
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// System.UInt32
@@ -311,9 +342,14 @@ namespace GriffinPlus.Lib.Serialization
 		ArrayOfUInt32_Compact,
 
 		/// <summary>
-		/// A multi-dimensional array of <see cref="System.UInt32"/>.
+		/// A multi-dimensional array of <see cref="System.UInt32"/> (native encoding).
 		/// </summary>
-		MultidimensionalArrayOfUInt32,
+		MultidimensionalArrayOfUInt32_Native,
+
+		/// <summary>
+		/// A multi-dimensional array of <see cref="System.UInt32"/> (compact encoding).
+		/// </summary>
+		MultidimensionalArrayOfUInt32_Compact,
 
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// System.UInt64
@@ -340,16 +376,21 @@ namespace GriffinPlus.Lib.Serialization
 		ArrayOfUInt64_Compact,
 
 		/// <summary>
-		/// A multi-dimensional array of <see cref="System.UInt64"/>.
+		/// A multi-dimensional array of <see cref="System.UInt64"/> (native encoding).
 		/// </summary>
-		MultidimensionalArrayOfUInt64,
+		MultidimensionalArrayOfUInt64_Native,
+
+		/// <summary>
+		/// A multi-dimensional array of <see cref="System.UInt64"/> (compact encoding).
+		/// </summary>
+		MultidimensionalArrayOfUInt64_Compact,
 
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// System.Single
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 		/// <summary>
-		/// A <see cref="System.Single"/> value.
+		/// A <see cref="System.Single"/> value (native encoding).
 		/// </summary>
 		Single,
 
@@ -368,7 +409,7 @@ namespace GriffinPlus.Lib.Serialization
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 		/// <summary>
-		/// A <see cref="System.Double"/> value.
+		/// A <see cref="System.Double"/> value (native encoding).
 		/// </summary>
 		Double,
 
