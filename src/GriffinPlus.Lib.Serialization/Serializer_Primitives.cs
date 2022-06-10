@@ -6,6 +6,7 @@
 using System;
 using System.Buffers;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 #if NET5_0_OR_GREATER
 using System.Diagnostics;
@@ -41,7 +42,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="writer">Buffer writer to write the value to.</param>
 		internal void WritePrimitive_Char(char value, IBufferWriter<byte> writer)
 		{
-			if (SerializationOptimization == SerializationOptimization.Speed || value > Leb128EncodingHelper.UInt32MaxValueEncodedWith1Byte)
+			if (SerializationOptimization == SerializationOptimization.Speed || !IsLeb128EncodingMoreEfficient(value))
 			{
 				// use native encoding
 				var buffer = writer.GetSpan(3);
@@ -264,9 +265,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="writer">Buffer writer to write the value to.</param>
 		internal void WritePrimitive_Int16(short value, IBufferWriter<byte> writer)
 		{
-			if (SerializationOptimization == SerializationOptimization.Speed ||
-			    value < Leb128EncodingHelper.Int32MinValueEncodedWith1Byte ||
-			    value > Leb128EncodingHelper.Int32MaxValueEncodedWith1Byte)
+			if (SerializationOptimization == SerializationOptimization.Speed || !IsLeb128EncodingMoreEfficient(value))
 			{
 				// use native encoding
 				var buffer = writer.GetSpan(3);
@@ -321,9 +320,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="writer">Buffer writer to write the value to.</param>
 		internal void WritePrimitive_Int32(int value, IBufferWriter<byte> writer)
 		{
-			if (SerializationOptimization == SerializationOptimization.Speed ||
-			    value < Leb128EncodingHelper.Int32MinValueEncodedWith3Bytes ||
-			    value > Leb128EncodingHelper.Int32MaxValueEncodedWith3Bytes)
+			if (SerializationOptimization == SerializationOptimization.Speed || !IsLeb128EncodingMoreEfficient(value))
 			{
 				// use native encoding
 				var buffer = writer.GetSpan(5);
@@ -378,9 +375,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="writer">Buffer writer to write the value to.</param>
 		internal void WritePrimitive_Int64(long value, IBufferWriter<byte> writer)
 		{
-			if (SerializationOptimization == SerializationOptimization.Speed ||
-			    value < Leb128EncodingHelper.Int64MinValueEncodedWith7Bytes ||
-			    value > Leb128EncodingHelper.Int64MaxValueEncodedWith7Bytes)
+			if (SerializationOptimization == SerializationOptimization.Speed || !IsLeb128EncodingMoreEfficient(value))
 			{
 				// use native encoding
 				var buffer = writer.GetSpan(9);
@@ -464,7 +459,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="writer">Buffer writer to write the value to.</param>
 		internal void WritePrimitive_UInt16(ushort value, IBufferWriter<byte> writer)
 		{
-			if (SerializationOptimization == SerializationOptimization.Speed || value > Leb128EncodingHelper.UInt32MaxValueEncodedWith1Byte)
+			if (SerializationOptimization == SerializationOptimization.Speed || !IsLeb128EncodingMoreEfficient(value))
 			{
 				// use native encoding
 				var buffer = writer.GetSpan(3);
@@ -519,7 +514,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="writer">Buffer writer to write the value to.</param>
 		internal void WritePrimitive_UInt32(uint value, IBufferWriter<byte> writer)
 		{
-			if (SerializationOptimization == SerializationOptimization.Speed || value > Leb128EncodingHelper.UInt32MaxValueEncodedWith3Bytes)
+			if (SerializationOptimization == SerializationOptimization.Speed || !IsLeb128EncodingMoreEfficient(value))
 			{
 				// use native encoding
 				var buffer = writer.GetSpan(5);
@@ -574,7 +569,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="writer">Buffer writer to write the value to.</param>
 		internal void WritePrimitive_UInt64(ulong value, IBufferWriter<byte> writer)
 		{
-			if (SerializationOptimization == SerializationOptimization.Speed || value > Leb128EncodingHelper.UInt64MaxValueEncodedWith7Bytes)
+			if (SerializationOptimization == SerializationOptimization.Speed || !IsLeb128EncodingMoreEfficient(value))
 			{
 				// use native encoding
 				var buffer = writer.GetSpan(9);
@@ -887,6 +882,111 @@ namespace GriffinPlus.Lib.Serialization
 			object obj = new object();
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, obj);
 			return obj;
+		}
+
+		#endregion
+
+		#region Helpers
+
+		/// <summary>
+		/// Determines whether the specified value can be encoded more efficiently using LEB128 encoding or native encoding.
+		/// </summary>
+		/// <param name="value">Value to check.</param>
+		/// <returns>
+		/// <c>true</c> if encoding with LEB128 is more efficient;
+		/// <c>false</c> if native encoding is more efficient.
+		/// </returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static bool IsLeb128EncodingMoreEfficient(char value)
+		{
+			return value <= Leb128EncodingHelper.UInt32MaxValueEncodedWith1Byte;
+		}
+
+		/// <summary>
+		/// Determines whether the specified value can be encoded more efficiently using LEB128 encoding or native encoding.
+		/// </summary>
+		/// <param name="value">Value to check.</param>
+		/// <returns>
+		/// <c>true</c> if encoding with LEB128 is more efficient;
+		/// <c>false</c> if native encoding is more efficient.
+		/// </returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static bool IsLeb128EncodingMoreEfficient(short value)
+		{
+			return value >= Leb128EncodingHelper.Int32MinValueEncodedWith1Byte &&
+			       value <= Leb128EncodingHelper.Int32MaxValueEncodedWith1Byte;
+		}
+
+		/// <summary>
+		/// Determines whether the specified value can be encoded more efficiently using LEB128 encoding or native encoding.
+		/// </summary>
+		/// <param name="value">Value to check.</param>
+		/// <returns>
+		/// <c>true</c> if encoding with LEB128 is more efficient;
+		/// <c>false</c> if native encoding is more efficient.
+		/// </returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static bool IsLeb128EncodingMoreEfficient(ushort value)
+		{
+			return value <= Leb128EncodingHelper.UInt32MaxValueEncodedWith1Byte;
+		}
+
+		/// <summary>
+		/// Determines whether the specified value can be encoded more efficiently using LEB128 encoding or native encoding.
+		/// </summary>
+		/// <param name="value">Value to check.</param>
+		/// <returns>
+		/// <c>true</c> if encoding with LEB128 is more efficient;
+		/// <c>false</c> if native encoding is more efficient.
+		/// </returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static bool IsLeb128EncodingMoreEfficient(int value)
+		{
+			return value >= Leb128EncodingHelper.Int32MinValueEncodedWith3Bytes &&
+			       value <= Leb128EncodingHelper.Int32MaxValueEncodedWith3Bytes;
+		}
+
+		/// <summary>
+		/// Determines whether the specified value can be encoded more efficiently using LEB128 encoding or native encoding.
+		/// </summary>
+		/// <param name="value">Value to check.</param>
+		/// <returns>
+		/// <c>true</c> if encoding with LEB128 is more efficient;
+		/// <c>false</c> if native encoding is more efficient.
+		/// </returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static bool IsLeb128EncodingMoreEfficient(uint value)
+		{
+			return value <= Leb128EncodingHelper.UInt32MaxValueEncodedWith3Bytes;
+		}
+
+		/// <summary>
+		/// Determines whether the specified value can be encoded more efficiently using LEB128 encoding or native encoding.
+		/// </summary>
+		/// <param name="value">Value to check.</param>
+		/// <returns>
+		/// <c>true</c> if encoding with LEB128 is more efficient;
+		/// <c>false</c> if native encoding is more efficient.
+		/// </returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static bool IsLeb128EncodingMoreEfficient(long value)
+		{
+			return value >= Leb128EncodingHelper.Int64MinValueEncodedWith7Bytes &&
+			       value <= Leb128EncodingHelper.Int64MaxValueEncodedWith7Bytes;
+		}
+
+		/// <summary>
+		/// Determines whether the specified value can be encoded more efficiently using LEB128 encoding or native encoding.
+		/// </summary>
+		/// <param name="value">Value to check.</param>
+		/// <returns>
+		/// <c>true</c> if encoding with LEB128 is more efficient;
+		/// <c>false</c> if native encoding is more efficient.
+		/// </returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static bool IsLeb128EncodingMoreEfficient(ulong value)
+		{
+			return value <= Leb128EncodingHelper.UInt64MaxValueEncodedWith7Bytes;
 		}
 
 		#endregion

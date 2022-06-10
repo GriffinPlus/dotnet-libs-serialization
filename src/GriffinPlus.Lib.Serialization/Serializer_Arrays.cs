@@ -196,11 +196,9 @@ namespace GriffinPlus.Lib.Serialization
 				Span<byte> encoding = stackalloc byte[(array.Length + 7) / 8];
 				for (int i = 0; i < array.Length; i++)
 				{
-					char value = array[i];
-
 					// pre-initialization indicates to use native encoding
 					// => set bits that indicate LEB128 encoding
-					if (value <= Leb128EncodingHelper.UInt32MaxValueEncodedWith1Byte)
+					if (IsLeb128EncodingMoreEfficient(array[i]))
 					{
 						// use LEB128 encoding for this element
 						encoding[i / 8] |= (byte)(1 << (i % 8));
@@ -222,20 +220,19 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					char value = array[i];
 
-					bool useNativeEncoding = (encoding[i / 8] & (1 << (i % 8))) == 0;
-					if (useNativeEncoding)
-					{
-						// use native encoding
-						var valueBuffer = writer.GetSpan(elementSize);
-						MemoryMarshal.Write(valueBuffer, ref value);
-						writer.Advance(elementSize);
-					}
-					else
+					if (IsLeb128EncodingMoreEfficient(value))
 					{
 						// use LEB128 encoding
 						var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
 						int count = Leb128EncodingHelper.Write(valueBuffer, (uint)value);
 						writer.Advance(count);
+					}
+					else
+					{
+						// use native encoding
+						var valueBuffer = writer.GetSpan(elementSize);
+						MemoryMarshal.Write(valueBuffer, ref value);
+						writer.Advance(elementSize);
 					}
 				}
 			}
@@ -329,7 +326,6 @@ namespace GriffinPlus.Lib.Serialization
 					array[i] = value;
 				}
 			}
-
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
@@ -496,19 +492,12 @@ namespace GriffinPlus.Lib.Serialization
 				// optimization for size
 				// => choose best encoding for every element
 
-				// prepare value check for using LEB128 encoding
-				bool UseLeb128EncodingForValue(short value)
-				{
-					return value >= Leb128EncodingHelper.Int32MinValueEncodedWith1Byte &&
-					       value <= Leb128EncodingHelper.Int32MaxValueEncodedWith1Byte;
-				}
-
 				// choose encoding and store the decision bitwise
 				// (bitwise, 0 = native encoding, 1 = LEB128 encoding, C# initializes the memory to zero)
 				Span<byte> encoding = stackalloc byte[(array.Length + 7) / 8];
 				for (int i = 0; i < array.Length; i++)
 				{
-					if (UseLeb128EncodingForValue(array[i]))
+					if (IsLeb128EncodingMoreEfficient(array[i]))
 						encoding[i / 8] |= (byte)(1 << (i % 8));
 				}
 
@@ -527,7 +516,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					short value = array[i];
 
-					if (UseLeb128EncodingForValue(value))
+					if (IsLeb128EncodingMoreEfficient(value))
 					{
 						// use LEB128 encoding
 						var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
@@ -634,7 +623,6 @@ namespace GriffinPlus.Lib.Serialization
 				}
 			}
 
-
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
 		}
@@ -682,18 +670,12 @@ namespace GriffinPlus.Lib.Serialization
 				// optimization for size
 				// => choose best encoding for every element
 
-				// prepare value check for using LEB128 encoding
-				bool UseLeb128EncodingForValue(ushort value)
-				{
-					return value <= Leb128EncodingHelper.UInt32MaxValueEncodedWith1Byte;
-				}
-
 				// choose encoding and store the decision bitwise
 				// (bitwise, 0 = native encoding, 1 = LEB128 encoding, C# initializes the memory to zero)
 				Span<byte> encoding = stackalloc byte[(array.Length + 7) / 8];
 				for (int i = 0; i < array.Length; i++)
 				{
-					if (UseLeb128EncodingForValue(array[i]))
+					if (IsLeb128EncodingMoreEfficient(array[i]))
 						encoding[i / 8] |= (byte)(1 << (i % 8));
 				}
 
@@ -712,7 +694,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					ushort value = array[i];
 
-					if (UseLeb128EncodingForValue(value))
+					if (IsLeb128EncodingMoreEfficient(value))
 					{
 						// use LEB128 encoding
 						var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
@@ -819,7 +801,6 @@ namespace GriffinPlus.Lib.Serialization
 				}
 			}
 
-
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
 		}
@@ -867,19 +848,12 @@ namespace GriffinPlus.Lib.Serialization
 				// optimization for size
 				// => choose best encoding for every element
 
-				// prepare value check for using LEB128 encoding
-				bool UseLeb128EncodingForValue(int value)
-				{
-					return value >= Leb128EncodingHelper.Int32MinValueEncodedWith3Bytes &&
-					       value <= Leb128EncodingHelper.Int32MaxValueEncodedWith3Bytes;
-				}
-
 				// choose encoding and store the decision bitwise
 				// (bitwise, 0 = native encoding, 1 = LEB128 encoding, C# initializes the memory to zero)
 				Span<byte> encoding = stackalloc byte[(array.Length + 7) / 8];
 				for (int i = 0; i < array.Length; i++)
 				{
-					if (UseLeb128EncodingForValue(array[i]))
+					if (IsLeb128EncodingMoreEfficient(array[i]))
 						encoding[i / 8] |= (byte)(1 << (i % 8));
 				}
 
@@ -898,7 +872,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					int value = array[i];
 
-					if (UseLeb128EncodingForValue(value))
+					if (IsLeb128EncodingMoreEfficient(value))
 					{
 						// use LEB128 encoding
 						var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
@@ -1005,7 +979,6 @@ namespace GriffinPlus.Lib.Serialization
 				}
 			}
 
-
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
 		}
@@ -1053,18 +1026,12 @@ namespace GriffinPlus.Lib.Serialization
 				// optimization for size
 				// => choose best encoding for every element
 
-				// prepare value check for using LEB128 encoding
-				bool UseLeb128EncodingForValue(uint value)
-				{
-					return value <= Leb128EncodingHelper.UInt32MaxValueEncodedWith3Bytes;
-				}
-
 				// choose encoding and store the decision bitwise
 				// (bitwise, 0 = native encoding, 1 = LEB128 encoding, C# initializes the memory to zero)
 				Span<byte> encoding = stackalloc byte[(array.Length + 7) / 8];
 				for (int i = 0; i < array.Length; i++)
 				{
-					if (UseLeb128EncodingForValue(array[i]))
+					if (IsLeb128EncodingMoreEfficient(array[i]))
 						encoding[i / 8] |= (byte)(1 << (i % 8));
 				}
 
@@ -1083,7 +1050,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					uint value = array[i];
 
-					if (UseLeb128EncodingForValue(value))
+					if (IsLeb128EncodingMoreEfficient(value))
 					{
 						// use LEB128 encoding
 						var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
@@ -1190,7 +1157,6 @@ namespace GriffinPlus.Lib.Serialization
 				}
 			}
 
-
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
 		}
@@ -1238,19 +1204,12 @@ namespace GriffinPlus.Lib.Serialization
 				// optimization for size
 				// => choose best encoding for every element
 
-				// prepare value check for using LEB128 encoding
-				bool UseLeb128EncodingForValue(long value)
-				{
-					return value >= Leb128EncodingHelper.Int64MinValueEncodedWith7Bytes &&
-					       value <= Leb128EncodingHelper.Int64MaxValueEncodedWith7Bytes;
-				}
-
 				// choose encoding and store the decision bitwise
 				// (bitwise, 0 = native encoding, 1 = LEB128 encoding, C# initializes the memory to zero)
 				Span<byte> encoding = stackalloc byte[(array.Length + 7) / 8];
 				for (int i = 0; i < array.Length; i++)
 				{
-					if (UseLeb128EncodingForValue(array[i]))
+					if (IsLeb128EncodingMoreEfficient(array[i]))
 						encoding[i / 8] |= (byte)(1 << (i % 8));
 				}
 
@@ -1269,7 +1228,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					long value = array[i];
 
-					if (UseLeb128EncodingForValue(value))
+					if (IsLeb128EncodingMoreEfficient(value))
 					{
 						// use LEB128 encoding
 						var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor64BitValue);
@@ -1376,7 +1335,6 @@ namespace GriffinPlus.Lib.Serialization
 				}
 			}
 
-
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
 		}
@@ -1424,18 +1382,12 @@ namespace GriffinPlus.Lib.Serialization
 				// optimization for size
 				// => choose best encoding for every element
 
-				// prepare value check for using LEB128 encoding
-				bool UseLeb128EncodingForValue(ulong value)
-				{
-					return value > Leb128EncodingHelper.UInt64MaxValueEncodedWith7Bytes;
-				}
-
 				// choose encoding and store the decision bitwise
 				// (bitwise, 0 = native encoding, 1 = LEB128 encoding, C# initializes the memory to zero)
 				Span<byte> encoding = stackalloc byte[(array.Length + 7) / 8];
 				for (int i = 0; i < array.Length; i++)
 				{
-					if (UseLeb128EncodingForValue(array[i]))
+					if (IsLeb128EncodingMoreEfficient(array[i]))
 						encoding[i / 8] |= (byte)(1 << (i % 8));
 				}
 
@@ -1454,7 +1406,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					ulong value = array[i];
 
-					if (UseLeb128EncodingForValue(value))
+					if (IsLeb128EncodingMoreEfficient(value))
 					{
 						// use LEB128 encoding
 						var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor64BitValue);
@@ -1560,7 +1512,6 @@ namespace GriffinPlus.Lib.Serialization
 					array[i] = value;
 				}
 			}
-
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
