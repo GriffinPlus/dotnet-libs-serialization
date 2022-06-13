@@ -751,7 +751,7 @@ namespace GriffinPlus.Lib.Serialization
 				if ((data & 0x80) == 0)
 				{
 					// sign extend, if the integer is negative
-					if (shift < 32 && (data & 0x40) != 0)
+					if (shift < 64 && (data & 0x40) != 0)
 						result |= -((long)1 << shift);
 
 					return result;
