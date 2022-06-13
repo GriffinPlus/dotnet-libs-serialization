@@ -3,6 +3,9 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+using System;
+using System.IO;
+
 using Xunit;
 
 namespace GriffinPlus.Lib.Serialization.Tests
@@ -13,8 +16,6 @@ namespace GriffinPlus.Lib.Serialization.Tests
 	/// </summary>
 	public class Leb128EncodingHelperTests
 	{
-		private readonly byte[] mBuffer = new byte[20];
-
 		[Theory]
 		[InlineData(unchecked((int)0xFFFFFFFF), 1)]
 		[InlineData(unchecked((int)0xFFFFFFC0), 1)]
@@ -37,14 +38,30 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData(0x7FFFFFFF, 5)]
 		public void LEB128_Int32(int value, int byteCount)
 		{
-			int count1 = Leb128EncodingHelper.GetByteCount(value);
-			int count2 = Leb128EncodingHelper.Write(mBuffer, 0, value);
-			int reverse = Leb128EncodingHelper.ReadInt32(mBuffer, 0, count2, out int size);
+			// determine the number of bytes the encoding will take
+			int encodedByteCount = Leb128EncodingHelper.GetByteCount(value);
+			Assert.Equal(byteCount, encodedByteCount);
 
-			Assert.Equal(byteCount, count1);
-			Assert.Equal(byteCount, count2);
-			Assert.Equal(byteCount, size);
-			Assert.Equal(value, reverse);
+			// write to array
+			byte[] buffer_array = new byte[encodedByteCount];
+			int count_array = Leb128EncodingHelper.Write(buffer_array, 0, value);
+			Assert.Equal(byteCount, count_array);
+
+			// write to span
+			byte[] buffer_span = new byte[encodedByteCount];
+			int count_span = Leb128EncodingHelper.Write(buffer_span.AsSpan(), value);
+			Assert.Equal(byteCount, count_span);
+
+			// read from array
+			int reverse_array = Leb128EncodingHelper.ReadInt32(buffer_array, 0, count_array, out int size_array);
+			Assert.Equal(byteCount, size_array);
+			Assert.Equal(value, reverse_array);
+
+			// read from stream
+			Stream ms = new MemoryStream(buffer_array);
+			int reverse_stream = Leb128EncodingHelper.ReadInt32(ms);
+			Assert.Equal(byteCount, ms.Position);
+			Assert.Equal(value, reverse_stream);
 		}
 
 		[Theory]
@@ -60,14 +77,30 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData(0xFFFFFFFF, 5)]
 		public void LEB128_UInt32(uint value, int byteCount)
 		{
-			int count1 = Leb128EncodingHelper.GetByteCount(value);
-			int count2 = Leb128EncodingHelper.Write(mBuffer, 0, value);
-			uint reverse = Leb128EncodingHelper.ReadUInt32(mBuffer, 0, count2, out int size);
+			// determine the number of bytes the encoding will take
+			int encodedByteCount = Leb128EncodingHelper.GetByteCount(value);
+			Assert.Equal(byteCount, encodedByteCount);
 
-			Assert.Equal(byteCount, count1);
-			Assert.Equal(byteCount, count2);
-			Assert.Equal(byteCount, size);
-			Assert.Equal(value, reverse);
+			// write to array
+			byte[] buffer_array = new byte[encodedByteCount];
+			int count_array = Leb128EncodingHelper.Write(buffer_array, 0, value);
+			Assert.Equal(byteCount, count_array);
+
+			// write to span
+			byte[] buffer_span = new byte[encodedByteCount];
+			int count_span = Leb128EncodingHelper.Write(buffer_span.AsSpan(), value);
+			Assert.Equal(byteCount, count_span);
+
+			// read from array
+			uint reverse_array = Leb128EncodingHelper.ReadUInt32(buffer_array, 0, count_array, out int size_array);
+			Assert.Equal(byteCount, size_array);
+			Assert.Equal(value, reverse_array);
+
+			// read from stream
+			Stream ms = new MemoryStream(buffer_array);
+			uint reverse_stream = Leb128EncodingHelper.ReadUInt32(ms);
+			Assert.Equal(byteCount, ms.Position);
+			Assert.Equal(value, reverse_stream);
 		}
 
 		[Theory]
@@ -113,14 +146,30 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData(0x7fffffffffffffff, 10)]
 		public void LEB128_Int64(long value, int byteCount)
 		{
-			int count1 = Leb128EncodingHelper.GetByteCount(value);
-			int count2 = Leb128EncodingHelper.Write(mBuffer, 0, value);
-			long reverse = Leb128EncodingHelper.ReadInt64(mBuffer, 0, count2, out int size);
+			// determine the number of bytes the encoding will take
+			int encodedByteCount = Leb128EncodingHelper.GetByteCount(value);
+			Assert.Equal(byteCount, encodedByteCount);
 
-			Assert.Equal(byteCount, count1);
-			Assert.Equal(byteCount, count2);
-			Assert.Equal(byteCount, size);
-			Assert.Equal(value, reverse);
+			// write to array
+			byte[] buffer_array = new byte[encodedByteCount];
+			int count_array = Leb128EncodingHelper.Write(buffer_array, 0, value);
+			Assert.Equal(byteCount, count_array);
+
+			// write to span
+			byte[] buffer_span = new byte[encodedByteCount];
+			int count_span = Leb128EncodingHelper.Write(buffer_span.AsSpan(), value);
+			Assert.Equal(byteCount, count_span);
+
+			// read from array
+			long reverse_array = Leb128EncodingHelper.ReadInt64(buffer_array, 0, count_array, out int size_array);
+			Assert.Equal(byteCount, size_array);
+			Assert.Equal(value, reverse_array);
+
+			// read from stream
+			Stream ms = new MemoryStream(buffer_array);
+			long reverse_stream = Leb128EncodingHelper.ReadInt64(ms);
+			Assert.Equal(byteCount, ms.Position);
+			Assert.Equal(value, reverse_stream);
 		}
 
 		[Theory]
@@ -146,14 +195,30 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		[InlineData(0xFFFFFFFFFFFFFFFF, 10)]
 		public void LEB128_UInt64(ulong value, int byteCount)
 		{
-			int count1 = Leb128EncodingHelper.GetByteCount(value);
-			int count2 = Leb128EncodingHelper.Write(mBuffer, 0, value);
-			ulong reverse = Leb128EncodingHelper.ReadUInt64(mBuffer, 0, count2, out int size);
+			// determine the number of bytes the encoding will take
+			int encodedByteCount = Leb128EncodingHelper.GetByteCount(value);
+			Assert.Equal(byteCount, encodedByteCount);
 
-			Assert.Equal(byteCount, count1);
-			Assert.Equal(byteCount, count2);
-			Assert.Equal(byteCount, size);
-			Assert.Equal(value, reverse);
+			// write to array
+			byte[] buffer_array = new byte[encodedByteCount];
+			int count_array = Leb128EncodingHelper.Write(buffer_array, 0, value);
+			Assert.Equal(byteCount, count_array);
+
+			// write to span
+			byte[] buffer_span = new byte[encodedByteCount];
+			int count_span = Leb128EncodingHelper.Write(buffer_span.AsSpan(), value);
+			Assert.Equal(byteCount, count_span);
+
+			// read from array
+			ulong reverse_array = Leb128EncodingHelper.ReadUInt64(buffer_array, 0, count_array, out int size_array);
+			Assert.Equal(byteCount, size_array);
+			Assert.Equal(value, reverse_array);
+
+			// read from stream
+			Stream ms = new MemoryStream(buffer_array);
+			ulong reverse_stream = Leb128EncodingHelper.ReadUInt64(ms);
+			Assert.Equal(byteCount, ms.Position);
+			Assert.Equal(value, reverse_stream);
 		}
 	}
 
