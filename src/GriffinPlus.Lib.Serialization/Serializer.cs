@@ -1531,17 +1531,6 @@ namespace GriffinPlus.Lib.Serialization
 				return;
 			}
 
-			// try to use an external object serializer
-			var eos = ExternalObjectSerializerFactory.GetExternalObjectSerializer(type, out _);
-			if (eos != null)
-			{
-				// the type has an external object serializer
-				// => create a serializer delegate that handles it and store it to speed up the serializer lookup next time
-				serializer = AddSerializerForType(type, () => CreateSerializerDelegateForExternalObjectSerializer(type, eos));
-				serializer(this, writer, obj, context);
-				return;
-			}
-
 			// try to use an internal object serializer
 			var ios = GetInternalObjectSerializer(obj, out _);
 			if (ios != null)
@@ -1549,6 +1538,17 @@ namespace GriffinPlus.Lib.Serialization
 				// the type has an internal object serializer
 				// => create a serializer delegate that handles it and store it to speed up the serializer lookup for the next time
 				serializer = AddSerializerForType(type, () => CreateInternalObjectSerializer(type));
+				serializer(this, writer, obj, context);
+				return;
+			}
+
+			// try to use an external object serializer
+			var eos = ExternalObjectSerializerFactory.GetExternalObjectSerializer(type, out _);
+			if (eos != null)
+			{
+				// the type has an external object serializer
+				// => create a serializer delegate that handles it and store it to speed up the serializer lookup next time
+				serializer = AddSerializerForType(type, () => CreateSerializerDelegateForExternalObjectSerializer(type, eos));
 				serializer(this, writer, obj, context);
 				return;
 			}
@@ -2212,43 +2212,11 @@ namespace GriffinPlus.Lib.Serialization
 		private object ReadArchive(Stream stream, object context)
 		{
 			uint deserializedVersion = Leb128EncodingHelper.ReadUInt32(stream);
-			uint currentVersion;
 			string error;
-
-			#region External Object Serializer
-
-			// try to get an external object serializer
-			var eos = ExternalObjectSerializerFactory.GetExternalObjectSerializer(mCurrentDeserializedType.Type, out currentVersion);
-
-			if (eos != null)
-			{
-				if (deserializedVersion > currentVersion)
-				{
-					// version of the archive that is about to be deserialized is greater than
-					// the version the internal object serializer supports
-					error = $"Deserializing type '{mCurrentDeserializedType.Type.FullName}' failed due to a version conflict (got version: {deserializedVersion}, max. supported version: {currentVersion}).";
-					sLog.Write(LogLevel.Error, error);
-					throw new SerializationException(error);
-				}
-
-				// version is ok, deserialize...
-				var archive = new DeserializationArchive(this, stream, mCurrentDeserializedType.Type, deserializedVersion, context);
-				object obj = eos.Deserialize(archive);
-
-				// assign an object id to the deserialized object, the serialization stream may refer to it later on
-				if (!mCurrentDeserializedType.Type.IsValueType)
-					mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, obj);
-
-				// read and check archive end
-				ReadAndCheckPayloadType(stream, PayloadType.ArchiveEnd);
-				return obj;
-			}
-
-			#endregion
 
 			#region Internal Object Serializer
 
-			if (HasInternalObjectSerializer(mCurrentDeserializedType.Type, out currentVersion))
+			if (HasInternalObjectSerializer(mCurrentDeserializedType.Type, out uint currentVersion))
 			{
 				if (deserializedVersion > currentVersion)
 				{
@@ -2276,6 +2244,37 @@ namespace GriffinPlus.Lib.Serialization
 
 				var archive = new DeserializationArchive(this, stream, mCurrentDeserializedType.Type, deserializedVersion, context);
 				object obj = deserializationConstructorCaller(ref archive);
+
+				// assign an object id to the deserialized object, the serialization stream may refer to it later on
+				if (!mCurrentDeserializedType.Type.IsValueType)
+					mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, obj);
+
+				// read and check archive end
+				ReadAndCheckPayloadType(stream, PayloadType.ArchiveEnd);
+				return obj;
+			}
+
+			#endregion
+
+			#region External Object Serializer
+
+			// try to get an external object serializer
+			var eos = ExternalObjectSerializerFactory.GetExternalObjectSerializer(mCurrentDeserializedType.Type, out currentVersion);
+
+			if (eos != null)
+			{
+				if (deserializedVersion > currentVersion)
+				{
+					// version of the archive that is about to be deserialized is greater than
+					// the version the internal object serializer supports
+					error = $"Deserializing type '{mCurrentDeserializedType.Type.FullName}' failed due to a version conflict (got version: {deserializedVersion}, max. supported version: {currentVersion}).";
+					sLog.Write(LogLevel.Error, error);
+					throw new SerializationException(error);
+				}
+
+				// version is ok, deserialize...
+				var archive = new DeserializationArchive(this, stream, mCurrentDeserializedType.Type, deserializedVersion, context);
+				object obj = eos.Deserialize(archive);
 
 				// assign an object id to the deserialized object, the serialization stream may refer to it later on
 				if (!mCurrentDeserializedType.Type.IsValueType)

@@ -371,29 +371,8 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			var baseClassType = DataType.BaseType ?? throw new ArgumentException($"{DataType.FullName} does not have a base class.");
 
-			// try external object serializer
-			var eos = ExternalObjectSerializerFactory.GetExternalObjectSerializer(baseClassType, out uint version);
-			if (eos != null)
-			{
-				// consider serializer version overrides...
-				if (mSerializer.GetSerializerVersionOverride(baseClassType, out uint versionOverride))
-					version = versionOverride;
-
-				// write base archive header
-				var buffer = mBufferWriter.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
-				int bufferIndex = 0;
-				buffer[bufferIndex++] = (byte)PayloadType.BaseArchiveStart;
-				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), version);
-				mBufferWriter.Advance(bufferIndex);
-
-				// serialize object
-				var archive = new SerializationArchive(mSerializer, mBufferWriter, baseClassType, mObjectToSerialize, version, context);
-				eos.Serialize(archive, mObjectToSerialize);
-				return;
-			}
-
 			// try internal object serializer
-			var ios = Serializer.GetInternalObjectSerializer(mObjectToSerialize, baseClassType, out version);
+			var ios = Serializer.GetInternalObjectSerializer(mObjectToSerialize, baseClassType, out uint version);
 			if (ios != null)
 			{
 				// consider serializer version overrides...
@@ -411,6 +390,27 @@ namespace GriffinPlus.Lib.Serialization
 				var archive = new SerializationArchive(mSerializer, mBufferWriter, baseClassType, mObjectToSerialize, version, context);
 				var serializeDelegate = Serializer.GetInternalObjectSerializerSerializeCaller(baseClassType);
 				serializeDelegate(ios, archive);
+				return;
+			}
+
+			// try external object serializer
+			var eos = ExternalObjectSerializerFactory.GetExternalObjectSerializer(baseClassType, out version);
+			if (eos != null)
+			{
+				// consider serializer version overrides...
+				if (mSerializer.GetSerializerVersionOverride(baseClassType, out uint versionOverride))
+					version = versionOverride;
+
+				// write base archive header
+				var buffer = mBufferWriter.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+				int bufferIndex = 0;
+				buffer[bufferIndex++] = (byte)PayloadType.BaseArchiveStart;
+				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), version);
+				mBufferWriter.Advance(bufferIndex);
+
+				// serialize object
+				var archive = new SerializationArchive(mSerializer, mBufferWriter, baseClassType, mObjectToSerialize, version, context);
+				eos.Serialize(archive, mObjectToSerialize);
 				return;
 			}
 
