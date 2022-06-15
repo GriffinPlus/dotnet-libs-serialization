@@ -664,13 +664,6 @@ namespace GriffinPlus.Lib.Serialization
 			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfDecimal] = (serializer,         stream, context) => serializer.ReadMultidimensionalArrayOfDecimal(stream);
 			sDeserializersByPayloadType[(int)PayloadType.MultidimensionalArrayOfObjects] = (serializer,         stream, context) => serializer.ReadMultidimensionalArrayOfObjects(stream, context);
 
-			// generic type
-			sDeserializersByPayloadType[(int)PayloadType.GenericType] = (serializer, stream, context) =>
-			{
-				serializer.ReadTypeMetadata(stream);
-				return serializer.InnerDeserialize(stream, context);
-			};
-
 			// type
 			sDeserializersByPayloadType[(int)PayloadType.Type] = (serializer, stream, context) =>
 			{
@@ -1000,7 +993,7 @@ namespace GriffinPlus.Lib.Serialization
 					int utf8NameLength = Encoding.UTF8.GetByteCount(name);
 					int leb128Length = Leb128EncodingHelper.GetByteCount(utf8NameLength);
 					serializedTypeName = new byte[1 + leb128Length + utf8NameLength];
-					serializedTypeName[0] = (byte)(type.IsGenericTypeDefinition ? PayloadType.GenericType : PayloadType.Type);
+					serializedTypeName[0] = (byte)PayloadType.Type;
 					Leb128EncodingHelper.Write(serializedTypeName, 1, utf8NameLength);
 					Encoding.UTF8.GetBytes(name, 0, name.Length, serializedTypeName, 1 + leb128Length);
 
@@ -1072,7 +1065,7 @@ namespace GriffinPlus.Lib.Serialization
 					}
 				}
 
-				// assign a type id if the serializer uses assembly and type ids
+				// assign a type id if the serializer uses type ids
 				typeItem = new TypeItem(typename, type);
 				mDeserializedTypeIdTable.Add(mNextDeserializedTypeId++, typeItem);
 			}
@@ -2060,7 +2053,7 @@ namespace GriffinPlus.Lib.Serialization
 				if (!mDeserializedTypeIdTable.TryGetValue(id, out typeItem))
 					throw new SerializationException("Deserialized type id that does not match a previously deserialized type.");
 			}
-			else if (objType == PayloadType.Type || objType == PayloadType.GenericType)
+			else if (objType == PayloadType.Type)
 			{
 				// read number of utf-8 code units in the following string
 				int length = Leb128EncodingHelper.ReadInt32(stream);

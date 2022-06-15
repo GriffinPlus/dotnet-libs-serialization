@@ -25,12 +25,7 @@ namespace GriffinPlus.Lib.Serialization
 		AlreadySerialized,
 
 		/// <summary>
-		/// A generic type (may be a generic type definition or a closed constructed generic type).
-		/// </summary>
-		GenericType,
-
-		/// <summary>
-		/// A closed type.
+		/// A type.
 		/// </summary>
 		Type,
 
