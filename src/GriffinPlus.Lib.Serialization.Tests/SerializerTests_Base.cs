@@ -6,9 +6,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 
 using Xunit;
+
+#pragma warning disable xUnit1026 // Theory methods should use all of their parameters
 
 namespace GriffinPlus.Lib.Serialization.Tests
 {
@@ -25,558 +26,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 		#endregion
 
-		#region Boolean
-
-		/// <summary>
-		/// Tests serializing and deserializing a boolean value.
-		/// </summary>
-		[Theory]
-		[InlineData(false)]
-		[InlineData(true)]
-		public void SerializeAndDeserialize_Boolean(bool value)
-		{
-			object copy = SerializeAndDeserializeObject(value);
-			Assert.Equal(value, copy);
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an array of boolean values (one-dimensional, zero-based indexing).
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_OneDimensionalArrayOfBoolean()
-		{
-			bool[] array = { false, true, true, false };
-			dynamic copy = SerializeAndDeserializeObject(array);
-			Assert.NotNull(copy);
-			Assert.IsType<bool[]>(copy);
-			Assert.Equal(array, copy);
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an array of boolean values (multi-dimensional).
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_MultiDimensionalArrayOfBoolean()
-		{
-			// create a multi-dimensional array of boolean
-			int[] lengths = { 5, 4, 3 };
-			int[] lowerBounds = { 10, 20, 30 };
-			var array = Array.CreateInstance(typeof(bool), lengths, lowerBounds);
-
-			// populate array with some test data
-			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++)
-			{
-				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++)
-				{
-					for (int z = lowerBounds[2]; z <= array.GetUpperBound(2); z++)
-					{
-						bool value = (x + y + z) % 2 != 0;
-						array.SetValue(value, x, y, z);
-					}
-				}
-			}
-
-			// check whether the copies array equals the original one
-			dynamic copy = SerializeAndDeserializeObject(array);
-			Assert.Equal(array, copy);
-		}
-
-		#endregion
-
-		#region Other Primitives (Except Boolean)
-
-		/// <summary>
-		/// Tests serializing and deserializing primitive types (all kinds of integers, floats, decimal and char).
-		/// </summary>
-		[Theory]
-		[InlineData(typeof(sbyte))]
-		[InlineData(typeof(short))]
-		[InlineData(typeof(int))]
-		[InlineData(typeof(long))]
-		[InlineData(typeof(byte))]
-		[InlineData(typeof(ushort))]
-		[InlineData(typeof(uint))]
-		[InlineData(typeof(ulong))]
-		[InlineData(typeof(float))]
-		[InlineData(typeof(double))]
-		[InlineData(typeof(decimal))]
-		[InlineData(typeof(char))]
-		public void SerializeAndDeserialize_Primitives(Type type)
-		{
-			var minValueField = type.GetField("MinValue");
-			var maxValueField = type.GetField("MaxValue");
-			dynamic min = minValueField.GetValue(null);
-			dynamic max = maxValueField.GetValue(null);
-			dynamic mid = Convert.ChangeType((max + min) / 2, type);
-
-			object minCopy = SerializeAndDeserializeObject(min);
-			object maxCopy = SerializeAndDeserializeObject(max);
-			object midCopy = SerializeAndDeserializeObject(mid);
-
-			Assert.Equal(min, minCopy);
-			Assert.Equal(max, maxCopy);
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an array containing the minimum and the maximum of primitive types
-		/// (one-dimensional, zero-based indexing).
-		/// </summary>
-		[Theory]
-		[InlineData(typeof(sbyte))]
-		[InlineData(typeof(short))]
-		[InlineData(typeof(int))]
-		[InlineData(typeof(long))]
-		[InlineData(typeof(byte))]
-		[InlineData(typeof(ushort))]
-		[InlineData(typeof(uint))]
-		[InlineData(typeof(ulong))]
-		[InlineData(typeof(float))]
-		[InlineData(typeof(double))]
-		[InlineData(typeof(decimal))]
-		[InlineData(typeof(char))]
-		public void SerializeAndDeserialize_OneDimensionalArrayOfPrimitives(Type type)
-		{
-			var minValueField = type.GetField("MinValue");
-			var maxValueField = type.GetField("MaxValue");
-			dynamic min = minValueField.GetValue(null);
-			dynamic max = maxValueField.GetValue(null);
-			dynamic mid = Convert.ChangeType((max + min) / 2, type);
-
-			dynamic array = Array.CreateInstance(type, 3);
-			array[0] = min;
-			array[1] = max;
-			array[2] = mid;
-
-			dynamic copy = SerializeAndDeserializeObject(array);
-			Assert.NotNull(copy);
-			Assert.IsType(type.MakeArrayType(), copy);
-			Assert.Equal(array, copy);
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an array containing the minimum and the maximum of primitive types
-		/// (one-dimensional, zero-based indexing).
-		/// </summary>
-		[Theory]
-		[InlineData(typeof(sbyte))]
-		[InlineData(typeof(short))]
-		[InlineData(typeof(int))]
-		[InlineData(typeof(long))]
-		[InlineData(typeof(byte))]
-		[InlineData(typeof(ushort))]
-		[InlineData(typeof(uint))]
-		[InlineData(typeof(ulong))]
-		[InlineData(typeof(float))]
-		[InlineData(typeof(double))]
-		[InlineData(typeof(decimal))]
-		[InlineData(typeof(char))]
-		public void SerializeAndDeserialize_MultiDimensionalArrayOfPrimitives(Type type)
-		{
-			var minValueField = type.GetField("MinValue");
-			var maxValueField = type.GetField("MaxValue");
-			dynamic min = minValueField.GetValue(null);
-			dynamic max = maxValueField.GetValue(null);
-			dynamic mid = Convert.ChangeType((max + min) / 2, type);
-
-			int[] lengths = { 5, 4, 3 };
-			int[] lowerBounds = { 10, 20, 30 };
-			var array = Array.CreateInstance(type, lengths, lowerBounds);
-
-			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++)
-			{
-				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++)
-				{
-					array.SetValue(min, x, y, lowerBounds[2] + 0);
-					array.SetValue(max, x, y, lowerBounds[2] + 1);
-					array.SetValue(mid, x, y, lowerBounds[2] + 2);
-				}
-			}
-
-			dynamic copy = SerializeAndDeserializeObject(array);
-			Assert.Equal(array, copy);
-		}
-
-		#endregion
-
-		#region String
-
-		/// <summary>
-		/// Tests serializing and deserializing a string.
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_String()
-		{
-			string value = "The quick brown fox jumps over the lazy dog";
-			object copy = SerializeAndDeserializeObject(value);
-			Assert.Equal(value, copy);
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an array of strings (one-dimensional, zero-based indexing).
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_OneDimensionalArrayOfString()
-		{
-			string[] array = { "The", "quick", "brown", "fox", "jumps", "over", "the", "lazy", "dog" };
-			dynamic copy = SerializeAndDeserializeObject(array);
-			Assert.NotNull(copy);
-			Assert.IsType<string[]>(copy);
-			Assert.Equal(array, copy);
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an array of strings (multi-dimensional).
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_MultiDimensionalArrayOfString()
-		{
-			// create a multi-dimensional array of string
-			int[] lengths = { 5, 4, 3 };
-			int[] lowerBounds = { 10, 20, 30 };
-			var array = Array.CreateInstance(typeof(string), lengths, lowerBounds);
-
-			// populate array with some test data
-			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++)
-			{
-				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++)
-				{
-					for (int z = lowerBounds[2]; z < array.GetUpperBound(2); z++)
-					{
-						// last element is a null reference
-						string value = $"x = {x}, y = {y}, z = {z}";
-						array.SetValue(value, x, y, z);
-					}
-				}
-			}
-
-			// check whether the copies array equals the original one
-			dynamic copy = SerializeAndDeserializeObject(array);
-			Assert.Equal(array, copy);
-		}
-
-		#endregion
-
-		#region DateTime
-
-		/// <summary>
-		/// Tests serializing and deserializing a <see cref="DateTime"/> value.
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_DateTime()
-		{
-			var value = DateTime.Now;
-			object copy = SerializeAndDeserializeObject(value);
-			Assert.Equal(value, copy);
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an array of <see cref="DateTime"/> values (one-dimensional, zero-based indexing).
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_OneDimensionalArrayOfDateTime()
-		{
-			var now = DateTime.Now;
-			DateTime[] array = { now.AddMinutes(1), now.AddMinutes(2), now.AddMinutes(3), now.AddMinutes(4) };
-			dynamic copy = SerializeAndDeserializeObject(array);
-			Assert.NotNull(copy);
-			Assert.IsType<DateTime[]>(copy);
-			Assert.Equal(array, copy);
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an array of <see cref="DateTime"/> values (multi-dimensional).
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_MultiDimensionalArrayOfDateTime()
-		{
-			// create a multi-dimensional array of datetime
-			int[] lengths = { 5, 4, 3 };
-			int[] lowerBounds = { 10, 20, 30 };
-			var array = Array.CreateInstance(typeof(DateTime), lengths, lowerBounds);
-
-			// populate array with some test data
-			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++)
-			{
-				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++)
-				{
-					for (int z = lowerBounds[2]; z <= array.GetUpperBound(2); z++)
-					{
-						var value = DateTime.Now.AddMinutes(x + y + z);
-						array.SetValue(value, x, y, z);
-					}
-				}
-			}
-
-			// check whether the copies array equals the original one
-			dynamic copy = SerializeAndDeserializeObject(array);
-			Assert.Equal(array, copy);
-		}
-
-		#endregion
-
-		#region DateTimeOffset
-
-		/// <summary>
-		/// Tests serializing and deserializing a <see cref="DateTimeOffset"/> value.
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_DateTimeOffset()
-		{
-			var value = DateTimeOffset.Now;
-			object copy = SerializeAndDeserializeObject(value);
-			Assert.Equal(value, copy);
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an array of <see cref="DateTimeOffset"/> values (one-dimensional, zero-based indexing).
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_OneDimensionalArrayOfDateTimeOffset()
-		{
-			var now = DateTimeOffset.Now;
-			DateTimeOffset[] array = { now.AddMinutes(1), now.AddMinutes(2), now.AddMinutes(3), now.AddMinutes(4) };
-			dynamic copy = SerializeAndDeserializeObject(array);
-			Assert.NotNull(copy);
-			Assert.IsType<DateTimeOffset[]>(copy);
-			Assert.Equal(array, copy);
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an array of <see cref="DateTimeOffset"/> values (multi-dimensional).
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_MultiDimensionalArrayOfDateTimeOffset()
-		{
-			// create a multi-dimensional array of datetime
-			int[] lengths = { 5, 4, 3 };
-			int[] lowerBounds = { 10, 20, 30 };
-			var array = Array.CreateInstance(typeof(DateTimeOffset), lengths, lowerBounds);
-
-			// populate array with some test data
-			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++)
-			{
-				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++)
-				{
-					for (int z = lowerBounds[2]; z <= array.GetUpperBound(2); z++)
-					{
-						var value = DateTimeOffset.Now.AddMinutes(x + y + z);
-						array.SetValue(value, x, y, z);
-					}
-				}
-			}
-
-			// check whether the copies array equals the original one
-			dynamic copy = SerializeAndDeserializeObject(array);
-			Assert.Equal(array, copy);
-		}
-
-		#endregion
-
-		#region Guid
-
-		/// <summary>
-		/// Tests serializing and deserializing a <see cref="Guid"/> value.
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_Guid()
-		{
-			var value = Guid.NewGuid();
-			object copy = SerializeAndDeserializeObject(value);
-			Assert.Equal(value, copy);
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an array of <see cref="Guid"/> values (one-dimensional, zero-based indexing).
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_OneDimensionalArrayOfGuid()
-		{
-			Guid[] array = { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() };
-			dynamic copy = SerializeAndDeserializeObject(array);
-			Assert.NotNull(copy);
-			Assert.IsType<Guid[]>(copy);
-			Assert.Equal(array, copy);
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an array of <see cref="Guid"/> values (multi-dimensional).
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_MultiDimensionalArrayOfGuid()
-		{
-			// create a multi-dimensional array
-			int[] lengths = { 5, 4, 3 };
-			int[] lowerBounds = { 10, 20, 30 };
-			var array = Array.CreateInstance(typeof(Guid), lengths, lowerBounds);
-
-			// populate array with some test data
-			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++)
-			{
-				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++)
-				{
-					for (int z = lowerBounds[2]; z <= array.GetUpperBound(2); z++)
-					{
-						var value = Guid.NewGuid();
-						array.SetValue(value, x, y, z);
-					}
-				}
-			}
-
-			// check whether the copies array equals the original one
-			dynamic copy = SerializeAndDeserializeObject(array);
-			Assert.Equal(array, copy);
-		}
-
-		#endregion
-
-		#region Type Objects
-
-		/// <summary>
-		/// Tests serializing and deserializing a type object.
-		/// </summary>
-		[Theory]
-		[InlineData(typeof(int))]                     // non-generic type
-		[InlineData(typeof(int[]))]                   // szarray type
-		[InlineData(typeof(int[,]))]                  // mdarray type
-		[InlineData(typeof(Dictionary<int, string>))] // closed constructed generic type
-		[InlineData(typeof(Dictionary<,>))]           // generic type definition
-		public void SerializeAndDeserialize_Type(Type type)
-		{
-			object copy = SerializeAndDeserializeObject(type);
-			Assert.Equal(type, copy);
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an array of type objects (one-dimensional, zero-based indexing).
-		/// </summary>
-		[Theory]
-		[InlineData(typeof(int))]                                  // 1 element, non-generic type
-		[InlineData(typeof(Dictionary<int, string>))]              // 1 element, closed constructed generic type
-		[InlineData(typeof(Dictionary<,>))]                        // 1 element, generic type definition
-		[InlineData(typeof(int), typeof(uint))]                    // 2 elements, non-generic types only
-		[InlineData(typeof(int), typeof(Dictionary<int, string>))] // 2 elements, non-generic type and closed constructed generic type
-		[InlineData(typeof(int), typeof(Dictionary<,>))]           // 2 elements, non-generic type and generic type definition
-		public void SerializeAndDeserialize_OneDimensionalArrayOfType(params Type[] types)
-		{
-			dynamic copy = SerializeAndDeserializeObject(types);
-			Assert.NotNull(copy);
-			Assert.IsType<Type[]>(copy);
-			Assert.Equal(types, copy);
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an array of type objects (multi-dimensional).
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_MultiDimensionalArrayOfType()
-		{
-			// create a multi-dimensional array of type objects
-			int[] lengths = { 5, 4, 3 };
-			int[] lowerBounds = { 10, 20, 30 };
-			var array = Array.CreateInstance(typeof(Type), lengths, lowerBounds);
-
-			// populate array with some test data
-			var types = Assembly.GetExecutingAssembly().GetTypes();
-			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++)
-			{
-				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++)
-				{
-					for (int z = lowerBounds[2]; z <= array.GetUpperBound(2); z++)
-					{
-						int index = x - lowerBounds[0] + y - lowerBounds[1] + z - lowerBounds[2];
-						var value = types[index];
-						array.SetValue(value, x, y, z);
-					}
-				}
-			}
-
-			// check whether the copies array equals the original one
-			dynamic copy = SerializeAndDeserializeObject(array);
-			Assert.Equal(array, copy);
-		}
-
-		#endregion
-
-		#region Enumerations
-
-		/// <summary>
-		/// Tests serializing and deserializing enumeration values.
-		/// </summary>
-		[Theory]
-		[InlineData(typeof(TestEnum_S8))]
-		[InlineData(typeof(TestEnum_U8))]
-		[InlineData(typeof(TestEnum_S16))]
-		[InlineData(typeof(TestEnum_U16))]
-		[InlineData(typeof(TestEnum_S32))]
-		[InlineData(typeof(TestEnum_U32))]
-		[InlineData(typeof(TestEnum_S64))]
-		[InlineData(typeof(TestEnum_U64))]
-		public void SerializeAndDeserialize_Enum(Type type)
-		{
-			foreach (object obj in Enum.GetValues(type))
-			{
-				object copy = SerializeAndDeserializeObject(obj);
-				Assert.Equal(obj, copy);
-			}
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an array of enumeration values (one-dimensional, zero-based indexing).
-		/// </summary>
-		[Theory]
-		[InlineData(typeof(TestEnum_S8))]
-		[InlineData(typeof(TestEnum_U8))]
-		[InlineData(typeof(TestEnum_S16))]
-		[InlineData(typeof(TestEnum_U16))]
-		[InlineData(typeof(TestEnum_S32))]
-		[InlineData(typeof(TestEnum_U32))]
-		[InlineData(typeof(TestEnum_S64))]
-		[InlineData(typeof(TestEnum_U64))]
-		public void SerializeAndDeserialize_OneDimensionalArrayOfEnum(Type type)
-		{
-			var array = Enum.GetValues(type);
-			var copy = SerializeAndDeserializeObject(array) as Array;
-			Assert.Equal(array, copy);
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an array of enumeration values (multi-dimensional).
-		/// </summary>
-		[Theory]
-		[InlineData(typeof(TestEnum_S8))]
-		[InlineData(typeof(TestEnum_U8))]
-		[InlineData(typeof(TestEnum_S16))]
-		[InlineData(typeof(TestEnum_U16))]
-		[InlineData(typeof(TestEnum_S32))]
-		[InlineData(typeof(TestEnum_U32))]
-		[InlineData(typeof(TestEnum_S64))]
-		[InlineData(typeof(TestEnum_U64))]
-		public void SerializeAndDeserialize_MultiDimensionalArrayOfEnum(Type type)
-		{
-			int[] lengths = { 5, 6, 7 };
-			int[] lowerBounds = { 10, 20, 30 };
-			var array = Array.CreateInstance(type, lengths, lowerBounds);
-
-			var enums = Enum.GetValues(type);
-			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++)
-			{
-				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++)
-				{
-					for (int z = lowerBounds[2]; z <= array.GetUpperBound(2); z++)
-					{
-						dynamic value = enums.GetValue((x + y + z) % enums.Length);
-						array.SetValue(value, x, y, z);
-					}
-				}
-			}
-
-			dynamic copy = SerializeAndDeserializeObject(array);
-			Assert.Equal(array, copy);
-		}
-
-		#endregion
-
-		#region Null Reference
+		#region Serializing/Deserializing: Null Reference
 
 		/// <summary>
 		/// Tests serializing and deserializing a null reference.
@@ -590,165 +40,1526 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 		#endregion
 
-		#region Instance of the System.Object Class
+		#region Serializing/Deserializing: System.Object
 
 		/// <summary>
-		/// Tests serializing and deserializing an instance of the <see cref="System.Object"/> class.
+		/// Tests serializing and deserializing <see cref="System.Object"/>.
 		/// </summary>
 		[Fact]
 		public void SerializeAndDeserialize_Object()
 		{
-			object value = new object();
-			object copy = SerializeAndDeserializeObject(value);
-			Assert.NotNull(copy);
+			object obj = new object();
+			object copy = SerializeAndDeserializeObject(obj);
 			Assert.IsType<object>(copy);
 		}
 
 		#endregion
 
-		#region System.Collections.Generic.Dictionary<,>
+		#region Serializing/Deserializing: System.Boolean
 
-		/// <summary>
-		/// Tests serializing and deserializing a <see cref="Dictionary{TKey,TValue}"/> value.
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_DictionaryT()
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Boolean
 		{
-			var value = new Dictionary<int, string>
+			get
 			{
-				[0] = "Value 0",
-				[1] = "Value 1",
-				[2] = "Value 2",
-				[3] = "Value 3",
-				[4] = "Value 4"
-			};
-			object copy = SerializeAndDeserializeObject(value);
-			Assert.Equal(value, copy);
-		}
+				// value: speed/size optimized: 1 byte (native encoding)
+				// array: speed optimized: 1 byte (native encoding)
+				//        size optimized: compact encoding (8 booleans in a byte)
+				bool[] data = { false, true };
 
-		/// <summary>
-		/// Tests serializing and deserializing an array of <see cref="Dictionary{TKey,TValue}"/> values (one-dimensional, zero-based indexing).
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_OneDimensionalArrayOfDictionaryT()
-		{
-			Dictionary<int, string>[] array =
-			{
-				new Dictionary<int, string>(),
-				new Dictionary<int, string> { { 0, "Value 0" } },
-				new Dictionary<int, string> { { 0, "Value 0" }, { 1, "Value 1" } },
-				new Dictionary<int, string> { { 0, "Value 0" }, { 1, "Value 1" }, { 2, "Value 2" } },
-				new Dictionary<int, string> { { 0, "Value 0" }, { 1, "Value 1" }, { 2, "Value 2" }, { 3, "Value 3" } }
-			};
-			dynamic copy = SerializeAndDeserializeObject(array);
-			Assert.NotNull(copy);
-			Assert.IsType<Dictionary<int, string>[]>(copy);
-			Assert.Equal(array, copy);
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an array of <see cref="Dictionary{TKey,TValue}"/> values (multi-dimensional).
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_MultiDimensionalArrayOfDictionaryT()
-		{
-			// create a multi-dimensional array
-			int[] lengths = { 5, 4, 3 };
-			int[] lowerBounds = { 10, 20, 30 };
-			var array = Array.CreateInstance(typeof(Dictionary<int, string>), lengths, lowerBounds);
-
-			// populate array with some test data
-			var value = new Dictionary<int, string>();
-			for (int x = lowerBounds[0]; x <= array.GetUpperBound(0); x++)
-			{
-				value[x] = $"Value {x}";
-				for (int y = lowerBounds[1]; y <= array.GetUpperBound(1); y++)
+				foreach (object[] record in GenerateTestData(data))
 				{
-					value[y] = $"Value {y}";
-					for (int z = lowerBounds[2]; z <= array.GetUpperBound(2); z++)
-					{
-						value[z] = $"Value {z}";
-						array.SetValue(new Dictionary<int, string>(value), x, y, z);
-					}
+					yield return record;
 				}
 			}
-
-			// check whether the copies array equals the original one
-			dynamic copy = SerializeAndDeserializeObject(array);
-			Assert.Equal(array, copy);
-		}
-
-		#endregion
-
-		#region Internal Object Serializer
-
-		/// <summary>
-		/// Tests serializing and deserializing an instance of a class implementing an internal object serializer.
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_InstanceOfClassUsingInternalObjectSerializer()
-		{
-			var obj = new TestClassWithInternalObjectSerializer();
-			var copy = SerializeAndDeserializeObject(obj) as TestClassWithInternalObjectSerializer;
-			Assert.Equal(obj, copy);
 		}
 
 		/// <summary>
-		/// Tests serializing and deserializing an instance of a struct implementing an internal object serializer.
+		/// Tests serializing and deserializing <see cref="System.Boolean"/>.
 		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_InstanceOfStructUsingInternalObjectSerializer()
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Boolean))]
+		public void SerializeAndDeserialize_Boolean(string description, Type type, object obj)
 		{
-			var obj = new TestStructWithInternalObjectSerializer();
-			var copy = SerializeAndDeserializeObject(obj) as TestStructWithInternalObjectSerializer;
-			Assert.Equal(obj, copy);
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an instance of a class using an external object serializer.
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_InstanceOfDerivedClassUsingInternalObjectSerializer()
-		{
-			var obj = new TestClassWithInternalObjectSerializer_Derived();
-			var copy = SerializeAndDeserializeObject(obj) as TestClassWithInternalObjectSerializer_Derived;
-			Assert.Equal(obj, copy);
-		}
-
-		/// <summary>
-		/// Tests serializing and deserializing an instance of a generic class implementing an internal object serializer.
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_InstanceOfGenericClassUsingInternalObjectSerializer()
-		{
-			var obj = new GenericTestClassWithInternalObjectSerializer<int, uint>();
-			var copy = SerializeAndDeserializeObject(obj) as GenericTestClassWithInternalObjectSerializer<int, uint>;
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
 			Assert.Equal(obj, copy);
 		}
 
 		#endregion
 
-		#region External Object Serializer
+		#region Serializing/Deserializing: System.Char
 
-		/// <summary>
-		/// Tests serializing and deserializing an instance of a class using an external object serializer.
-		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_InstanceOfClassUsingExternalObjectSerializer()
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Char
 		{
-			var obj = new TestClassWithExternalObjectSerializer();
-			var copy = SerializeAndDeserializeObject(obj) as TestClassWithExternalObjectSerializer;
-			Assert.Equal(obj, copy);
+			get
+			{
+				// speed optimized: 2 bytes (native encoding)
+				// size optimized: encoding chosen per value
+				char[] data =
+				{
+					(char)0x0000, // size optimized: 1 byte (LEB128 encoding)
+					(char)0x007F, // size optimized: 1 byte (LEB128 encoding)
+					(char)0x0080, // size optimized: 2 bytes (native encoding)
+					(char)0xFFFF  // size optimized: 2 bytes (native encoding)
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
 		}
 
 		/// <summary>
-		/// Tests serializing and deserializing an instance of a struct using an external object serializer.
+		/// Tests serializing and deserializing <see cref="System.Char"/>.
 		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_InstanceOfStructUsingExternalObjectSerializer()
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Char))]
+		public void SerializeAndDeserialize_Char(string description, Type type, object obj)
 		{
-			var obj = new TestStructWithExternalObjectSerializer();
-			var copy = SerializeAndDeserializeObject(obj) as TestStructWithExternalObjectSerializer;
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.SByte
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_SByte
+		{
+			get
+			{
+				// speed/size optimized: 1 byte (native encoding)
+				int[] data =
+				{
+					-128,
+					0,
+					127
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="System.Char"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_SByte))]
+		public void SerializeAndDeserialize_SByte(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.Byte
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Byte
+		{
+			get
+			{
+				// speed/size optimized: 1 byte (native encoding)
+				int[] data =
+				{
+					0,
+					255
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="System.Byte"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Byte))]
+		public void SerializeAndDeserialize_Byte(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.Int16
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Int16
+		{
+			get
+			{
+				// speed optimized: 2 bytes (native encoding)
+				// size optimized: encoding chosen per value
+				int[] data =
+				{
+					unchecked((short)0x8000), // -32768: size optimized: 2 bytes (native encoding)
+					unchecked((short)0xFFBF), // -65: size optimized: 2 bytes (native encoding)
+					unchecked((short)0xFFC0), // -64: size optimized: 1 byte (LEB128  encoding)
+					0,                        // 0: size optimized: 1 byte (LEB128 encoding)
+					0x003F,                   // 63: size optimized: 1 byte (LEB128 encoding)
+					0x0040,                   // 64: size optimized: 2 bytes (native encoding)
+					0x7FFF                    // 32767: size optimized: 2 bytes (native encoding)
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="System.Int16"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Int16))]
+		public void SerializeAndDeserialize_Int16(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.UInt16
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_UInt16
+		{
+			get
+			{
+				// speed optimized: 2 bytes (native encoding)
+				// size optimized: encoding chosen per value
+				int[] data =
+				{
+					0,      // 0, size optimized: 1 byte (LEB128 encoding)
+					0x007F, // 127, size optimized: 1 byte (LEB128 encoding)
+					0x0080, // 128, size optimized: 2 bytes (native encoding)
+					0xFFFF  // 65535, size optimized: 2 bytes (native encoding)
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="System.UInt16"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_UInt16))]
+		public void SerializeAndDeserialize_UInt16(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.Int32
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Int32
+		{
+			get
+			{
+				// speed optimized: 4 bytes (native encoding)
+				// size optimized: encoding chosen per value
+				int[] data =
+				{
+					unchecked((int)0x80000000), // -2147483648: size optimized: 4 bytes (native encoding)
+					unchecked((int)0xFFEFFFFF), // -1048577: size optimized: 4 bytes (native encoding)
+					unchecked((int)0xFFF00000), // -1048576: size optimized: 3 bytes (LEB128 encoding)
+					unchecked((int)0xFFFFDFFF), // -8193: size optimized: 3 bytes (LEB128 encoding)
+					unchecked((int)0xFFFFE000), // -8192: size optimized: 2 bytes (LEB128 encoding)
+					unchecked((int)0xFFFFFFBF), // -65: size optimized: 2 bytes (LEB128 encoding)
+					unchecked((int)0xFFFFFFC0), // -64: size optimized: 1 byte (LEB128  encoding)
+					0,                          // 0: size optimized: 1 byte (LEB128 encoding)
+					0x0000003F,                 // 63: size optimized: 1 byte (LEB128 encoding)
+					0x00000040,                 // 64: size optimized: 2 bytes (LEB128 encoding)
+					0x00001FFF,                 // 8191: size optimized: 2 bytes (LEB128 encoding)
+					0x00002000,                 // 8192: size optimized: 3 bytes (LEB128 encoding)
+					0x000FFFFF,                 // 1048575: size optimized: 3 bytes (LEB128 encoding)
+					0x00800000,                 // 1048576: size optimized: 4 bytes (native encoding)
+					0x7FFFFFFF                  // 2147483647: size optimized: 4 bytes (native encoding)
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="System.Int32"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Int32))]
+		public void SerializeAndDeserialize_Int32(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.UInt32
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_UInt32
+		{
+			get
+			{
+				// speed optimized: 4 bytes (native encoding)
+				// size optimized: encoding chosen per value
+				uint[] data =
+				{
+					0x00000000U, // 0, size optimized: 1 byte (LEB128 encoding)
+					0x0000007FU, // 127, size optimized: 1 byte (LEB128 encoding)
+					0x00000080U, // 128, size optimized: 2 bytes (LEB128 encoding)
+					0x00003FFFU, // 16383, size optimized: 2 bytes (LEB128 encoding)
+					0x00004000U, // 16384, size optimized: 3 bytes (LEB128 encoding)
+					0x001FFFFFU, // 2097151, size optimized: 3 bytes (LEB128 encoding)
+					0x00200000U, // 2097152, size optimized: 4 bytes (native encoding)
+					0xFFFFFFFFU  // 4294967295, size optimized: 4 bytes (native encoding)
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="System.UInt32"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_UInt32))]
+		public void SerializeAndDeserialize_UInt32(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.Int64
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Int64
+		{
+			get
+			{
+				// speed optimized: 8 bytes (native encoding)
+				// size optimized: encoding chosen per value
+				long[] data = new[]
+				{
+					unchecked((long)0x8000000000000000L), // -9223372036854775808: size optimized: 8 bytes (native encoding)
+					unchecked((long)0xFFFEFFFFFFFFFFFFL), // -281474976710657: size optimized: 8 bytes (native encoding)
+					unchecked((long)0xFFFF000000000000L), // -281474976710656: size optimized: 7 bytes (LEB128 encoding)
+					unchecked((long)0xFFFFFDFFFFFFFFFFL), // -2199023255553: size optimized: 7 bytes (LEB128 encoding)
+					unchecked((long)0xFFFFFE0000000000L), // -2199023255552: size optimized: 6 bytes (LEB128 encoding)
+					unchecked((long)0xFFFFFFFBFFFFFFFFL), // -17179869185: size optimized: 6 bytes (LEB128 encoding)
+					unchecked((long)0xFFFFFFFC00000000L), // -17179869184: size optimized: 5 bytes (LEB128 encoding)
+					unchecked((long)0xFFFFFFFFF7FFFFFFL), // -134217729: size optimized: 5 bytes (LEB128 encoding)
+					unchecked((long)0xFFFFFFFFF8000000L), // -134217728: size optimized: 4 bytes (LEB128 encoding)
+					unchecked((long)0xFFFFFFFFFFEFFFFFL), // -1048577: size optimized: 4 bytes (LEB128 encoding)
+					unchecked((long)0xFFFFFFFFFFF00000L), // -1048576: size optimized: 3 bytes (LEB128 encoding)
+					unchecked((long)0xFFFFFFFFFFFFDFFFL), // -8193: size optimized: 3 bytes (LEB128 encoding)
+					unchecked((long)0xFFFFFFFFFFFFE000L), // -8192: size optimized: 2 bytes (LEB128 encoding)
+					unchecked((long)0xFFFFFFFFFFFFFFBFL), // -65: size optimized: 2 bytes (LEB128 encoding)
+					unchecked((long)0xFFFFFFFFFFFFFFC0L), // -64: size optimized: 1 byte (LEB128  encoding)
+					0L,                                   // 0: size optimized: 1 byte (LEB128 encoding)
+					0x000000000000003FL,                  // 63: size optimized: 1 byte (LEB128 encoding)
+					0x0000000000000040L,                  // 64: size optimized: 2 bytes (LEB128 encoding)
+					0x0000000000001FFFL,                  // 8191: size optimized: 2 bytes (LEB128 encoding)
+					0x0000000000002000L,                  // 8192: size optimized: 3 bytes (LEB128 encoding)
+					0x00000000000FFFFFL,                  // 1048575: size optimized: 3 bytes (LEB128 encoding)
+					0x0000000000800000L,                  // 1048576: size optimized: 4 bytes (LEB128 encoding)
+					0x0000000007FFFFFFL,                  // 134217727: size optimized: 4 bytes (LEB128 encoding)
+					0x0000000008000000L,                  // 134217728: size optimized: 5 bytes (LEB128 encoding)
+					0x00000003FFFFFFFFL,                  // 17179869183: size optimized: 5 bytes (LEB128 encoding)
+					0x0000000400000000L,                  // 17179869184: size optimized: 5 bytes (LEB128 encoding)
+					0x000001FFFFFFFFFFL,                  // 2199023255551: size optimized: 6 bytes (LEB128 encoding)
+					0x0000020000000000L,                  // 2199023255552: size optimized: 7 bytes (LEB128 encoding)
+					0x0000FFFFFFFFFFFFL,                  // 281474976710655: size optimized: 7 bytes (LEB128 encoding)
+					0x0001000000000000L,                  // 281474976710656: size optimized: 8 bytes (native encoding)
+					0x7FFFFFFFFFFFFFFFL                   // 9223372036854775807: size optimized: 8 bytes (native encoding)
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="System.Int64"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Int64))]
+		public void SerializeAndDeserialize_Int64(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.UInt64
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_UInt64
+		{
+			get
+			{
+				// speed optimized: 8 bytes (native encoding)
+				// size optimized: encoding chosen per value
+				ulong[] data =
+				{
+					0x0000000000000000UL, // 0, size optimized: 1 byte (LEB128 encoding)
+					0x000000000000007FUL, // 127, size optimized: 1 byte (LEB128 encoding)
+					0x0000000000000080UL, // 128, size optimized: 2 bytes (LEB128 encoding)
+					0x0000000000003FFFUL, // 16383, size optimized: 2 bytes (LEB128 encoding)
+					0x0000000000004000UL, // 16384, size optimized: 3 bytes (LEB128 encoding)
+					0x00000000001FFFFFUL, // 2097151, size optimized: 3 bytes (LEB128 encoding)
+					0x0000000000200000UL, // 2097152, size optimized: 4 bytes (LEB128 encoding)
+					0x000000000FFFFFFFUL, // 268435455, size optimized: 4 bytes (LEB128 encoding)
+					0x0000000010000000UL, // 268435456, size optimized: 5 bytes (LEB128 encoding)
+					0x00000007FFFFFFFFUL, // 34359738367, size optimized: 5 bytes (LEB128 encoding)
+					0x0000000800000000UL, // 34359738368, size optimized: 6 bytes (LEB128 encoding)
+					0x000003FFFFFFFFFFUL, // 4398046511103, size optimized: 6 bytes (LEB128 encoding)
+					0x0000040000000000UL, // 4398046511104, size optimized: 7 bytes (LEB128 encoding)
+					0x0001FFFFFFFFFFFFUL, // 562949953421311, size optimized: 7 bytes (LEB128 encoding)
+					0x0002000000000000UL, // 562949953421312, size optimized: 8 bytes (native encoding)
+					0xFFFFFFFFFFFFFFFFUL  // 18446744073709551615, size optimized: 8 bytes (native encoding)
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="System.UInt64"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_UInt64))]
+		public void SerializeAndDeserialize_UInt64(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.Single
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Single
+		{
+			get
+			{
+				// speed/size optimized: 4 byte (native encoding)
+				float[] data =
+				{
+					0.0f,
+					float.MinValue,
+					float.MaxValue,
+					float.Epsilon,
+					float.NaN,
+					float.NegativeInfinity,
+					float.PositiveInfinity
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="System.Single"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Single))]
+		public void SerializeAndDeserialize_Single(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.Double
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Double
+		{
+			get
+			{
+				// speed/size optimized: 4 byte (native encoding)
+				double[] data =
+				{
+					0.0d,
+					double.MinValue,
+					double.MaxValue,
+					double.Epsilon,
+					double.NaN,
+					double.NegativeInfinity,
+					double.PositiveInfinity
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="System.Double"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Single))]
+		public void SerializeAndDeserialize_Double(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.Decimal
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Decimal
+		{
+			get
+			{
+				// speed/size optimized: 16 byte (native encoding)
+				decimal[] data =
+				{
+					0.0m,
+					decimal.MinValue,
+					decimal.MaxValue
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="System.Decimal"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Decimal))]
+		public void SerializeAndDeserialize_Decimal(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.String
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_String
+		{
+			get
+			{
+				string[] data =
+				{
+					"The", "quick", "brown", "fox", "jumps", "over", "the", "lazy", "dog"
+				};
+
+				// simple values
+				yield return new object[] { "Value", typeof(string), string.Join(" ", data) };
+
+				// multi-dimensional arrays
+				foreach (object[] record in GenerateArrayTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="System.String"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_String))]
+		public void SerializeAndDeserialize_String(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.DateTime
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_DateTime
+		{
+			get
+			{
+				var data = new[]
+				{
+					DateTime.MinValue,
+					DateTime.Now,
+					DateTime.UtcNow,
+					DateTime.MaxValue
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="System.DateTime"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_DateTime))]
+		public void SerializeAndDeserialize_DateTime(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.DateTimeOffset
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_DateTimeOffset
+		{
+			get
+			{
+				var data = new[]
+				{
+					DateTimeOffset.MinValue,
+					DateTimeOffset.Now,
+					DateTimeOffset.UtcNow,
+					DateTimeOffset.MaxValue
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="System.DateTimeOffset"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_DateTimeOffset))]
+		public void SerializeAndDeserialize_DateTimeOffset(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.Guid
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Guid
+		{
+			get
+			{
+				var data = new[]
+				{
+					Guid.Empty,
+					Guid.NewGuid()
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="System.Guid"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Guid))]
+		public void SerializeAndDeserialize_Guid(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.Type
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Type
+		{
+			get
+			{
+				var data = new[]
+				{
+					typeof(int),                     // non-generic type
+					typeof(int[]),                   // szarray type
+					typeof(int[,]),                  // mdarray type
+					typeof(Dictionary<int, string>), // closed constructed generic type
+					typeof(Dictionary<,>)            // generic type definition
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="System.Type"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Type))]
+		public void SerializeAndDeserialize_Type(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: Enumerations (backed by System.SByte)
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Enum_S8
+		{
+			get
+			{
+				var data = new[]
+				{
+					TestEnum_S8.A,
+					TestEnum_S8.B,
+					TestEnum_S8.C
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing an enumeration type backed by <see cref="System.SByte"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Enum_S8))]
+		public void SerializeAndDeserialize_Enum_S8(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: Enumerations (backed by System.Byte)
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Enum_U8
+		{
+			get
+			{
+				var data = new[]
+				{
+					TestEnum_U8.A,
+					TestEnum_U8.B,
+					TestEnum_U8.C
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing an enumeration type backed by <see cref="System.Byte"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Enum_U8))]
+		public void SerializeAndDeserialize_Enum_U8(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: Enumerations (backed by System.Int16)
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Enum_S16
+		{
+			get
+			{
+				var data = new[]
+				{
+					TestEnum_S16.A,
+					TestEnum_S16.B,
+					TestEnum_S16.C
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing an enumeration type backed by <see cref="System.Int16"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Enum_S16))]
+		public void SerializeAndDeserialize_Enum_S16(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: Enumerations (backed by System.UInt16)
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Enum_U16
+		{
+			get
+			{
+				var data = new[]
+				{
+					TestEnum_U16.A,
+					TestEnum_U16.B,
+					TestEnum_U16.C
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing an enumeration type backed by <see cref="System.UInt16"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Enum_U16))]
+		public void SerializeAndDeserialize_Enum_U16(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: Enumerations (backed by System.Int32)
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Enum_S32
+		{
+			get
+			{
+				var data = new[]
+				{
+					TestEnum_S32.A,
+					TestEnum_S32.B,
+					TestEnum_S32.C
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+
+		/// <summary>
+		/// Tests serializing and deserializing an enumeration type backed by <see cref="System.Int32"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Enum_S32))]
+		public void SerializeAndDeserialize_Enum_S32(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: Enumerations (backed by System.UInt32)
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Enum_U32
+		{
+			get
+			{
+				var data = new[]
+				{
+					TestEnum_U32.A,
+					TestEnum_U32.B,
+					TestEnum_U32.C
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing an enumeration type backed by <see cref="System.UInt32"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Enum_U32))]
+		public void SerializeAndDeserialize_Enum_U32(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: Enumerations (backed by System.Int64)
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Enum_S64
+		{
+			get
+			{
+				var data = new[]
+				{
+					TestEnum_S64.A,
+					TestEnum_S64.B,
+					TestEnum_S64.C
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing an enumeration type backed by <see cref="System.Int64"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Enum_S64))]
+		public void SerializeAndDeserialize_Enum_S64(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: Enumerations (backed by System.UInt64)
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Enum_U64
+		{
+			get
+			{
+				var data = new[]
+				{
+					TestEnum_U64.A,
+					TestEnum_U64.B,
+					TestEnum_U64.C
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing an enumeration type backed by <see cref="System.UInt64"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Enum_U64))]
+		public void SerializeAndDeserialize_Enum_U64(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: Types with Custom Serializers
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_CustomSerializers
+		{
+			get
+			{
+				object[] data =
+				{
+					new TestClassWithInternalObjectSerializer(),                   // class with internal object serializer
+					new TestStructWithInternalObjectSerializer(),                  // struct with internal object serializer
+					new TestClassWithInternalObjectSerializer_Derived(),           // class deriving from another serializable class with internal object serializer
+					new GenericTestClassWithInternalObjectSerializer<int, uint>(), // generic class with internal object serializer
+					new TestClassWithExternalObjectSerializer(),                   // class with external object serializer
+					new TestStructWithExternalObjectSerializer()                   // struct with external object serializer
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing types with custom serializers.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_CustomSerializers))]
+		public void SerializeAndDeserialize_CustomSerializers(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.Collections.Generic.Dictionary<TKey,TValue> (Specific External Object Serializer)
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_DictionaryT
+		{
+			get
+			{
+				var data = new[]
+				{
+					new Dictionary<char, string>
+					{
+						['0'] = "Value 0",
+						['1'] = "Value 1",
+						['2'] = "Value 2",
+						['3'] = "Value 3",
+						['4'] = "Value 4"
+					},
+					new Dictionary<char, string>
+					{
+						['a'] = "Value a",
+						['b'] = "Value b",
+						['c'] = "Value c",
+						['d'] = "Value d",
+						['e'] = "Value e"
+					},
+					new Dictionary<char, string>
+					{
+						['A'] = "Value A",
+						['B'] = "Value B",
+						['C'] = "Value C",
+						['D'] = "Value D",
+						['E'] = "Value E"
+					}
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="Dictionary{TKey,TValue}"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_DictionaryT))]
+		public void SerializeAndDeserialize_DictionaryT(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.Collections.Generic.HashSet<T> (Specific External Object Serializer)
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_HashSetT
+		{
+			get
+			{
+				var data = new[]
+				{
+					new HashSet<string>
+					{
+						"Value 0",
+						"Value 1",
+						"Value 2",
+						"Value 3",
+						"Value 4"
+					},
+					new HashSet<string>
+					{
+						"Value a",
+						"Value b",
+						"Value c",
+						"Value d",
+						"Value e"
+					},
+					new HashSet<string>
+					{
+						"Value A",
+						"Value B",
+						"Value C",
+						"Value D",
+						"Value E"
+					}
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="HashSet{T}"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_HashSetT))]
+		public void SerializeAndDeserialize_HashSetT(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.Collections.Generic.Queue<T> (Specific External Object Serializer)
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_QueueT
+		{
+			get
+			{
+				var data = new[]
+				{
+					new Queue<string>(
+						new[]
+						{
+							"Value 0",
+							"Value 1",
+							"Value 2",
+							"Value 3",
+							"Value 4"
+						}),
+					new Queue<string>(
+						new[]
+						{
+							"Value a",
+							"Value b",
+							"Value c",
+							"Value d",
+							"Value e"
+						}),
+					new Queue<string>(
+						new[]
+						{
+							"Value A",
+							"Value B",
+							"Value C",
+							"Value D",
+							"Value E"
+						})
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="Queue{T}"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_QueueT))]
+		public void SerializeAndDeserialize_QueueT(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.Collections.Generic.SortedDictionary<TKey,TValue> (Specific External Object Serializer)
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_SortedDictionaryT
+		{
+			get
+			{
+				var data = new[]
+				{
+					new SortedDictionary<char, string>
+					{
+						['0'] = "Value 0",
+						['1'] = "Value 1",
+						['2'] = "Value 2",
+						['3'] = "Value 3",
+						['4'] = "Value 4"
+					},
+					new SortedDictionary<char, string>
+					{
+						['a'] = "Value a",
+						['b'] = "Value b",
+						['c'] = "Value c",
+						['d'] = "Value d",
+						['e'] = "Value e"
+					},
+					new SortedDictionary<char, string>
+					{
+						['A'] = "Value A",
+						['B'] = "Value B",
+						['C'] = "Value C",
+						['D'] = "Value D",
+						['E'] = "Value E"
+					}
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="SortedDictionary{TKey,TValue}"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_SortedDictionaryT))]
+		public void SerializeAndDeserialize_SortedDictionaryT(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.Collections.Generic.SortedList<TKey,TValue> (Specific External Object Serializer)
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_SortedListT
+		{
+			get
+			{
+				var data = new[]
+				{
+					new SortedList<char, string>
+					{
+						['0'] = "Value 0",
+						['1'] = "Value 1",
+						['2'] = "Value 2",
+						['3'] = "Value 3",
+						['4'] = "Value 4"
+					},
+					new SortedList<char, string>
+					{
+						['a'] = "Value a",
+						['b'] = "Value b",
+						['c'] = "Value c",
+						['d'] = "Value d",
+						['e'] = "Value e"
+					},
+					new SortedList<char, string>
+					{
+						['A'] = "Value A",
+						['B'] = "Value B",
+						['C'] = "Value C",
+						['D'] = "Value D",
+						['E'] = "Value E"
+					}
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="SortedList{TKey,TValue}"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_SortedListT))]
+		public void SerializeAndDeserialize_SortedListT(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.Collections.Generic.SortedSet<T> (Specific External Object Serializer)
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_SortedSetT
+		{
+			get
+			{
+				var data = new[]
+				{
+					new SortedSet<string>
+					{
+						"Value 0",
+						"Value 1",
+						"Value 2",
+						"Value 3",
+						"Value 4"
+					},
+					new SortedSet<string>
+					{
+						"Value a",
+						"Value b",
+						"Value c",
+						"Value d",
+						"Value e"
+					},
+					new SortedSet<string>
+					{
+						"Value A",
+						"Value B",
+						"Value C",
+						"Value D",
+						"Value E"
+					}
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="SortedSet{T}"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_SortedSetT))]
+		public void SerializeAndDeserialize_SortedSetT(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
+			Assert.Equal(obj, copy);
+		}
+
+		#endregion
+
+		#region Serializing/Deserializing: System.Collections.Generic.Stack<T> (Specific External Object Serializer)
+
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_StackT
+		{
+			get
+			{
+				var data = new[]
+				{
+					new Stack<string>(
+						new[]
+						{
+							"Value 0",
+							"Value 1",
+							"Value 2",
+							"Value 3",
+							"Value 4"
+						}),
+					new Stack<string>(
+						new[]
+						{
+							"Value a",
+							"Value b",
+							"Value c",
+							"Value d",
+							"Value e"
+						}),
+					new Stack<string>(
+						new[]
+						{
+							"Value A",
+							"Value B",
+							"Value C",
+							"Value D",
+							"Value E"
+						})
+				};
+
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Tests serializing and deserializing <see cref="Stack{T}"/>.
+		/// </summary>
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_StackT))]
+		public void SerializeAndDeserialize_StackT(string description, Type type, object obj)
+		{
+			object copy = SerializeAndDeserializeObject(obj);
+			Assert.IsType(type, obj);
 			Assert.Equal(obj, copy);
 		}
 
@@ -821,6 +1632,130 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		#region Helpers
 
 		/// <summary>
+		/// Generates test data for the specified type containing a mix of the specified elements.
+		/// </summary>
+		/// <typeparam name="T">Type of the elements.</typeparam>
+		/// <param name="elements">Some elements to test with.</param>
+		/// <returns>Test data.</returns>
+		private static IEnumerable<object[]> GenerateTestData<T>(params T[] elements)
+		{
+			// simple values
+			foreach (var value in elements)
+			{
+				yield return new object[] { "Value", value.GetType(), value };
+			}
+
+			// arrays
+			foreach (object[] data in GenerateArrayTestData(elements))
+			{
+				yield return data;
+			}
+		}
+
+		/// <summary>
+		/// Generates test data for arrays of the specified type containing a mix of the specified elements.
+		/// </summary>
+		/// <typeparam name="T">Type of the elements.</typeparam>
+		/// <param name="elements">Some elements to test with.</param>
+		/// <returns>Test data.</returns>
+		private static IEnumerable<object[]> GenerateArrayTestData<T>(params T[] elements)
+		{
+			// one-dimensional, zero-based array, empty
+			yield return new object[] { "SZARRAY", typeof(T[]), Array.Empty<T>() };
+
+			// one-dimensional, zero-based array, non-empty
+			yield return new object[] { "SZARRAY", typeof(T[]), elements };
+
+			// multi-dimensional array, empty, 1 dimension
+			yield return new object[]
+			{
+				"MDARRAY",
+				typeof(T).MakeArrayType(1),
+				CreateMultidimensionalArray(1, 0, elements)
+			};
+
+			// multi-dimensional array, empty, 2 dimensions
+			yield return new object[]
+			{
+				"MDARRAY",
+				typeof(T).MakeArrayType(2),
+				CreateMultidimensionalArray(2, 0, elements)
+			};
+
+			// multi-dimensional array, empty, 3 dimensions
+			yield return new object[]
+			{
+				"MDARRAY",
+				typeof(T).MakeArrayType(3),
+				CreateMultidimensionalArray(3, 0, elements)
+			};
+
+			// multi-dimensional array, non-empty, 1 dimension
+			yield return new object[]
+			{
+				"MDARRAY",
+				typeof(T).MakeArrayType(1),
+				CreateMultidimensionalArray(1, 5, elements)
+			};
+
+			// multi-dimensional array, non-empty, 2 dimensions
+			yield return new object[]
+			{
+				"MDARRAY",
+				typeof(T).MakeArrayType(2),
+				CreateMultidimensionalArray(2, 5, elements)
+			};
+
+			// multi-dimensional array, non-empty, 3 dimensions
+			yield return new object[]
+			{
+				"MDARRAY",
+				typeof(T).MakeArrayType(3),
+				CreateMultidimensionalArray(3, 5, elements)
+			};
+		}
+
+		/// <summary>
+		/// Creates a multi-dimensional array with the specified number of dimensions and populates it with the specified elements.
+		/// The first dimension will have its lower bound at 10, all other dimensions will start at a multiple of 10 (10, 20, 30).
+		/// The length of a dimension is the specified length of the first dimension plus 10 times the dimension
+		/// (first, first + 10, first + 20, first + 30, ...).
+		/// </summary>
+		/// <typeparam name="T">Array element type.</typeparam>
+		/// <param name="dimensionCount">Number of dimensions of the array.</param>
+		/// <param name="firstDimensionLength">Length of the first dimension of the array.</param>
+		/// <param name="elements">Elements to put into the array.</param>
+		/// <returns>The created array.</returns>
+		private static Array CreateMultidimensionalArray<T>(
+			int        dimensionCount,
+			int        firstDimensionLength,
+			params T[] elements)
+		{
+			// calculate the lengths and lower bounds of the array dimensions
+			int[] lengths = new int[dimensionCount];
+			int[] lowerBounds = new int[dimensionCount];
+			int[] indices = new int[dimensionCount];
+			int totalCount = 1;
+			for (int i = 0; i < dimensionCount; i++)
+			{
+				lengths[i] = firstDimensionLength + 10 * i;
+				lowerBounds[i] = 10 * (i + 1);
+				indices[i] = lowerBounds[i];
+				totalCount *= lengths[i];
+			}
+
+			// create and populate the array
+			var array = Array.CreateInstance(typeof(T), lengths, lowerBounds);
+			for (int i = 0; i < totalCount; i++)
+			{
+				array.SetValue(elements[i % elements.Length], indices);
+				IncrementArrayIndices(indices, array);
+			}
+
+			return array;
+		}
+
+		/// <summary>
 		/// Serializes the specified object into a memory stream and deserializes the resulting byte stream creating a
 		/// deep copy of the specified object (does not take any shortcuts for primitive or immutable types).
 		/// </summary>
@@ -828,11 +1763,19 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		/// <returns>Copy of the specified object.</returns>
 		private object SerializeAndDeserializeObject(object obj)
 		{
+			// create an copy of the object by serializing it to a stream
+			// and deserializing it from the stream
 			var stream = new MemoryStream();
 			var serializer = CreateSerializer();
 			serializer.Serialize(stream, obj, null);
+			long positionAfterSerialization = stream.Position;
 			stream.Position = 0;
-			return serializer.Deserialize(stream, null);
+			object copy = serializer.Deserialize(stream, null);
+
+			// check whether the stream has been consumed entirely
+			Assert.Equal(positionAfterSerialization, stream.Position);
+
+			return copy;
 		}
 
 		/// <summary>
