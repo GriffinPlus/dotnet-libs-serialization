@@ -2110,7 +2110,7 @@ namespace GriffinPlus.Lib.Serialization
 					var genericTypeArgumentTypeItems = new TypeItem[genericTypeParameters.Length];
 					for (int i = 0; i < genericTypeParameters.Length; i++)
 					{
-						var genericTypeArgument = ReadTypeObject(stream, assignObjectId, out string genericTypeArgumentSourceName);
+						var genericTypeArgument = ReadTypeObject(stream, false, out string genericTypeArgumentSourceName);
 						genericTypeArgumentTypeItems[i] = new TypeItem(genericTypeArgumentSourceName, genericTypeArgument);
 					}
 
