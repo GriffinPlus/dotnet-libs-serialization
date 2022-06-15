@@ -3,6 +3,8 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+using System;
+using System.Buffers;
 using System.Collections.Generic;
 
 namespace GriffinPlus.Lib.Serialization
@@ -28,10 +30,20 @@ namespace GriffinPlus.Lib.Serialization
 				int count = stack.Count;
 				archive.Write(count);
 
-				// write items (top down)
-				foreach (var item in stack)
+				// write items (bottom up)
+				T[] buffer = ArrayPool<T>.Shared.Rent(count);
+				try
 				{
-					archive.Write(item, archive.Context);
+					stack.CopyTo(buffer, 0);
+					Array.Reverse(buffer, 0, count);
+					for (int i = 0; i < count; i++)
+					{
+						archive.Write(buffer[i], archive.Context);
+					}
+				}
+				finally
+				{
+					ArrayPool<T>.Shared.Return(buffer);
 				}
 
 				return;
