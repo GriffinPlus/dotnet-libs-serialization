@@ -2235,11 +2235,12 @@ namespace GriffinPlus.Lib.Serialization
 					}
 				}
 
+				bool isValueType = mCurrentDeserializedType.Type.IsValueType;
 				var archive = new DeserializationArchive(this, stream, mCurrentDeserializedType.Type, deserializedVersion, context);
 				object obj = deserializationConstructorCaller(ref archive);
 
 				// assign an object id to the deserialized object, the serialization stream may refer to it later on
-				if (!mCurrentDeserializedType.Type.IsValueType)
+				if (!isValueType)
 					mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, obj);
 
 				// read and check archive end
@@ -2266,11 +2267,12 @@ namespace GriffinPlus.Lib.Serialization
 				}
 
 				// version is ok, deserialize...
+				bool isValueType = mCurrentDeserializedType.Type.IsValueType;
 				var archive = new DeserializationArchive(this, stream, mCurrentDeserializedType.Type, deserializedVersion, context);
 				object obj = eos.Deserialize(archive);
 
 				// assign an object id to the deserialized object, the serialization stream may refer to it later on
-				if (!mCurrentDeserializedType.Type.IsValueType)
+				if (!isValueType)
 					mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, obj);
 
 				// read and check archive end
