@@ -2301,6 +2301,7 @@ namespace GriffinPlus.Lib.Serialization
 				null);
 			Debug.Assert(constructor != null, nameof(constructor) + " != null");
 			Expression body = Expression.New(constructor, parameterExpression);
+			if (type.IsValueType) body = Expression.Convert(body, typeof(object)); // box value types
 			var lambda = Expression.Lambda(typeof(DeserializationConstructorCallerDelegate), body, parameterExpression);
 			return (DeserializationConstructorCallerDelegate)lambda.Compile();
 		}
