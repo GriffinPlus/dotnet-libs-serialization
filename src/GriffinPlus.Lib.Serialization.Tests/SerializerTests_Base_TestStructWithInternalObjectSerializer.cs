@@ -17,7 +17,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 	public partial class SerializerTests_Base
 	{
 		[InternalObjectSerializer(1)]
-		public class TestStructWithInternalObjectSerializer : IInternalObjectSerializer
+		public struct TestStructWithInternalObjectSerializer : IInternalObjectSerializer
 		{
 			internal bool           BooleanFalse                 { get; set; }
 			internal bool           BooleanTrue                  { get; set; }
@@ -53,7 +53,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			internal byte[]         Buffer1                      { get; set; }
 			internal byte[]         Buffer2                      { get; set; }
 
-			public TestStructWithInternalObjectSerializer()
+			public TestStructWithInternalObjectSerializer Init()
 			{
 				BooleanFalse = false;
 				BooleanTrue = true;
@@ -88,6 +88,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				SerializableObject = new List<int> { 1, 2, 3, 4, 5 };
 				Buffer1 = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 				Buffer2 = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+				return this;
 			}
 
 			public unsafe TestStructWithInternalObjectSerializer(DeserializationArchive archive)
@@ -235,7 +236,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				}
 			}
 
-			protected bool Equals(TestStructWithInternalObjectSerializer other)
+			public bool Equals(TestStructWithInternalObjectSerializer other)
 			{
 				return BooleanFalse == other.BooleanFalse &&
 				       BooleanTrue == other.BooleanTrue &&
@@ -273,7 +274,9 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 			public override bool Equals(object obj)
 			{
-				if (!(obj is TestStructWithInternalObjectSerializer other)) return false;
+				if (obj == null) return false;
+				if (obj.GetType() != typeof(TestStructWithInternalObjectSerializer )) return false;
+				var other = (TestStructWithInternalObjectSerializer )obj;
 				return Equals(other);
 			}
 		}

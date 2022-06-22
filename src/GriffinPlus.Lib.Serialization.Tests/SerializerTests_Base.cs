@@ -1122,11 +1122,11 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				object[] data =
 				{
 					new TestClassWithInternalObjectSerializer(),                   // class with internal object serializer
-					new TestStructWithInternalObjectSerializer(),                  // struct with internal object serializer
+					new TestStructWithInternalObjectSerializer().Init(),           // struct with internal object serializer
 					new TestClassWithInternalObjectSerializer_Derived(),           // class deriving from another serializable class with internal object serializer
 					new GenericTestClassWithInternalObjectSerializer<int, uint>(), // generic class with internal object serializer
 					new TestClassWithExternalObjectSerializer(),                   // class with external object serializer
-					new TestStructWithExternalObjectSerializer()                   // struct with external object serializer
+					new TestStructWithExternalObjectSerializer().Init()            // struct with external object serializer
 				};
 
 				foreach (object[] record in GenerateTestData(data))
