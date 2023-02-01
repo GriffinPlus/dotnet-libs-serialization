@@ -4,8 +4,10 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -133,6 +135,7 @@ namespace GriffinPlus.Lib.Caching
 
 					case ItemState.SaveAndDisposePending:
 					case ItemState.Disposed:
+					default:
 						break;
 				}
 			}
@@ -412,10 +415,10 @@ namespace GriffinPlus.Lib.Caching
 						{
 							// delete own file, if no other item references it
 							string path = GetObjectFilePath();
-							var weakReferences = mCache.Items[path];
+							List<WeakReference> weakReferences = mCache.Items[path];
 							for (int i = 0; i < weakReferences.Count; i++)
 							{
-								var weakReference = weakReferences[i];
+								WeakReference weakReference = weakReferences[i];
 								if (ReferenceEquals(weakReference.Target, this))
 								{
 									weakReferences.RemoveAt(i);
@@ -436,13 +439,10 @@ namespace GriffinPlus.Lib.Caching
 
 							// transfer ownership of the other file
 							path = other.GetObjectFilePath();
-							foreach (var weakReference in mCache.Items[path])
+							foreach (WeakReference weakReference in mCache.Items[path].Where(weakReference => ReferenceEquals(weakReference.Target, item)))
 							{
-								if (ReferenceEquals(weakReference.Target, item))
-								{
-									weakReference.Target = this;
-									break;
-								}
+								weakReference.Target = this;
+								break;
 							}
 
 							// assign members

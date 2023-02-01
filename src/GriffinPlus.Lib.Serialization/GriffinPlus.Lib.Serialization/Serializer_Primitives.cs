@@ -26,7 +26,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="writer">Buffer writer to write the value to.</param>
 		internal void WritePrimitive_Boolean(bool value, IBufferWriter<byte> writer)
 		{
-			var buffer = writer.GetSpan(1);
+			Span<byte> buffer = writer.GetSpan(1);
 			buffer[0] = (byte)(value ? PayloadType.BooleanTrue : PayloadType.BooleanFalse);
 			writer.Advance(1);
 		}
@@ -45,7 +45,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (SerializationOptimization == SerializationOptimization.Speed || !IsLeb128EncodingMoreEfficient(value))
 			{
 				// use native encoding
-				var buffer = writer.GetSpan(3);
+				Span<byte> buffer = writer.GetSpan(3);
 				buffer[0] = (byte)PayloadType.Char_Native;
 				MemoryMarshal.Write(buffer.Slice(1), ref value);
 				writer.Advance(3);
@@ -53,7 +53,7 @@ namespace GriffinPlus.Lib.Serialization
 			else
 			{
 				// use LEB128 encoding
-				var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+				Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
 				buffer[0] = (byte)PayloadType.Char_LEB128;
 				int count = Leb128EncodingHelper.Write(buffer.Slice(1), (uint)value);
 				writer.Advance(1 + count);
@@ -71,7 +71,7 @@ namespace GriffinPlus.Lib.Serialization
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 			char value = MemoryMarshal.Read<char>(TempBuffer_Buffer);
-			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				EndiannessHelper.SwapBytes(ref value);
 			return value;
 		}
@@ -98,7 +98,7 @@ namespace GriffinPlus.Lib.Serialization
 		internal void WritePrimitive_Decimal(decimal value, IBufferWriter<byte> writer)
 		{
 			const int elementSize = sizeof(decimal);
-			var buffer = writer.GetSpan(1 + elementSize);
+			Span<byte> buffer = writer.GetSpan(1 + elementSize);
 			buffer[0] = (byte)PayloadType.Decimal;
 #if NETSTANDARD2_0 || NETSTANDARD2_1 || NET461
 			int[] bits = decimal.GetBits(value);
@@ -127,7 +127,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
 #if NETSTANDARD2_0 || NETSTANDARD2_1 || NET461
 			Buffer.BlockCopy(TempBuffer_Buffer, 0, TempBuffer_Int32, 0, elementSize);
-			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 			{
 				EndiannessHelper.SwapBytes(ref TempBuffer_Int32[0]);
 				EndiannessHelper.SwapBytes(ref TempBuffer_Int32[1]);
@@ -138,7 +138,7 @@ namespace GriffinPlus.Lib.Serialization
 			return new decimal(TempBuffer_Int32);
 #elif NET5_0_OR_GREATER
 			var intBuffer = MemoryMarshal.Cast<byte, int>(TempBuffer_Buffer.AsSpan(0, elementSize));
-			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 			{
 				EndiannessHelper.SwapBytes(ref intBuffer[0]);
 				EndiannessHelper.SwapBytes(ref intBuffer[1]);
@@ -164,7 +164,7 @@ namespace GriffinPlus.Lib.Serialization
 		internal void WritePrimitive_Single(float value, IBufferWriter<byte> writer)
 		{
 			const int elementSize = sizeof(float);
-			var buffer = writer.GetSpan(1 + elementSize);
+			Span<byte> buffer = writer.GetSpan(1 + elementSize);
 			buffer[0] = (byte)PayloadType.Single;
 			MemoryMarshal.Write(buffer.Slice(1), ref value);
 			writer.Advance(1 + elementSize);
@@ -181,7 +181,7 @@ namespace GriffinPlus.Lib.Serialization
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
 			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
 			float value = MemoryMarshal.Read<float>(TempBuffer_Buffer);
-			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				EndiannessHelper.SwapBytes(ref value);
 			return value;
 		}
@@ -198,7 +198,7 @@ namespace GriffinPlus.Lib.Serialization
 		internal void WritePrimitive_Double(double value, IBufferWriter<byte> writer)
 		{
 			const int elementSize = sizeof(double);
-			var buffer = writer.GetSpan(1 + elementSize);
+			Span<byte> buffer = writer.GetSpan(1 + elementSize);
 			buffer[0] = (byte)PayloadType.Double;
 			MemoryMarshal.Write(buffer.Slice(1), ref value);
 			writer.Advance(1 + elementSize);
@@ -215,7 +215,7 @@ namespace GriffinPlus.Lib.Serialization
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
 			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
 			double value = MemoryMarshal.Read<double>(TempBuffer_Buffer);
-			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				EndiannessHelper.SwapBytes(ref value);
 			return value;
 		}
@@ -231,7 +231,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="writer">Buffer writer to write the value to.</param>
 		internal void WritePrimitive_SByte(sbyte value, IBufferWriter<byte> writer)
 		{
-			var buffer = writer.GetSpan(2);
+			Span<byte> buffer = writer.GetSpan(2);
 
 			unchecked
 			{
@@ -268,7 +268,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (SerializationOptimization == SerializationOptimization.Speed || !IsLeb128EncodingMoreEfficient(value))
 			{
 				// use native encoding
-				var buffer = writer.GetSpan(3);
+				Span<byte> buffer = writer.GetSpan(3);
 				buffer[0] = (byte)PayloadType.Int16_Native;
 				MemoryMarshal.Write(buffer.Slice(1), ref value);
 				writer.Advance(3);
@@ -276,7 +276,7 @@ namespace GriffinPlus.Lib.Serialization
 			else
 			{
 				// use LEB128 encoding
-				var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+				Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
 				buffer[0] = (byte)PayloadType.Int16_LEB128;
 				int count = Leb128EncodingHelper.Write(buffer.Slice(1), value);
 				writer.Advance(1 + count);
@@ -294,7 +294,7 @@ namespace GriffinPlus.Lib.Serialization
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 			short value = MemoryMarshal.Read<short>(TempBuffer_Buffer);
-			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				EndiannessHelper.SwapBytes(ref value);
 			return value;
 		}
@@ -323,7 +323,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (SerializationOptimization == SerializationOptimization.Speed || !IsLeb128EncodingMoreEfficient(value))
 			{
 				// use native encoding
-				var buffer = writer.GetSpan(5);
+				Span<byte> buffer = writer.GetSpan(5);
 				buffer[0] = (byte)PayloadType.Int32_Native;
 				MemoryMarshal.Write(buffer.Slice(1), ref value);
 				writer.Advance(5);
@@ -331,7 +331,7 @@ namespace GriffinPlus.Lib.Serialization
 			else
 			{
 				// use LEB128 encoding
-				var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+				Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
 				buffer[0] = (byte)PayloadType.Int32_LEB128;
 				int count = Leb128EncodingHelper.Write(buffer.Slice(1), value);
 				writer.Advance(1 + count);
@@ -349,7 +349,7 @@ namespace GriffinPlus.Lib.Serialization
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 			int value = MemoryMarshal.Read<int>(TempBuffer_Buffer);
-			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				EndiannessHelper.SwapBytes(ref value);
 			return value;
 		}
@@ -378,7 +378,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (SerializationOptimization == SerializationOptimization.Speed || !IsLeb128EncodingMoreEfficient(value))
 			{
 				// use native encoding
-				var buffer = writer.GetSpan(9);
+				Span<byte> buffer = writer.GetSpan(9);
 				buffer[0] = (byte)PayloadType.Int64_Native;
 				MemoryMarshal.Write(buffer.Slice(1), ref value);
 				writer.Advance(9);
@@ -386,7 +386,7 @@ namespace GriffinPlus.Lib.Serialization
 			else
 			{
 				// use LEB128 encoding
-				var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
+				Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
 				buffer[0] = (byte)PayloadType.Int64_LEB128;
 				int count = Leb128EncodingHelper.Write(buffer.Slice(1), value);
 				writer.Advance(1 + count);
@@ -404,7 +404,7 @@ namespace GriffinPlus.Lib.Serialization
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 			long value = MemoryMarshal.Read<long>(TempBuffer_Buffer);
-			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				EndiannessHelper.SwapBytes(ref value);
 			return value;
 		}
@@ -430,7 +430,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="writer">Buffer writer to write the value to.</param>
 		internal void WritePrimitive_Byte(byte value, IBufferWriter<byte> writer)
 		{
-			var buffer = writer.GetSpan(2);
+			Span<byte> buffer = writer.GetSpan(2);
 			buffer[0] = (byte)PayloadType.Byte;
 			buffer[1] = value;
 			writer.Advance(2);
@@ -462,7 +462,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (SerializationOptimization == SerializationOptimization.Speed || !IsLeb128EncodingMoreEfficient(value))
 			{
 				// use native encoding
-				var buffer = writer.GetSpan(3);
+				Span<byte> buffer = writer.GetSpan(3);
 				buffer[0] = (byte)PayloadType.UInt16_Native;
 				MemoryMarshal.Write(buffer.Slice(1), ref value);
 				writer.Advance(3);
@@ -470,7 +470,7 @@ namespace GriffinPlus.Lib.Serialization
 			else
 			{
 				// use LEB128 encoding
-				var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+				Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
 				buffer[0] = (byte)PayloadType.UInt16_LEB128;
 				int count = Leb128EncodingHelper.Write(buffer.Slice(1), (uint)value);
 				writer.Advance(1 + count);
@@ -488,7 +488,7 @@ namespace GriffinPlus.Lib.Serialization
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 			ushort value = MemoryMarshal.Read<ushort>(TempBuffer_Buffer);
-			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				EndiannessHelper.SwapBytes(ref value);
 			return value;
 		}
@@ -517,7 +517,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (SerializationOptimization == SerializationOptimization.Speed || !IsLeb128EncodingMoreEfficient(value))
 			{
 				// use native encoding
-				var buffer = writer.GetSpan(5);
+				Span<byte> buffer = writer.GetSpan(5);
 				buffer[0] = (byte)PayloadType.UInt32_Native;
 				MemoryMarshal.Write(buffer.Slice(1), ref value);
 				writer.Advance(5);
@@ -525,7 +525,7 @@ namespace GriffinPlus.Lib.Serialization
 			else
 			{
 				// use LEB128 encoding
-				var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+				Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
 				buffer[0] = (byte)PayloadType.UInt32_LEB128;
 				int count = Leb128EncodingHelper.Write(buffer.Slice(1), value);
 				writer.Advance(1 + count);
@@ -543,7 +543,7 @@ namespace GriffinPlus.Lib.Serialization
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 			uint value = MemoryMarshal.Read<uint>(TempBuffer_Buffer);
-			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				EndiannessHelper.SwapBytes(ref value);
 			return value;
 		}
@@ -572,7 +572,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (SerializationOptimization == SerializationOptimization.Speed || !IsLeb128EncodingMoreEfficient(value))
 			{
 				// use native encoding
-				var buffer = writer.GetSpan(9);
+				Span<byte> buffer = writer.GetSpan(9);
 				buffer[0] = (byte)PayloadType.UInt64_Native;
 				MemoryMarshal.Write(buffer.Slice(1), ref value);
 				writer.Advance(9);
@@ -580,7 +580,7 @@ namespace GriffinPlus.Lib.Serialization
 			else
 			{
 				// use LEB128 encoding
-				var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
+				Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
 				buffer[0] = (byte)PayloadType.UInt64_LEB128;
 				int count = Leb128EncodingHelper.Write(buffer.Slice(1), value);
 				writer.Advance(1 + count);
@@ -598,7 +598,7 @@ namespace GriffinPlus.Lib.Serialization
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, bytesToRead);
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 			ulong value = MemoryMarshal.Read<ulong>(TempBuffer_Buffer);
-			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				EndiannessHelper.SwapBytes(ref value);
 			return value;
 		}
@@ -628,7 +628,7 @@ namespace GriffinPlus.Lib.Serialization
 			// datetime kind always resulting in a value that is too great to be encoded using
 			// LEB128 with 7 bytes or less
 			const int elementSize = sizeof(long); // binary representation of a DateTime
-			var buffer = writer.GetSpan(1 + elementSize);
+			Span<byte> buffer = writer.GetSpan(1 + elementSize);
 			buffer[0] = (byte)PayloadType.DateTime;
 			long binaryValue = value.ToBinary();
 			MemoryMarshal.Write(buffer.Slice(1), ref binaryValue);
@@ -646,7 +646,7 @@ namespace GriffinPlus.Lib.Serialization
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
 			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
 			long value = MemoryMarshal.Read<long>(TempBuffer_Buffer);
-			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				EndiannessHelper.SwapBytes(ref value);
 			return DateTime.FromBinary(value);
 		}
@@ -668,7 +668,7 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = 2 * sizeof(long);
 			long dateTimeTicks = value.Ticks;
 			long timezoneOffsetTicks = value.Offset.Ticks;
-			var buffer = writer.GetSpan(1 + elementSize);
+			Span<byte> buffer = writer.GetSpan(1 + elementSize);
 			buffer[0] = (byte)PayloadType.DateTimeOffset;
 			MemoryMarshal.Write(buffer.Slice(1), ref dateTimeTicks);
 			MemoryMarshal.Write(buffer.Slice(9), ref timezoneOffsetTicks);
@@ -687,7 +687,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
 			long dateTimeTicks = MemoryMarshal.Read<long>(TempBuffer_Buffer);
 			long timezoneOffsetTicks = MemoryMarshal.Read<long>(TempBuffer_Buffer.AsSpan().Slice(8));
-			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 			{
 				EndiannessHelper.SwapBytes(ref dateTimeTicks);
 				EndiannessHelper.SwapBytes(ref timezoneOffsetTicks);
@@ -708,7 +708,7 @@ namespace GriffinPlus.Lib.Serialization
 		internal void WritePrimitive_Guid(Guid value, IBufferWriter<byte> writer)
 		{
 			const int elementSize = 16;
-			var buffer = writer.GetSpan(1 + elementSize);
+			Span<byte> buffer = writer.GetSpan(1 + elementSize);
 			buffer[0] = (byte)PayloadType.Guid;
 #if NETSTANDARD2_0 || NET461
 			value.ToByteArray().AsSpan().CopyTo(buffer.Slice(1));
@@ -761,7 +761,7 @@ namespace GriffinPlus.Lib.Serialization
 				// write the encoded string
 				int valueByteCount = value.Length * sizeof(char);
 				int maxSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue + valueByteCount;
-				var buffer = writer.GetSpan(maxSize);
+				Span<byte> buffer = writer.GetSpan(maxSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.String_UTF16;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), value.Length);
@@ -782,7 +782,7 @@ namespace GriffinPlus.Lib.Serialization
 
 				// write the encoded string
 				int maxSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue + valueByteCount;
-				var buffer = writer.GetSpan(maxSize);
+				Span<byte> buffer = writer.GetSpan(maxSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.String_UTF8;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(1), valueByteCount);
@@ -834,8 +834,8 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
 
 			// swap bytes to fix endianness issues, if necessary
-			var buffer = MemoryMarshal.Cast<byte, char>(TempBuffer_Buffer.AsSpan(0, bytesRead));
-			if (mDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			Span<char> buffer = MemoryMarshal.Cast<byte, char>(TempBuffer_Buffer.AsSpan(0, bytesRead));
+			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 			{
 				for (int i = 0; i < buffer.Length; i++)
 				{
@@ -867,7 +867,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="writer">Buffer writer to write the object to.</param>
 		internal void WritePrimitive_Object(object obj, IBufferWriter<byte> writer)
 		{
-			var buffer = writer.GetSpan(1);
+			Span<byte> buffer = writer.GetSpan(1);
 			buffer[0] = (byte)PayloadType.Object;
 			writer.Advance(1);
 			mSerializedObjectIdTable.Add(obj, mNextSerializedObjectId++);

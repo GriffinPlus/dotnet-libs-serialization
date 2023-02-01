@@ -29,7 +29,7 @@ namespace GriffinPlus.Lib.Serialization
 				archive.Write(count);
 
 				// write list items
-				var node = list.First;
+				LinkedListNode<T> node = list.First;
 				while (node != null)
 				{
 					archive.Write(node.Value, archive.Context);

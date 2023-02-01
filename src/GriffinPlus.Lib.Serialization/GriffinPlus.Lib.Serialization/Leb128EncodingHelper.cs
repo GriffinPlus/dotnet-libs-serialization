@@ -88,15 +88,13 @@ namespace GriffinPlus.Lib.Serialization
 				if (value >= Int32MinValueEncodedWith1Byte) return 1;
 				if (value >= Int32MinValueEncodedWith2Bytes) return 2;
 				if (value >= Int32MinValueEncodedWith3Bytes) return 3;
-				if (value >= Int32MinValueEncodedWith4Bytes) return 4;
-				return 5;
+				return value >= Int32MinValueEncodedWith4Bytes ? 4 : 5;
 			}
 
 			if (value <= Int32MaxValueEncodedWith1Byte) return 1;
 			if (value <= Int32MaxValueEncodedWith2Bytes) return 2;
 			if (value <= Int32MaxValueEncodedWith3Bytes) return 3;
-			if (value <= Int32MaxValueEncodedWith4Bytes) return 4;
-			return 5;
+			return value <= Int32MaxValueEncodedWith4Bytes ? 4 : 5;
 		}
 
 		/// <summary>
@@ -321,8 +319,9 @@ namespace GriffinPlus.Lib.Serialization
 			if (value <= UInt32MaxValueEncodedWith1Byte) return 1;  // 7 bits
 			if (value <= UInt32MaxValueEncodedWith2Bytes) return 2; // 14 bits
 			if (value <= UInt32MaxValueEncodedWith3Bytes) return 3; // 21 bits
-			if (value <= UInt32MaxValueEncodedWith4Bytes) return 4; // 28 bits
-			return 5;
+			return value <= UInt32MaxValueEncodedWith4Bytes
+				       ? 4  // 28 bits
+				       : 5; // 32 bits
 		}
 
 		/// <summary>
@@ -568,8 +567,7 @@ namespace GriffinPlus.Lib.Serialization
 				if (value >= Int64MinValueEncodedWith6Bytes) return 6;
 				if (value >= Int64MinValueEncodedWith7Bytes) return 7;
 				if (value >= Int64MinValueEncodedWith8Bytes) return 8;
-				if (value >= Int64MinValueEncodedWith9Bytes) return 9;
-				return 10;
+				return value >= Int64MinValueEncodedWith9Bytes ? 9 : 10;
 			}
 
 			if (value <= Int64MaxValueEncodedWith1Byte) return 1;
@@ -580,8 +578,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (value <= Int64MaxValueEncodedWith6Bytes) return 6;
 			if (value <= Int64MaxValueEncodedWith7Bytes) return 7;
 			if (value <= Int64MaxValueEncodedWith8Bytes) return 8;
-			if (value <= Int64MaxValueEncodedWith9Bytes) return 9;
-			return 10;
+			return value <= Int64MaxValueEncodedWith9Bytes ? 9 : 10;
 		}
 
 		/// <summary>
@@ -830,8 +827,9 @@ namespace GriffinPlus.Lib.Serialization
 			if (value <= UInt64MaxValueEncodedWith6Bytes) return 6; // 42 bits
 			if (value <= UInt64MaxValueEncodedWith7Bytes) return 7; // 49 bits
 			if (value <= UInt64MaxValueEncodedWith8Bytes) return 8; // 56 bits
-			if (value <= UInt64MaxValueEncodedWith9Bytes) return 9; // 63 bits
-			return 10;
+			return value <= UInt64MaxValueEncodedWith9Bytes
+				       ? 9   // 63 bits
+				       : 10; // 64 bits
 		}
 
 		/// <summary>

@@ -133,7 +133,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 					// deserialize buffer via Stream
 					int buffer2Size = archive.ReadInt32();
-					var stream = archive.ReadStream();
+					Stream stream = archive.ReadStream();
 					Buffer2 = new byte[buffer2Size];
 					int readByteCount = stream.Read(Buffer2, 0, Buffer2.Length);
 					stream.Dispose();

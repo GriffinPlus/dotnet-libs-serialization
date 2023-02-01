@@ -59,13 +59,13 @@ namespace GriffinPlus.Lib.Serialization
 				}
 
 				// get the ExternalObjectSerializer<> all external object serializers derive from
-				var eosBaseType = GetExternalObjectSerializerBaseClass(type);
+				Type eosBaseType = GetExternalObjectSerializerBaseClass(type);
 
 				// check whether the type is annotated with the attribute for external object serializers
 				var eosAttribute = (ExternalObjectSerializerAttribute)type.GetCustomAttributes(typeof(ExternalObjectSerializerAttribute), false).FirstOrDefault();
 
 				// check whether the type has parameterless constructor
-				var eosConstructor = type.GetConstructor(
+				ConstructorInfo eosConstructor = type.GetConstructor(
 					BindingFlags.ExactBinding | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
 					Type.DefaultBinder,
 					Type.EmptyTypes,
@@ -79,10 +79,10 @@ namespace GriffinPlus.Lib.Serialization
 
 					// determine the serialized type supported by the external object serializer
 					// from the generic type argument of the ExternalObjectSerializer<> class
-					var eosSerializeeType = eosBaseType.GenericTypeArguments[0];
+					Type eosSerializeeType = eosBaseType.GenericTypeArguments[0];
 
 					// abort if the serializee is already handled by some other external object serializer
-					var otherEos = sRegisteredExternalObjectSerializers.Find(x => x.SerializeeType == eosSerializeeType);
+					SerializerInfo otherEos = sRegisteredExternalObjectSerializers.Find(x => x.SerializeeType == eosSerializeeType);
 					if (otherEos != null)
 					{
 						sLog.Write(
@@ -100,7 +100,7 @@ namespace GriffinPlus.Lib.Serialization
 					// (otherwise we cannot infer them from the supported serializee type later on)
 					if (type.IsGenericTypeDefinition)
 					{
-						foreach (var eosGenericTypeArgument in type.GetGenericArguments())
+						foreach (Type eosGenericTypeArgument in type.GetGenericArguments())
 						{
 							if (!eosSerializeeType.GenericTypeArguments.Contains(eosGenericTypeArgument))
 							{
@@ -171,7 +171,7 @@ namespace GriffinPlus.Lib.Serialization
 		public static IExternalObjectSerializer GetExternalObjectSerializer(Type type, out uint version)
 		{
 			// check whether a serializer for exactly the specified type is available
-			if (sExternalObjectSerializerInfoBySerializee.TryGetValue(type, out var eosi))
+			if (sExternalObjectSerializerInfoBySerializee.TryGetValue(type, out SerializeeInfo eosi))
 			{
 				version = eosi.SerializerInfo.Version;
 				return eosi.Serializer;
@@ -191,13 +191,13 @@ namespace GriffinPlus.Lib.Serialization
 				}
 
 				// get a list containing the serializee type and all interfaces it implements
-				var possibleSerializeeTypes = GetPossibleSerializeeTypes(type);
+				List<Type> possibleSerializeeTypes = GetPossibleSerializeeTypes(type);
 
 				// check the types against the types registered external object serializers can handle
 				// (the order of both lists ensures that the most specific types are checked first)
-				foreach (var possibleSerializeeType in possibleSerializeeTypes)
+				foreach (Type possibleSerializeeType in possibleSerializeeTypes)
 				{
-					foreach (var eosInfo in sRegisteredExternalObjectSerializers)
+					foreach (SerializerInfo eosInfo in sRegisteredExternalObjectSerializers)
 					{
 						IExternalObjectSerializer eosInstance = null;
 
@@ -211,13 +211,13 @@ namespace GriffinPlus.Lib.Serialization
 						{
 							// the serializee is a generic type and the serializee supported by the external object serializer is a generic type as well
 							// => check whether their generic type definitions are the same, so the serializer can be used to handle the type
-							var possibleSerializeeTypeDefinition = possibleSerializeeType.GetGenericTypeDefinition();
-							var eosSerializeeTypeDefinition = eosInfo.SerializeeType.GetGenericTypeDefinition();
+							Type possibleSerializeeTypeDefinition = possibleSerializeeType.GetGenericTypeDefinition();
+							Type eosSerializeeTypeDefinition = eosInfo.SerializeeType.GetGenericTypeDefinition();
 							if (possibleSerializeeTypeDefinition == eosSerializeeTypeDefinition)
 							{
 								// both generic type definitions are the same
 								// => found serializer that can handle the type
-								var constructedEosType = eosInfo.SerializerType.MakeGenericType(possibleSerializeeType.GenericTypeArguments);
+								Type constructedEosType = eosInfo.SerializerType.MakeGenericType(possibleSerializeeType.GenericTypeArguments);
 								eosInstance = (IExternalObjectSerializer)FastActivator.CreateInstance(constructedEosType);
 							}
 						}
@@ -259,7 +259,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// the specified type may implement interfaces
 			// => add all of its interfaces
-			var implementedInterfaces = type.FindInterfaces((interfaceType, criteria) => true, null);
+			Type[] implementedInterfaces = type.FindInterfaces((interfaceType, criteria) => true, null);
 			possibleSerializeeTypes.AddRange(implementedInterfaces);
 
 			// sort the list to ensure that the specified type is at the front of the list, followed by implemented interfaces
@@ -279,7 +279,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// </returns>
 		public static Type GetExternalObjectSerializerBaseClass(Type eosType)
 		{
-			var eosBaseClassType = eosType.BaseType;
+			Type eosBaseClassType = eosType.BaseType;
 			while (eosBaseClassType != null)
 			{
 				if (eosBaseClassType.IsGenericType && eosBaseClassType.GetGenericTypeDefinition() == typeof(ExternalObjectSerializer<>))

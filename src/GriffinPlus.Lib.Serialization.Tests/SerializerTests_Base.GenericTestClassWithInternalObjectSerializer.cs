@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
+// ReSharper disable UnusedMember.Global
 // ReSharper disable NonReadonlyMemberInGetHashCode
 
 namespace GriffinPlus.Lib.Serialization.Tests
@@ -17,7 +18,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 	public partial class SerializerTests_Base
 	{
 		[InternalObjectSerializer(1)]
-		public struct TestStructWithInternalObjectSerializer : IInternalObjectSerializer
+		internal class GenericTestClassWithInternalObjectSerializer<T1, T2> : IInternalObjectSerializer
 		{
 			internal bool           BooleanFalse                 { get; set; }
 			internal bool           BooleanTrue                  { get; set; }
@@ -53,7 +54,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			internal byte[]         Buffer1                      { get; set; }
 			internal byte[]         Buffer2                      { get; set; }
 
-			public TestStructWithInternalObjectSerializer Init()
+			public GenericTestClassWithInternalObjectSerializer()
 			{
 				BooleanFalse = false;
 				BooleanTrue = true;
@@ -88,10 +89,9 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				SerializableObject = new List<int> { 1, 2, 3, 4, 5 };
 				Buffer1 = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 				Buffer2 = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-				return this;
 			}
 
-			public unsafe TestStructWithInternalObjectSerializer(DeserializationArchive archive)
+			public unsafe GenericTestClassWithInternalObjectSerializer(DeserializationArchive archive)
 			{
 				if (archive.Version == 1)
 				{
@@ -134,7 +134,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 					// deserialize buffer via Stream
 					int buffer2Size = archive.ReadInt32();
-					var stream = archive.ReadStream();
+					Stream stream = archive.ReadStream();
 					Buffer2 = new byte[buffer2Size];
 					int readByteCount = stream.Read(Buffer2, 0, Buffer2.Length);
 					stream.Dispose();
@@ -232,11 +232,12 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					hashCode = (hashCode * 397) ^ Enum_U64.GetHashCode();
 					hashCode = (hashCode * 397) ^ SerializableObject.GetHashCode();
 					hashCode = (hashCode * 397) ^ ByteArrayEqualityComparer.GetHashCode(Buffer1);
+					hashCode = (hashCode * 397) ^ ByteArrayEqualityComparer.GetHashCode(Buffer2);
 					return hashCode;
 				}
 			}
 
-			public bool Equals(TestStructWithInternalObjectSerializer other)
+			protected bool Equals(GenericTestClassWithInternalObjectSerializer<T1, T2> other)
 			{
 				return BooleanFalse == other.BooleanFalse &&
 				       BooleanTrue == other.BooleanTrue &&
@@ -255,7 +256,6 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				       String == other.String &&
 				       DateTime == other.DateTime &&
 				       DateTimeOffset == other.DateTimeOffset &&
-				       Guid == other.Guid &&
 				       NonGenericType == other.NonGenericType &&
 				       GenericTypeDefinition == other.GenericTypeDefinition &&
 				       ClosedConstructedGenericType == other.ClosedConstructedGenericType &&
@@ -269,14 +269,13 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				       Enum_S64 == other.Enum_S64 &&
 				       Enum_U64 == other.Enum_U64 &&
 				       SerializableObject.SequenceEqual(other.SerializableObject) &&
-				       ByteArrayEqualityComparer.AreEqual(Buffer1, other.Buffer1);
+				       ByteArrayEqualityComparer.AreEqual(Buffer1, other.Buffer1) &&
+				       ByteArrayEqualityComparer.AreEqual(Buffer2, other.Buffer2);
 			}
 
 			public override bool Equals(object obj)
 			{
-				if (obj == null) return false;
-				if (obj.GetType() != typeof(TestStructWithInternalObjectSerializer )) return false;
-				var other = (TestStructWithInternalObjectSerializer )obj;
+				if (!(obj is GenericTestClassWithInternalObjectSerializer<T1, T2> other)) return false;
 				return Equals(other);
 			}
 		}

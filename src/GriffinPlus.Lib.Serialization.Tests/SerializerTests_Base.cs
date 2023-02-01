@@ -392,7 +392,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			{
 				// speed optimized: 8 bytes (native encoding)
 				// size optimized: encoding chosen per value
-				long[] data = new[]
+				long[] data =
 				{
 					unchecked((long)0x8000000000000000L), // -9223372036854775808: size optimized: 8 bytes (native encoding)
 					unchecked((long)0xFFFEFFFFFFFFFFFFL), // -281474976710657: size optimized: 8 bytes (native encoding)
@@ -671,7 +671,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				DateTime[] data =
 				{
 					DateTime.MinValue,
 					DateTime.Now,
@@ -709,7 +709,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				DateTimeOffset[] data =
 				{
 					DateTimeOffset.MinValue,
 					DateTimeOffset.Now,
@@ -783,7 +783,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				Type[] data =
 				{
 					typeof(int),                     // non-generic type
 					typeof(int[]),                   // szarray type
@@ -1647,7 +1647,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		private static IEnumerable<object[]> GenerateTestData<T>(params T[] elements)
 		{
 			// simple values
-			foreach (var value in elements)
+			foreach (T value in elements)
 			{
 				yield return new object[] { "Value", value.GetType(), value };
 			}
@@ -1773,7 +1773,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			// create an copy of the object by serializing it to a stream
 			// and deserializing it from the stream
 			var stream = new MemoryStream();
-			var serializer = CreateSerializer();
+			Serializer serializer = CreateSerializer();
 			serializer.Serialize(stream, obj, null);
 			long positionAfterSerialization = stream.Position;
 			stream.Position = 0;
@@ -1790,9 +1790,9 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		/// </summary>
 		/// <param name="indices">Indexing vector.</param>
 		/// <param name="array">Array that is being accessed.</param>
-		private static void IncrementArrayIndices(int[] indices, Array array)
+		private static void IncrementArrayIndices(IList<int> indices, Array array)
 		{
-			for (int i = indices.Length; i > 0; i--)
+			for (int i = indices.Count; i > 0; i--)
 			{
 				if (indices[i - 1] == array.GetUpperBound(i - 1))
 				{

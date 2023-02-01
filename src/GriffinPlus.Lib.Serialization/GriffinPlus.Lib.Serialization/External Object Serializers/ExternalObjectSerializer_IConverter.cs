@@ -49,7 +49,7 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				lock (sConverters)
 				{
-					if (!sConverters.TryGetValue(archive.DataType, out var converter))
+					if (!sConverters.TryGetValue(archive.DataType, out IConverter converter))
 					{
 						converter = (IConverter)FastActivator.CreateInstance(archive.DataType);
 						sConverters.Add(archive.DataType, converter);

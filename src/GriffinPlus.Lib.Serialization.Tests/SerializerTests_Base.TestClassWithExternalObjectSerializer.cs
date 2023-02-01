@@ -167,8 +167,9 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 			public override bool Equals(object obj)
 			{
-				var other = obj as TestClassWithExternalObjectSerializer;
-				if (other == null) return false;
+				if (!(obj is TestClassWithExternalObjectSerializer other))
+					return false;
+
 				return Equals(other);
 			}
 		}

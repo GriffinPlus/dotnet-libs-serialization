@@ -63,13 +63,11 @@ namespace GriffinPlus.Lib.Serialization
 		private          uint                                  mNextSerializedObjectId     = default;
 
 		// for deserialization only
-		private          TypeItem                   mCurrentDeserializedType    = default;
-		private readonly Dictionary<uint, TypeItem> mDeserializedTypeIdTable    = new Dictionary<uint, TypeItem>();
-		private readonly Dictionary<uint, object>   mDeserializedObjectIdTable  = new Dictionary<uint, object>();
-		private          uint                       mNextDeserializedTypeId     = default;
-		private          uint                       mNextDeserializedObjectId   = default;
-		private          bool                       mUseTolerantDeserialization = sUseTolerantDeserializationByDefault;
-		private          bool                       mDeserializingLittleEndian  = false;
+		private          TypeItem                   mCurrentDeserializedType   = default;
+		private readonly Dictionary<uint, TypeItem> mDeserializedTypeIdTable   = new Dictionary<uint, TypeItem>();
+		private readonly Dictionary<uint, object>   mDeserializedObjectIdTable = new Dictionary<uint, object>();
+		private          uint                       mNextDeserializedTypeId    = default;
+		private          uint                       mNextDeserializedObjectId  = default;
 
 		#endregion
 
@@ -614,7 +612,7 @@ namespace GriffinPlus.Lib.Serialization
 			sDeserializersByPayloadType[(int)PayloadType.DateTimeOffset] = (serializer, stream, context) => serializer.ReadPrimitive_DateTimeOffset(stream);
 			sDeserializersByPayloadType[(int)PayloadType.Guid] = (serializer,           stream, context) => serializer.ReadPrimitive_Guid(stream);
 			sDeserializersByPayloadType[(int)PayloadType.Object] = (serializer,         stream, context) => serializer.ReadPrimitive_Object();
-			sDeserializersByPayloadType[(int)PayloadType.TypeObject] = (serializer,     stream, context) => serializer.ReadTypeObject(stream, true, out _);
+			sDeserializersByPayloadType[(int)PayloadType.TypeObject] = (serializer,     stream, context) => serializer.ReadTypeObject(stream, true, out string _);
 
 			// one-dimensional arrays with zero-based indexing
 			sDeserializersByPayloadType[(int)PayloadType.ArrayOfBoolean_Native] = (serializer,  stream, context) => serializer.ReadArrayOfBoolean_Native(stream);
@@ -686,10 +684,10 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			sLog.Write(LogLevel.Debug, "Scanning for custom serializers...");
 
-			foreach (var kvp in TypeInfo.TypesByAssembly)
+			foreach (KeyValuePair<Assembly, IReadOnlyList<Type>> kvp in TypeInfo.TypesByAssembly)
 			{
 				// scan assembly for custom serializers
-				foreach (var type in kvp.Value)
+				foreach (Type type in kvp.Value)
 				{
 					try
 					{
@@ -719,11 +717,11 @@ namespace GriffinPlus.Lib.Serialization
 			if (type.IsClass || (type.IsValueType && !type.IsPrimitive)) // class or struct
 			{
 				// a class
-				var iosAttributes = type.GetCustomAttributes<InternalObjectSerializerAttribute>(false).ToArray();
+				InternalObjectSerializerAttribute[] iosAttributes = type.GetCustomAttributes<InternalObjectSerializerAttribute>(false).ToArray();
 				bool iosAttributeOk = iosAttributes.Length > 0;
 				bool interfaceOk = typeof(IInternalObjectSerializer).IsAssignableFrom(type);
 				bool constructorOk = type.GetConstructor(BindingFlags.ExactBinding | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, Type.DefaultBinder, sConstructorArgumentTypes, null) != null;
-				var serializeMethodInfo = type.GetMethod("Serialize", new[] { typeof(SerializationArchive), typeof(uint) });
+				MethodInfo serializeMethodInfo = type.GetMethod("Serialize", new[] { typeof(SerializationArchive), typeof(uint) });
 				bool virtualSerializeMethod = serializeMethodInfo != null && serializeMethodInfo.IsVirtual && !serializeMethodInfo.IsFinal;
 
 				if (iosAttributeOk && interfaceOk && constructorOk && !virtualSerializeMethod)
@@ -736,7 +734,7 @@ namespace GriffinPlus.Lib.Serialization
 						{
 							var typeToInternalObjectSerializerInfo = new TypeKeyedDictionary<InternalObjectSerializerInfo>(sInternalObjectSerializerInfoByType)
 							{
-								{ type, new InternalObjectSerializerInfo(type, iosAttributes[0].Version) }
+								{ type, new InternalObjectSerializerInfo(iosAttributes[0].Version) }
 							};
 							Thread.MemoryBarrier();
 							sInternalObjectSerializerInfoByType = typeToInternalObjectSerializerInfo;
@@ -786,12 +784,13 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				string fullPath = Path.GetFullPath(assembly.Location);
 				string basePath = Path.GetFullPath(AppDomain.CurrentDomain.BaseDirectory);
-				if (fullPath.StartsWith(basePath)) return fullPath.Substring(basePath.Length);
-				return fullPath;
+				return fullPath.StartsWith(basePath)
+					       ? fullPath.Substring(basePath.Length)
+					       : fullPath;
 			}
 
 			// internal object serializers
-			foreach (var kvp in sInternalObjectSerializerInfoByType)
+			foreach (KeyValuePair<Type, InternalObjectSerializerInfo> kvp in sInternalObjectSerializerInfoByType)
 			{
 				Debug.Assert(kvp.Key.FullName != null, "kvp.Key.FullName != null");
 				linesByTypeName.Add(
@@ -804,7 +803,7 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			// external object serializers
-			foreach (var info in ExternalObjectSerializerFactory.RegisteredSerializers)
+			foreach (ExternalObjectSerializerFactory.SerializerInfo info in ExternalObjectSerializerFactory.RegisteredSerializers)
 			{
 				linesByTypeName.Add(
 					new Tuple<string, string>(
@@ -821,7 +820,7 @@ namespace GriffinPlus.Lib.Serialization
 			// put everything together and print to the log
 			var builder = new StringBuilder();
 			builder.AppendLine("Types with Custom Serializers:");
-			foreach (var kvp in linesByTypeName) builder.AppendLine(kvp.Item2);
+			foreach (Tuple<string, string> kvp in linesByTypeName) builder.AppendLine(kvp.Item2);
 			sLog.Write(level, builder.ToString());
 		}
 
@@ -894,7 +893,7 @@ namespace GriffinPlus.Lib.Serialization
 			// (in this case the number of following type arguments is always 0)
 			if (type.IsGenericTypeDefinition)
 			{
-				var buffer = writer.GetSpan(1);
+				Span<byte> buffer = writer.GetSpan(1);
 				buffer[0] = 0; // LEB128 encoded '0'
 				writer.Advance(1);
 			}
@@ -930,7 +929,7 @@ namespace GriffinPlus.Lib.Serialization
 							serializedTypeName = AddSerializedTypeSnippet(type);
 
 						// write pre-serialized type snippet
-						var buffer = writer.GetSpan(serializedTypeName.Length);
+						Span<byte> buffer = writer.GetSpan(serializedTypeName.Length);
 						serializedTypeName.CopyTo(buffer);
 						writer.Advance(serializedTypeName.Length);
 					}
@@ -939,7 +938,7 @@ namespace GriffinPlus.Lib.Serialization
 						// a closed constructed generic type
 						// => write generic type definition and generic type arguments
 						WriteDecomposedTypeInternal(writer, type.GetGenericTypeDefinition());
-						var buffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
+						Span<byte> buffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
 						int count = Leb128EncodingHelper.Write(buffer, type.GenericTypeArguments.Length);
 						writer.Advance(count);
 						for (int i = 0; i < type.GenericTypeArguments.Length; i++)
@@ -964,7 +963,7 @@ namespace GriffinPlus.Lib.Serialization
 						serializedTypeName = AddSerializedTypeSnippet(type);
 
 					// write pre-serialized type snippet
-					var buffer = writer.GetSpan(serializedTypeName.Length);
+					Span<byte> buffer = writer.GetSpan(serializedTypeName.Length);
 					serializedTypeName.CopyTo(buffer);
 					writer.Advance(serializedTypeName.Length);
 				}
@@ -1016,9 +1015,9 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		/// <param name="writer">Buffer writer to write to.</param>
 		/// <param name="id">Type id that was assigned to the type.</param>
-		private void WriteTypeId(IBufferWriter<byte> writer, uint id)
+		private static void WriteTypeId(IBufferWriter<byte> writer, uint id)
 		{
-			var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+			Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
 			buffer[0] = (byte)PayloadType.TypeId;
 			int count = Leb128EncodingHelper.Write(buffer.Slice(1), id);
 			writer.Advance(1 + count);
@@ -1044,7 +1043,7 @@ namespace GriffinPlus.Lib.Serialization
 			// try to get the type name from the type cache
 			TypeItem typeItem;
 			// ReSharper disable once InconsistentlySynchronizedField
-			if (sTypeTable.TryGetValue(typename, out var type))
+			if (sTypeTable.TryGetValue(typename, out Type type))
 			{
 				// assign a type id
 				typeItem = new TypeItem(typename, type);
@@ -1078,16 +1077,16 @@ namespace GriffinPlus.Lib.Serialization
 
 				if (genericTypeArgumentCount > 0)
 				{
-					var genericTypeParameters = typeItem.Type.GetTypeInfo().GenericTypeParameters;
+					Type[] genericTypeParameters = typeItem.Type.GetTypeInfo().GenericTypeParameters;
 					var genericTypeArgumentTypeItems = new TypeItem[genericTypeParameters.Length];
 					for (int i = 0; i < genericTypeParameters.Length; i++)
 					{
-						var genericTypeArgument = ReadTypeObject(stream, false, out string genericTypeArgumentSourceName);
+						Type genericTypeArgument = ReadTypeObject(stream, false, out string genericTypeArgumentSourceName);
 						genericTypeArgumentTypeItems[i] = new TypeItem(genericTypeArgumentSourceName, genericTypeArgument);
 					}
 
 					// compose the generic type
-					var composedType = typeItem.Type.MakeGenericType(genericTypeArgumentTypeItems.Select(x => x.Type).ToArray());
+					Type composedType = typeItem.Type.MakeGenericType(genericTypeArgumentTypeItems.Select(x => x.Type).ToArray());
 					typeItem = new TypeItem(MakeGenericTypeName(typeItem.Name, genericTypeArgumentTypeItems.Select(x => x.Name)), composedType);
 
 					// remember the determined name-to-type mapping
@@ -1120,7 +1119,7 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			uint id = Leb128EncodingHelper.ReadUInt32(stream);
 
-			if (mDeserializedTypeIdTable.TryGetValue(id, out var item))
+			if (mDeserializedTypeIdTable.TryGetValue(id, out TypeItem item))
 			{
 				if (item.Type.IsGenericTypeDefinition)
 				{
@@ -1130,16 +1129,16 @@ namespace GriffinPlus.Lib.Serialization
 
 					if (genericTypeArgumentCount > 0)
 					{
-						var genericTypeParameters = item.Type.GetTypeInfo().GenericTypeParameters;
+						Type[] genericTypeParameters = item.Type.GetTypeInfo().GenericTypeParameters;
 						var genericTypeArgumentTypeItems = new TypeItem[genericTypeParameters.Length];
 						for (int i = 0; i < genericTypeParameters.Length; i++)
 						{
-							var genericTypeArgument = ReadTypeObject(stream, false, out string genericTypeArgumentSourceName);
+							Type genericTypeArgument = ReadTypeObject(stream, false, out string genericTypeArgumentSourceName);
 							genericTypeArgumentTypeItems[i] = new TypeItem(genericTypeArgumentSourceName, genericTypeArgument);
 						}
 
 						// compose the generic type
-						var composedType = item.Type.MakeGenericType(genericTypeArgumentTypeItems.Select(x => x.Type).ToArray());
+						Type composedType = item.Type.MakeGenericType(genericTypeArgumentTypeItems.Select(x => x.Type).ToArray());
 						item = new TypeItem(MakeGenericTypeName(item.Name, genericTypeArgumentTypeItems.Select(x => x.Name)), composedType);
 
 						// remember the determined name-to-type mapping
@@ -1184,7 +1183,7 @@ namespace GriffinPlus.Lib.Serialization
 			// -----------------------------------------------------------------------------------------------------------------
 			// split assembly name and type name, condition array types
 			// -----------------------------------------------------------------------------------------------------------------
-			var match = sExtractFullTypeNameRegex.Match(assemblyQualifiedTypeName);
+			Match match = sExtractFullTypeNameRegex.Match(assemblyQualifiedTypeName);
 			if (!match.Success) throw new SerializationException($"Detected invalid type name ({assemblyQualifiedTypeName}) during deserialization.");
 			string originalAssemblyQualifiedTypeName = assemblyQualifiedTypeName;
 			var assemblyName = new AssemblyName(match.Groups[3].Value);
@@ -1217,7 +1216,7 @@ namespace GriffinPlus.Lib.Serialization
 			// determine types with the same full name (independent of the assembly the type is declared in)
 			// -----------------------------------------------------------------------------------------------------------------
 
-			var matchingTypes = TypeInfo
+			IReadOnlyList<Type> matchingTypes = TypeInfo
 				.TypesByFullName
 				.Where(x => x.Key == fullTypeName)
 				.Select(x => x.Value)
@@ -1239,7 +1238,7 @@ namespace GriffinPlus.Lib.Serialization
 				"Trying to resolve type ({0}) by its assembly qualified name...",
 				assemblyQualifiedTypeName);
 
-			var resolvedTypes = matchingTypes.Where(x => x.Assembly.FullName == assemblyName.FullName).ToArray();
+			Type[] resolvedTypes = matchingTypes.Where(x => x.Assembly.FullName == assemblyName.FullName).ToArray();
 			if (resolvedTypes.Length == 1) goto proceed;
 			if (resolvedTypes.Length > 1)
 			{
@@ -1306,7 +1305,7 @@ namespace GriffinPlus.Lib.Serialization
 			Debug.Assert(resolvedTypes.Length == 1);
 
 			// check whether the resolution was done exactly or tolerantly
-			var resolvedType = resolvedTypes[0];
+			Type resolvedType = resolvedTypes[0];
 			if (resolvedType.AssemblyQualifiedName == assemblyQualifiedTypeName)
 			{
 				sLog.Write(
@@ -1322,7 +1321,7 @@ namespace GriffinPlus.Lib.Serialization
 					assemblyQualifiedTypeName,
 					resolvedType.AssemblyQualifiedName);
 
-				if (!mUseTolerantDeserialization)
+				if (!UseTolerantDeserialization)
 				{
 					throw new SerializationException(
 						"The type ({0}) could be resolved, but tolerant deserialization is disabled and the type was not resolved exactly.",
@@ -1425,11 +1424,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// This is strictly necessary when using .NET framework types and serialization and deserialization is done on different .NET
 		/// versions. New serializer instances will use this setting to initialize their <see cref="UseTolerantDeserialization"/> property.
 		/// </summary>
-		public bool UseTolerantDeserialization
-		{
-			get => mUseTolerantDeserialization;
-			set => mUseTolerantDeserialization = value;
-		}
+		public bool UseTolerantDeserialization { get; set; } = sUseTolerantDeserializationByDefault;
 
 		/// <summary>
 		/// Gets or sets a value determining whether to optimize for speed or for size when serializing.
@@ -1462,7 +1457,7 @@ namespace GriffinPlus.Lib.Serialization
 				mWriter.Stream = stream;
 
 				// write endianness indicator
-				var buffer = mWriter.GetSpan(1);
+				Span<byte> buffer = mWriter.GetSpan(1);
 				buffer[0] = (byte)(BitConverter.IsLittleEndian ? 1 : 0);
 				mWriter.Advance(1);
 
@@ -1487,7 +1482,7 @@ namespace GriffinPlus.Lib.Serialization
 			// a null reference?
 			if (ReferenceEquals(obj, null))
 			{
-				var buffer = writer.GetSpan(1);
+				Span<byte> buffer = writer.GetSpan(1);
 				buffer[0] = (byte)PayloadType.NullReference;
 				writer.Advance(1);
 				return;
@@ -1503,10 +1498,10 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			// get the type of the type to serialize
-			var type = obj.GetType();
+			Type type = obj.GetType();
 
 			// use serialization handler that has been prepared before
-			if (sSerializers.TryGetValue(type, out var serializer))
+			if (sSerializers.TryGetValue(type, out SerializerDelegate serializer))
 			{
 				serializer(this, writer, obj, context);
 				return;
@@ -1528,7 +1523,7 @@ namespace GriffinPlus.Lib.Serialization
 				}
 
 				// an MDARRAY
-				var elementType = type.GetElementType();
+				Type elementType = type.GetElementType();
 				Debug.Assert(elementType != null, nameof(elementType) + " != null");
 				if (sMultidimensionalArraySerializers.TryGetValue(elementType, out serializer))
 				{
@@ -1562,7 +1557,7 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			// try to use an internal object serializer
-			var ios = GetInternalObjectSerializer(obj, out _);
+			IInternalObjectSerializer ios = GetInternalObjectSerializer(obj, out uint _);
 			if (ios != null)
 			{
 				// the type has an internal object serializer
@@ -1573,7 +1568,7 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			// try to use an external object serializer
-			var eos = ExternalObjectSerializerFactory.GetExternalObjectSerializer(type, out _);
+			IExternalObjectSerializer eos = ExternalObjectSerializerFactory.GetExternalObjectSerializer(type, out uint _);
 			if (eos != null)
 			{
 				// the type has an external object serializer
@@ -1595,7 +1590,7 @@ namespace GriffinPlus.Lib.Serialization
 		private void SerializeTypeObject(IBufferWriter<byte> writer, Type type)
 		{
 			// tell the deserializer that a type object follows
-			var buffer = writer.GetSpan(1);
+			Span<byte> buffer = writer.GetSpan(1);
 			buffer[0] = (byte)PayloadType.TypeObject;
 			writer.Advance(1);
 
@@ -1611,9 +1606,9 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		/// <param name="writer">Buffer writer to write the object id to.</param>
 		/// <param name="id">Object id.</param>
-		private void SerializeObjectId(IBufferWriter<byte> writer, uint id)
+		private static void SerializeObjectId(IBufferWriter<byte> writer, uint id)
 		{
-			var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+			Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
 			buffer[0] = (byte)PayloadType.AlreadySerialized;
 			int count = Leb128EncodingHelper.Write(buffer.Slice(1), id);
 			writer.Advance(1 + count);
@@ -1629,7 +1624,7 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			lock (sSync)
 			{
-				if (!sSerializers.TryGetValue(type, out var serializer))
+				if (!sSerializers.TryGetValue(type, out SerializerDelegate serializer))
 				{
 					serializer = serializerFactory();
 					var copy = new TypeKeyedDictionary<SerializerDelegate>(sSerializers) { [type] = serializer };
@@ -1665,15 +1660,15 @@ namespace GriffinPlus.Lib.Serialization
 
 				// write the header of the archive
 				serializer.WriteTypeMetadata(writer, type);
-				int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-				var buffer = writer.GetSpan(maxBufferSize);
+				const int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.ArchiveStart;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), version);
 				writer.Advance(bufferIndex);
 
 				// get the delegate invoking the internal object serializer
-				var serialize = GetInternalObjectSerializerSerializeCaller(type);
+				IosSerializeDelegate serialize = GetInternalObjectSerializerSerializeCaller(type);
 
 				// serialize the object using its internal object serializer
 				var archive = new SerializationArchive(serializer, writer, type, obj, version, context);
@@ -1700,7 +1695,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>Delegate referring to the <see cref="IInternalObjectSerializer.Serialize"/> method of the specified class.</returns>
 		internal static IosSerializeDelegate GetInternalObjectSerializerSerializeCaller(Type type)
 		{
-			if (!sIosSerializeCallers.TryGetValue(type, out var serializeDelegate))
+			if (!sIosSerializeCallers.TryGetValue(type, out IosSerializeDelegate serializeDelegate))
 			{
 				lock (sSync)
 				{
@@ -1726,7 +1721,7 @@ namespace GriffinPlus.Lib.Serialization
 		private static IosSerializeDelegate CreateIosSerializeCaller(Type type)
 		{
 			// try to get the publicly implemented 'Serialize' method...
-			var method = type.GetMethod(nameof(IInternalObjectSerializer.Serialize), new[] { typeof(SerializationArchive) });
+			MethodInfo method = type.GetMethod(nameof(IInternalObjectSerializer.Serialize), new[] { typeof(SerializationArchive) });
 			if (method == null)
 			{
 				// the publicly implemented 'Serialize' method is not available
@@ -1753,7 +1748,7 @@ namespace GriffinPlus.Lib.Serialization
 				method,
 				parameterExpressions[1]);
 
-			var lambda = Expression.Lambda(typeof(IosSerializeDelegate), body, parameterExpressions);
+			LambdaExpression lambda = Expression.Lambda(typeof(IosSerializeDelegate), body, parameterExpressions);
 			return (IosSerializeDelegate)lambda.Compile();
 		}
 
@@ -1784,8 +1779,8 @@ namespace GriffinPlus.Lib.Serialization
 
 				// write the header of the archive
 				serializer.WriteTypeMetadata(writer, typeToSerialize);
-				int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-				var buffer = writer.GetSpan(maxBufferSize);
+				const int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.ArchiveStart;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), version);
@@ -1817,7 +1812,7 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			// determine the integer type the enumeration is built on top to return a serialization
 			// delegate that is optimized for that type
-			var underlyingType = type.GetEnumUnderlyingType();
+			Type underlyingType = type.GetEnumUnderlyingType();
 
 			if (underlyingType == typeof(sbyte))
 			{
@@ -1828,7 +1823,7 @@ namespace GriffinPlus.Lib.Serialization
 					context) =>
 				{
 					serializer.WriteTypeMetadata(writer, type);
-					var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+					Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.Enum;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), (sbyte)obj);
@@ -1845,7 +1840,7 @@ namespace GriffinPlus.Lib.Serialization
 					context) =>
 				{
 					serializer.WriteTypeMetadata(writer, type);
-					var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+					Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.Enum;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), (byte)obj);
@@ -1862,7 +1857,7 @@ namespace GriffinPlus.Lib.Serialization
 					context) =>
 				{
 					serializer.WriteTypeMetadata(writer, type);
-					var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+					Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.Enum;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), (short)obj);
@@ -1879,7 +1874,7 @@ namespace GriffinPlus.Lib.Serialization
 					context) =>
 				{
 					serializer.WriteTypeMetadata(writer, type);
-					var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+					Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.Enum;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), (ushort)obj);
@@ -1896,7 +1891,7 @@ namespace GriffinPlus.Lib.Serialization
 					context) =>
 				{
 					serializer.WriteTypeMetadata(writer, type);
-					var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+					Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.Enum;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), (int)obj);
@@ -1913,7 +1908,7 @@ namespace GriffinPlus.Lib.Serialization
 					context) =>
 				{
 					serializer.WriteTypeMetadata(writer, type);
-					var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
+					Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.Enum;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), (long)(uint)obj);
@@ -1930,7 +1925,7 @@ namespace GriffinPlus.Lib.Serialization
 					context) =>
 				{
 					serializer.WriteTypeMetadata(writer, type);
-					var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
+					Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.Enum;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), (long)obj);
@@ -1947,7 +1942,7 @@ namespace GriffinPlus.Lib.Serialization
 					context) =>
 				{
 					serializer.WriteTypeMetadata(writer, type);
-					var buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
+					Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.Enum;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), (long)(ulong)obj);
@@ -1970,7 +1965,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// Gets a value indicating whether the serializer is currently deserializing an object that was serialized
 		/// on a little endian system.
 		/// </summary>
-		public bool IsDeserializingLittleEndian => mDeserializingLittleEndian;
+		public bool IsDeserializingLittleEndian { get; private set; } = false;
 
 		/// <summary>
 		/// Deserializes an object from a stream.
@@ -1994,7 +1989,7 @@ namespace GriffinPlus.Lib.Serialization
 				// read the endianness indicator
 				int readByte = stream.ReadByte();
 				if (readByte < 0) throw new SerializationException("Unexpected end of stream.");
-				mDeserializingLittleEndian = readByte != 0;
+				IsDeserializingLittleEndian = readByte != 0;
 
 				// deserialize the object
 				return InnerDeserialize(stream, context);
@@ -2038,7 +2033,7 @@ namespace GriffinPlus.Lib.Serialization
 			// assembly and type metadata have been read already
 
 			// get/create an enum caster that converts a 64bit integer (long) into a properly typed enumeration value
-			if (!sEnumCasters.TryGetValue(mCurrentDeserializedType.Type, out var caster))
+			if (!sEnumCasters.TryGetValue(mCurrentDeserializedType.Type, out EnumCasterDelegate caster))
 			{
 				lock (sSync)
 				{
@@ -2064,9 +2059,9 @@ namespace GriffinPlus.Lib.Serialization
 		private static EnumCasterDelegate CreateEnumCaster(Type type)
 		{
 			Type[] parameterTypes = { typeof(long) };
-			var parameterExpression = parameterTypes.Select(Expression.Parameter).First();
+			ParameterExpression parameterExpression = parameterTypes.Select(Expression.Parameter).First();
 			Expression body = Expression.Convert(Expression.Convert(parameterExpression, type), typeof(Enum));
-			var lambda = Expression.Lambda(typeof(EnumCasterDelegate), body, parameterExpression);
+			LambdaExpression lambda = Expression.Lambda(typeof(EnumCasterDelegate), body, parameterExpression);
 			return (EnumCasterDelegate)lambda.Compile();
 		}
 
@@ -2102,7 +2097,7 @@ namespace GriffinPlus.Lib.Serialization
 				string typename = Encoding.UTF8.GetString(array, 0, length);
 
 				// try to get the type name from the type cache
-				if (sTypeTable.TryGetValue(typename, out var type))
+				if (sTypeTable.TryGetValue(typename, out Type type))
 				{
 					// assign a type id
 					typeItem = new TypeItem(typename, type);
@@ -2143,16 +2138,16 @@ namespace GriffinPlus.Lib.Serialization
 
 				if (genericTypeArgumentCount > 0)
 				{
-					var genericTypeParameters = typeItem.Type.GetTypeInfo().GenericTypeParameters;
+					Type[] genericTypeParameters = typeItem.Type.GetTypeInfo().GenericTypeParameters;
 					var genericTypeArgumentTypeItems = new TypeItem[genericTypeParameters.Length];
 					for (int i = 0; i < genericTypeParameters.Length; i++)
 					{
-						var genericTypeArgument = ReadTypeObject(stream, false, out string genericTypeArgumentSourceName);
+						Type genericTypeArgument = ReadTypeObject(stream, false, out string genericTypeArgumentSourceName);
 						genericTypeArgumentTypeItems[i] = new TypeItem(genericTypeArgumentSourceName, genericTypeArgument);
 					}
 
 					// compose the generic type
-					var composedType = typeItem.Type.MakeGenericType(genericTypeArgumentTypeItems.Select(x => x.Type).ToArray());
+					Type composedType = typeItem.Type.MakeGenericType(genericTypeArgumentTypeItems.Select(x => x.Type).ToArray());
 					typeItem = new TypeItem(MakeGenericTypeName(typeItem.Name, genericTypeArgumentTypeItems.Select(x => x.Name)), composedType);
 
 					// remember the determined name-to-type mapping
@@ -2258,7 +2253,7 @@ namespace GriffinPlus.Lib.Serialization
 				}
 
 				// version is ok, deserialize...
-				if (!sDeserializationConstructorCallers.TryGetValue(mCurrentDeserializedType.Type, out var deserializationConstructorCaller))
+				if (!sDeserializationConstructorCallers.TryGetValue(mCurrentDeserializedType.Type, out DeserializationConstructorCallerDelegate deserializationConstructorCaller))
 				{
 					lock (sSync)
 					{
@@ -2290,7 +2285,7 @@ namespace GriffinPlus.Lib.Serialization
 			#region External Object Serializer
 
 			// try to get an external object serializer
-			var eos = ExternalObjectSerializerFactory.GetExternalObjectSerializer(mCurrentDeserializedType.Type, out currentVersion);
+			IExternalObjectSerializer eos = ExternalObjectSerializerFactory.GetExternalObjectSerializer(mCurrentDeserializedType.Type, out currentVersion);
 
 			if (eos != null)
 			{
@@ -2332,8 +2327,8 @@ namespace GriffinPlus.Lib.Serialization
 		private static DeserializationConstructorCallerDelegate CreateDeserializationConstructorCaller(Type type)
 		{
 			Type[] parameterTypes = { typeof(DeserializationArchive).MakeByRefType() };
-			var parameterExpression = parameterTypes.Select(Expression.Parameter).First();
-			var constructor = type.GetConstructor(
+			ParameterExpression parameterExpression = parameterTypes.Select(Expression.Parameter).First();
+			ConstructorInfo constructor = type.GetConstructor(
 				BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
 				Type.DefaultBinder,
 				new[] { typeof(DeserializationArchive) },
@@ -2341,7 +2336,7 @@ namespace GriffinPlus.Lib.Serialization
 			Debug.Assert(constructor != null, nameof(constructor) + " != null");
 			Expression body = Expression.New(constructor, parameterExpression);
 			if (type.IsValueType) body = Expression.Convert(body, typeof(object)); // box value types
-			var lambda = Expression.Lambda(typeof(DeserializationConstructorCallerDelegate), body, parameterExpression);
+			LambdaExpression lambda = Expression.Lambda(typeof(DeserializationConstructorCallerDelegate), body, parameterExpression);
 			return (DeserializationConstructorCallerDelegate)lambda.Compile();
 		}
 
@@ -2404,7 +2399,7 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			if (obj == null) return true;
 			Init();
-			var type = obj.GetType();
+			Type type = obj.GetType();
 			return IsSerializable(type);
 		}
 
@@ -2423,7 +2418,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (type.IsArray && IsSerializable(type.GetElementType())) return true;
 			if (type.IsGenericType)
 			{
-				var genericTypeDefinition = type.GetGenericTypeDefinition();
+				Type genericTypeDefinition = type.GetGenericTypeDefinition();
 				return sSerializers.ContainsKey(genericTypeDefinition);
 			}
 
@@ -2736,7 +2731,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// </returns>
 		internal static bool HasInternalObjectSerializer(Type type, out uint version)
 		{
-			if (sInternalObjectSerializerInfoByType.TryGetValue(type, out var info))
+			if (sInternalObjectSerializerInfoByType.TryGetValue(type, out InternalObjectSerializerInfo info))
 			{
 				version = info.SerializerVersion;
 				return true;
@@ -2744,7 +2739,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			if (type.IsGenericType)
 			{
-				var genericTypeDefinition = type.GetGenericTypeDefinition();
+				Type genericTypeDefinition = type.GetGenericTypeDefinition();
 				if (sInternalObjectSerializerInfoByType.TryGetValue(genericTypeDefinition, out info))
 				{
 					version = info.SerializerVersion;
@@ -2837,7 +2832,7 @@ namespace GriffinPlus.Lib.Serialization
 			bool                      useTolerantDeserialization,
 			SerializationOptimization optimization)
 		{
-			if (sSerializerPool.TryTake(out var serializer))
+			if (sSerializerPool.TryTake(out Serializer serializer))
 			{
 				serializer.UseTolerantDeserialization = useTolerantDeserialization;
 				serializer.SerializationOptimization = optimization;
@@ -2874,10 +2869,9 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>A <see cref="MemoryBlockStream"/>.</returns>
 		private static MemoryBlockStream GetPooledMemoryBlockStream()
 		{
-			if (sMemoryBlockStreamPool.TryTake(out var stream))
-				return stream;
-
-			return new MemoryBlockStream(ArrayPool<byte>.Shared);
+			return sMemoryBlockStreamPool.TryTake(out MemoryBlockStream stream)
+				       ? stream
+				       : new MemoryBlockStream(ArrayPool<byte>.Shared);
 		}
 
 		/// <summary>

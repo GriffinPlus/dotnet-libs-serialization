@@ -179,7 +179,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// load all assemblies referenced by already loaded assemblies
 			var processedAssemblies = new HashSet<Assembly>();
-			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+			foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
 			{
 				LoadReferencedAssemblies(assembly, processedAssemblies);
 			}
@@ -194,10 +194,10 @@ namespace GriffinPlus.Lib.Serialization
 				// create a copy of the existing dictionaries
 				var typesByAssembly = new Dictionary<Assembly, IReadOnlyList<Type>>(sTypesByAssembly);
 				var exportedTypesByAssembly = new Dictionary<Assembly, IReadOnlyList<Type>>(sExportedTypesByAssembly);
-				var typesByFullName = sTypesByFullName.ToDictionary(x => x.Key, x => x.Value.ToList());
-				var exportedTypesByFullName = sExportedTypesByFullName.ToDictionary(x => x.Key, x => x.Value.ToList());
+				Dictionary<string, List<Type>> typesByFullName = sTypesByFullName.ToDictionary(x => x.Key, x => x.Value.ToList());
+				Dictionary<string, List<Type>> exportedTypesByFullName = sExportedTypesByFullName.ToDictionary(x => x.Key, x => x.Value.ToList());
 
-				foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+				foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
 				{
 					InspectAssemblyAndCollectInformation(
 						assembly,
@@ -237,13 +237,13 @@ namespace GriffinPlus.Lib.Serialization
 			processedAssemblies.Add(assembly);
 
 			// load references of the assembly
-			foreach (var referencedAssemblyName in assembly.GetReferencedAssemblies())
+			foreach (AssemblyName referencedAssemblyName in assembly.GetReferencedAssemblies())
 			{
 				sLog.Write(LogLevel.Trace, "Loading referenced assembly ({0})...", referencedAssemblyName);
 
 				try
 				{
-					var referencedAssembly = Assembly.Load(referencedAssemblyName);
+					Assembly referencedAssembly = Assembly.Load(referencedAssemblyName);
 					LoadReferencedAssemblies(referencedAssembly, processedAssemblies);
 				}
 				catch (Exception ex)
@@ -268,16 +268,16 @@ namespace GriffinPlus.Lib.Serialization
 		/// <see cref="Type"/> objects.
 		/// </param>
 		private static void InspectAssemblyAndCollectInformation(
-			Assembly                                  assembly,
-			Dictionary<Assembly, IReadOnlyList<Type>> typesByAssembly,
-			Dictionary<Assembly, IReadOnlyList<Type>> exportedTypesByAssembly,
-			Dictionary<string, List<Type>>            typesByFullName,
-			Dictionary<string, List<Type>>            exportedTypesByFullName)
+			Assembly                                   assembly,
+			IDictionary<Assembly, IReadOnlyList<Type>> typesByAssembly,
+			IDictionary<Assembly, IReadOnlyList<Type>> exportedTypesByAssembly,
+			IDictionary<string, List<Type>>            typesByFullName,
+			IDictionary<string, List<Type>>            exportedTypesByFullName)
 		{
 			// the executing thread should held the lock for writing as this modifies internal data
 			Debug.Assert(sLock.IsWriteLockHeld);
 
-			if (!typesByAssembly.TryGetValue(assembly, out var types))
+			if (!typesByAssembly.TryGetValue(assembly, out IReadOnlyList<Type> types))
 			{
 				// scan the assembly for types
 				try { types = assembly.GetTypes(); }
@@ -289,10 +289,10 @@ namespace GriffinPlus.Lib.Serialization
 				exportedTypesByAssembly.Add(assembly, types.Where(x => x.IsPublic).ToArray());
 
 				// update the table mapping type names to type objects
-				foreach (var type in types)
+				foreach (Type type in types)
 				{
 					Debug.Assert(type.FullName != null, "type.FullName != null");
-					if (!typesByFullName.TryGetValue(type.FullName, out var list))
+					if (!typesByFullName.TryGetValue(type.FullName, out List<Type> list))
 					{
 						list = new List<Type>();
 						typesByFullName.Add(type.FullName, list);
@@ -344,8 +344,8 @@ namespace GriffinPlus.Lib.Serialization
 				// create a copy of the existing dictionaries
 				var typesByAssembly = new Dictionary<Assembly, IReadOnlyList<Type>>(sTypesByAssembly);
 				var exportedTypesByAssembly = new Dictionary<Assembly, IReadOnlyList<Type>>(sExportedTypesByAssembly);
-				var typesByFullName = sTypesByFullName.ToDictionary(x => x.Key, x => x.Value.ToList());
-				var exportedTypesByFullName = sExportedTypesByFullName.ToDictionary(x => x.Key, x => x.Value.ToList());
+				Dictionary<string, List<Type>> typesByFullName = sTypesByFullName.ToDictionary(x => x.Key, x => x.Value.ToList());
+				Dictionary<string, List<Type>> exportedTypesByFullName = sExportedTypesByFullName.ToDictionary(x => x.Key, x => x.Value.ToList());
 
 				InspectAssemblyAndCollectInformation(
 					args.LoadedAssembly,

@@ -31,7 +31,7 @@ namespace GriffinPlus.Lib.Serialization
 				archive.Write(count);
 
 				// write items (bottom up)
-				var buffer = ArrayPool<T>.Shared.Rent(count);
+				T[] buffer = ArrayPool<T>.Shared.Rent(count);
 				try
 				{
 					stack.CopyTo(buffer, 0);

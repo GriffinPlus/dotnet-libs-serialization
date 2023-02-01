@@ -23,7 +23,6 @@ namespace GriffinPlus.Lib.Caching
 		private static readonly Regex           sCacheLockFileRegex        = new Regex(@"^\[OBJ-CACHE\] (?<guid>[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$", RegexOptions.Compiled);
 
 		private readonly string         mCacheDirectoryPath;
-		private readonly string         mObjectCacheDirectoryPath;
 		private readonly FileStream     mLockFile;
 		private readonly AutoResetEvent mRunEvent;
 		private readonly Queue<Action>  mThreadQueue;
@@ -52,9 +51,9 @@ namespace GriffinPlus.Lib.Caching
 
 			// create and lock a new cache directory
 			string cacheDirectoryName = $"[OBJ-CACHE] {Guid.NewGuid():D}";
-			mObjectCacheDirectoryPath = Path.Combine(mCacheDirectoryPath, cacheDirectoryName);
-			Directory.CreateDirectory(mObjectCacheDirectoryPath);
-			string lockFilePath = Path.Combine(mObjectCacheDirectoryPath, "cache.lock");
+			ObjectCacheDirectoryPath = Path.Combine(mCacheDirectoryPath, cacheDirectoryName);
+			Directory.CreateDirectory(ObjectCacheDirectoryPath);
+			string lockFilePath = Path.Combine(ObjectCacheDirectoryPath, "cache.lock");
 			mLockFile = new FileStream(lockFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
 			Items = new Dictionary<string, List<WeakReference>>();
 
@@ -98,7 +97,7 @@ namespace GriffinPlus.Lib.Caching
 				// try to delete the files that belong to cached items
 				lock (Items)
 				{
-					foreach (var kvp in Items)
+					foreach (KeyValuePair<string, List<WeakReference>> kvp in Items)
 					{
 						try { File.Delete(kvp.Key); }
 						catch
@@ -110,11 +109,11 @@ namespace GriffinPlus.Lib.Caching
 					Items.Clear();
 				}
 
-				if (mObjectCacheDirectoryPath != null)
+				if (ObjectCacheDirectoryPath != null)
 				{
 					try
 					{
-						Directory.Delete(mObjectCacheDirectoryPath, true);
+						Directory.Delete(ObjectCacheDirectoryPath, true);
 					}
 					catch (Exception)
 					{
@@ -125,7 +124,7 @@ namespace GriffinPlus.Lib.Caching
 						mLockFile?.Dispose();
 
 						// try removing the directory once again
-						try { Directory.Delete(mObjectCacheDirectoryPath, true); }
+						try { Directory.Delete(ObjectCacheDirectoryPath, true); }
 						catch (Exception)
 						{
 							/* swallow... */
@@ -176,7 +175,7 @@ namespace GriffinPlus.Lib.Caching
 		/// <summary>
 		/// Gets the path of the object cache directory.
 		/// </summary>
-		internal string ObjectCacheDirectoryPath => mObjectCacheDirectoryPath;
+		internal string ObjectCacheDirectoryPath { get; }
 
 		/// <summary>
 		/// Puts a serializable object into the cache.
@@ -190,7 +189,7 @@ namespace GriffinPlus.Lib.Caching
 			lock (Items)
 			{
 				string path = item.GetObjectFilePath();
-				if (!Items.TryGetValue(path, out var weakReferences))
+				if (!Items.TryGetValue(path, out List<WeakReference> weakReferences))
 				{
 					weakReferences = new List<WeakReference>();
 					Items.Add(path, weakReferences);
@@ -235,11 +234,11 @@ namespace GriffinPlus.Lib.Caching
 					// check whether items have been garbage collected
 					lock (Items)
 					{
-						foreach (var kvp in Items)
+						foreach (KeyValuePair<string, List<WeakReference>> kvp in Items)
 						{
 							for (int i = 0; i < kvp.Value.Count; i++)
 							{
-								var weakReference = kvp.Value[i];
+								WeakReference weakReference = kvp.Value[i];
 								object item = weakReference.Target;
 								if (item == null) kvp.Value.RemoveAt(i);
 							}
@@ -301,7 +300,7 @@ namespace GriffinPlus.Lib.Caching
 				foreach (string directoryPath in Directory.GetDirectories(mCacheDirectoryPath))
 				{
 					string directoryName = Path.GetFileName(directoryPath);
-					var match = sCacheLockFileRegex.Match(directoryName);
+					Match match = sCacheLockFileRegex.Match(directoryName);
 					if (match.Success)
 					{
 						string cacheLockFilePath = Path.Combine(directoryPath, "cache.lock");
@@ -342,10 +341,9 @@ namespace GriffinPlus.Lib.Caching
 		{
 			lock (Items)
 			{
-				if (Items.TryGetValue(path, out var weakReferences))
-					return weakReferences.Count;
-
-				return 0;
+				return Items.TryGetValue(path, out List<WeakReference> weakReferences)
+					       ? weakReferences.Count
+					       : 0;
 			}
 		}
 
@@ -363,10 +361,10 @@ namespace GriffinPlus.Lib.Caching
 			lock (Items)
 			{
 				string path = item.GetObjectFilePath();
-				var weakReferences = Items[path];
+				List<WeakReference> weakReferences = Items[path];
 				for (int i = 0; i < weakReferences.Count; i++)
 				{
-					var weakReference = weakReferences[i];
+					WeakReference weakReference = weakReferences[i];
 					if (ReferenceEquals(weakReference.Target, item))
 					{
 						weakReferences.RemoveAt(i);
@@ -399,7 +397,7 @@ namespace GriffinPlus.Lib.Caching
 			lock (Items)
 			{
 				string path = item.GetObjectFilePath();
-				if (!Items.TryGetValue(path, out var weakReferences))
+				if (!Items.TryGetValue(path, out List<WeakReference> weakReferences))
 				{
 					weakReferences = new List<WeakReference>();
 					Items.Add(path, weakReferences);

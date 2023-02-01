@@ -29,7 +29,7 @@ namespace GriffinPlus.Lib.Serialization
 				archive.Write(count);
 
 				// write dictionary entries
-				foreach (var pair in dictionary)
+				foreach (KeyValuePair<TKey, TValue> pair in dictionary)
 				{
 					archive.Write(pair.Key, archive.Context);
 					archive.Write(pair.Value, archive.Context);

@@ -21,9 +21,7 @@ namespace GriffinPlus.Lib.Serialization
 	{
 		private static readonly LogWriter       sLog        = LogWriter.Get<StreamBufferWriter>();
 		private readonly        ArrayPool<byte> mPool       = ArrayPool<byte>.Shared;
-		private readonly        int             mFlushLimit = Serializer.MaxChunkSize;
-		private                 byte[]          mBuffer     = Array.Empty<byte>();
-		private                 int             mIndex      = 0;
+		private const           int             mFlushLimit = Serializer.MaxChunkSize;
 		private                 Stream          mStream     = null;
 
 		/// <summary>
@@ -31,12 +29,12 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		public void Dispose()
 		{
-			if (mBuffer.Length > 0)
+			if (Buffer.Length > 0)
 			{
 				Flush();
-				mPool.Return(mBuffer);
-				mBuffer = Array.Empty<byte>();
-				mIndex = 0;
+				mPool.Return(Buffer);
+				Buffer = Array.Empty<byte>();
+				WrittenCount = 0;
 			}
 		}
 
@@ -57,37 +55,37 @@ namespace GriffinPlus.Lib.Serialization
 		/// Gets the array backing the buffer writer.
 		/// The number of elements that are actually valid is reflected by the <see cref="WrittenCount"/> property.
 		/// </summary>
-		public byte[] Buffer => mBuffer;
+		public byte[] Buffer { get; private set; } = Array.Empty<byte>();
 
 		/// <summary>
 		/// Gets a <see cref="ReadOnlyMemory{T}"/> that contains the data written to the underlying buffer so far.
 		/// </summary>
 		/// <returns>The data written to the underlying buffer.</returns>
-		public ReadOnlyMemory<byte> WrittenMemory => mBuffer.AsMemory(0, mIndex);
+		public ReadOnlyMemory<byte> WrittenMemory => Buffer.AsMemory(0, WrittenCount);
 
 		/// <summary>
 		/// Gets a <see cref="ReadOnlySpan{T}"/> that contains the data written to the underlying buffer so far.
 		/// </summary>
 		/// <returns>The data written to the underlying buffer.</returns>
-		public ReadOnlySpan<byte> WrittenSpan => mBuffer.AsSpan(0, mIndex);
+		public ReadOnlySpan<byte> WrittenSpan => Buffer.AsSpan(0, WrittenCount);
 
 		/// <summary>
 		/// Gets the amount of data written to the underlying buffer.
 		/// </summary>
 		/// <returns>The amount of data written to the underlying buffer.</returns>
-		public int WrittenCount => mIndex;
+		public int WrittenCount { get; private set; } = 0;
 
 		/// <summary>
 		/// Gets the total amount of space within the underlying buffer.
 		/// </summary>
 		/// <returns>The total capacity of the underlying buffer.</returns>
-		public int Capacity => mBuffer.Length;
+		public int Capacity => Buffer.Length;
 
 		/// <summary>
 		/// Gets the amount of available space that can be written to without forcing the underlying buffer to grow.
 		/// </summary>
 		/// <returns>The space available for writing without forcing the underlying buffer to grow.</returns>
-		public int FreeCapacity => mBuffer.Length - mIndex;
+		public int FreeCapacity => Buffer.Length - WrittenCount;
 
 		/// <summary>
 		/// Clears the data written to the underlying buffer.
@@ -95,8 +93,8 @@ namespace GriffinPlus.Lib.Serialization
 		public void Clear()
 		{
 			Flush();
-			mBuffer.AsSpan(0, mIndex).Clear();
-			mIndex = 0;
+			Buffer.AsSpan(0, WrittenCount).Clear();
+			WrittenCount = 0;
 		}
 
 		/// <summary>
@@ -104,10 +102,10 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		public void Flush()
 		{
-			if (mIndex > 0)
+			if (WrittenCount > 0)
 			{
-				mStream.Write(mBuffer, 0, mIndex);
-				mIndex = 0;
+				mStream.Write(Buffer, 0, WrittenCount);
+				WrittenCount = 0;
 			}
 		}
 
@@ -122,9 +120,9 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			if (count < 0)
 				throw new ArgumentException(null, nameof(count));
-			if (mIndex > mBuffer.Length - count)
-				throw new InvalidOperationException($"Advanced too far, exceeded the end of the buffer (buffer size: {mBuffer.Length}).");
-			mIndex += count;
+			if (WrittenCount > Buffer.Length - count)
+				throw new InvalidOperationException($"Advanced too far, exceeded the end of the buffer (buffer size: {Buffer.Length}).");
+			WrittenCount += count;
 		}
 
 		/// <summary>
@@ -139,7 +137,7 @@ namespace GriffinPlus.Lib.Serialization
 		public Memory<byte> GetMemory(int sizeHint = 0)
 		{
 			PrepareBuffer(sizeHint);
-			return mBuffer.AsMemory(mIndex);
+			return Buffer.AsMemory(WrittenCount);
 		}
 
 		/// <summary>
@@ -154,7 +152,7 @@ namespace GriffinPlus.Lib.Serialization
 		public Span<byte> GetSpan(int sizeHint = 0)
 		{
 			PrepareBuffer(sizeHint);
-			return mBuffer.AsSpan(mIndex);
+			return Buffer.AsSpan(WrittenCount);
 		}
 
 		/// <summary>
@@ -177,7 +175,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// the backing buffer is not large enough to serve the request
 			// => calculate the size of the new buffer
-			int length = mBuffer.Length;
+			int length = Buffer.Length;
 			int val1 = Math.Max(sizeHint, length);
 			if (length == 0) val1 = Math.Max(val1, 256);
 			int newBufferSize = length + val1;
@@ -210,9 +208,9 @@ namespace GriffinPlus.Lib.Serialization
 			// resize the buffer
 			byte[] newBuffer = mPool.Rent(newBufferSize);
 			Debug.WriteLine($"Reallocating: {newBufferSize} bytes, got: {newBuffer.Length} bytes");
-			Array.Copy(mBuffer, newBuffer, mBuffer.Length);
-			mPool.Return(mBuffer);
-			mBuffer = newBuffer;
+			Array.Copy(Buffer, newBuffer, Buffer.Length);
+			mPool.Return(Buffer);
+			Buffer = newBuffer;
 		}
 	}
 

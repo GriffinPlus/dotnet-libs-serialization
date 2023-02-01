@@ -22,8 +22,7 @@ namespace GriffinPlus.Lib.Serialization
 		#region Constants
 
 		/// <summary>
-		/// Maximum buffer size when resizing <see cref="Serializer.TempBuffer_Buffer"/> for reading/writing
-		/// streams and unmanaged buffers.
+		/// Maximum buffer size when resizing the internal temporary buffer for reading/writing streams and unmanaged buffers.
 		/// </summary>
 		internal const int TempBufferMaxSize = 80000; // Objects > 85000 bytes are allocated on the large object heap, so keep away from this limit!
 
@@ -37,9 +36,7 @@ namespace GriffinPlus.Lib.Serialization
 
 		#region Member Variables
 
-		private readonly Serializer              mSerializer;
-		private readonly Stream                  mStream;
-		private          SerializerArchiveStream mArchiveStream;
+		private SerializerArchiveStream mArchiveStream;
 
 		#endregion
 
@@ -60,8 +57,8 @@ namespace GriffinPlus.Lib.Serialization
 			uint       version,
 			object     context)
 		{
-			mSerializer = serializer;
-			mStream = stream;
+			Serializer = serializer;
+			Stream = stream;
 			mArchiveStream = null;
 			DataType = type;
 			Version = version;
@@ -94,14 +91,14 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Gets the <see cref="Serializer"/> the archive belongs to.
 		/// </summary>
-		public Serializer Serializer => mSerializer;
+		public Serializer Serializer { get; }
 
 		/// <summary>
 		/// Gets the stream containing the serialized object.
 		/// Usually it is more convenient to use the archive's Read() methods, but if you need more control over the deserialization
 		/// you can directly read from this stream as well.
 		/// </summary>
-		public Stream Stream => mStream;
+		public Stream Stream { get; }
 
 		#endregion
 
@@ -115,7 +112,7 @@ namespace GriffinPlus.Lib.Serialization
 		public sbyte ReadSByte()
 		{
 			ReadAndCheckPayloadType(PayloadType.SByte);
-			return mSerializer.ReadPrimitive_SByte(mStream);
+			return Serializer.ReadPrimitive_SByte(Stream);
 		}
 
 		#endregion
@@ -129,9 +126,10 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
 		public short ReadInt16()
 		{
-			var payloadType = ReadAndCheckPayloadType(PayloadType.Int16_Native, PayloadType.Int16_LEB128);
-			if (payloadType == PayloadType.Int16_Native) return mSerializer.ReadPrimitive_Int16_Native(mStream);
-			return mSerializer.ReadPrimitive_Int16_LEB128(mStream);
+			PayloadType payloadType = ReadAndCheckPayloadType(PayloadType.Int16_Native, PayloadType.Int16_LEB128);
+			return payloadType == PayloadType.Int16_Native
+				       ? Serializer.ReadPrimitive_Int16_Native(Stream)
+				       : Serializer.ReadPrimitive_Int16_LEB128(Stream);
 		}
 
 		#endregion
@@ -145,9 +143,10 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
 		public int ReadInt32()
 		{
-			var payloadType = ReadAndCheckPayloadType(PayloadType.Int32_Native, PayloadType.Int32_LEB128);
-			if (payloadType == PayloadType.Int32_Native) return mSerializer.ReadPrimitive_Int32_Native(mStream);
-			return mSerializer.ReadPrimitive_Int32_LEB128(mStream);
+			PayloadType payloadType = ReadAndCheckPayloadType(PayloadType.Int32_Native, PayloadType.Int32_LEB128);
+			return payloadType == PayloadType.Int32_Native
+				       ? Serializer.ReadPrimitive_Int32_Native(Stream)
+				       : Serializer.ReadPrimitive_Int32_LEB128(Stream);
 		}
 
 		#endregion
@@ -161,9 +160,10 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
 		public long ReadInt64()
 		{
-			var payloadType = ReadAndCheckPayloadType(PayloadType.Int64_Native, PayloadType.Int64_LEB128);
-			if (payloadType == PayloadType.Int64_Native) return mSerializer.ReadPrimitive_Int64_Native(mStream);
-			return mSerializer.ReadPrimitive_Int64_LEB128(mStream);
+			PayloadType payloadType = ReadAndCheckPayloadType(PayloadType.Int64_Native, PayloadType.Int64_LEB128);
+			return payloadType == PayloadType.Int64_Native
+				       ? Serializer.ReadPrimitive_Int64_Native(Stream)
+				       : Serializer.ReadPrimitive_Int64_LEB128(Stream);
 		}
 
 		#endregion
@@ -178,7 +178,7 @@ namespace GriffinPlus.Lib.Serialization
 		public byte ReadByte()
 		{
 			ReadAndCheckPayloadType(PayloadType.Byte);
-			return mSerializer.ReadPrimitive_Byte(mStream);
+			return Serializer.ReadPrimitive_Byte(Stream);
 		}
 
 		#endregion
@@ -192,9 +192,10 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
 		public ushort ReadUInt16()
 		{
-			var payloadType = ReadAndCheckPayloadType(PayloadType.UInt16_Native, PayloadType.UInt16_LEB128);
-			if (payloadType == PayloadType.UInt16_Native) return mSerializer.ReadPrimitive_UInt16_Native(mStream);
-			return mSerializer.ReadPrimitive_UInt16_LEB128(mStream);
+			PayloadType payloadType = ReadAndCheckPayloadType(PayloadType.UInt16_Native, PayloadType.UInt16_LEB128);
+			return payloadType == PayloadType.UInt16_Native
+				       ? Serializer.ReadPrimitive_UInt16_Native(Stream)
+				       : Serializer.ReadPrimitive_UInt16_LEB128(Stream);
 		}
 
 		#endregion
@@ -208,9 +209,10 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
 		public uint ReadUInt32()
 		{
-			var payloadType = ReadAndCheckPayloadType(PayloadType.UInt32_Native, PayloadType.UInt32_LEB128);
-			if (payloadType == PayloadType.UInt32_Native) return mSerializer.ReadPrimitive_UInt32_Native(mStream);
-			return mSerializer.ReadPrimitive_UInt32_LEB128(mStream);
+			PayloadType payloadType = ReadAndCheckPayloadType(PayloadType.UInt32_Native, PayloadType.UInt32_LEB128);
+			return payloadType == PayloadType.UInt32_Native
+				       ? Serializer.ReadPrimitive_UInt32_Native(Stream)
+				       : Serializer.ReadPrimitive_UInt32_LEB128(Stream);
 		}
 
 		#endregion
@@ -224,9 +226,10 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
 		public ulong ReadUInt64()
 		{
-			var payloadType = ReadAndCheckPayloadType(PayloadType.UInt64_Native, PayloadType.UInt64_LEB128);
-			if (payloadType == PayloadType.UInt64_Native) return mSerializer.ReadPrimitive_UInt64_Native(mStream);
-			return mSerializer.ReadPrimitive_UInt64_LEB128(mStream);
+			PayloadType payloadType = ReadAndCheckPayloadType(PayloadType.UInt64_Native, PayloadType.UInt64_LEB128);
+			return payloadType == PayloadType.UInt64_Native
+				       ? Serializer.ReadPrimitive_UInt64_Native(Stream)
+				       : Serializer.ReadPrimitive_UInt64_LEB128(Stream);
 		}
 
 		#endregion
@@ -241,7 +244,7 @@ namespace GriffinPlus.Lib.Serialization
 		public Enum ReadEnum()
 		{
 			CloseArchiveStream();
-			object obj = mSerializer.InnerDeserialize(mStream, null);
+			object obj = Serializer.InnerDeserialize(Stream, null);
 
 			if (!obj.GetType().IsEnum)
 			{
@@ -263,7 +266,7 @@ namespace GriffinPlus.Lib.Serialization
 		public T ReadEnum<T>() where T : Enum
 		{
 			CloseArchiveStream();
-			object obj = mSerializer.InnerDeserialize(mStream, null);
+			object obj = Serializer.InnerDeserialize(Stream, null);
 
 			if (obj == null || obj.GetType() != typeof(T))
 			{
@@ -289,7 +292,7 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			CloseArchiveStream();
 
-			int readByte = mStream.ReadByte();
+			int readByte = Stream.ReadByte();
 			if (readByte < 0) throw new SerializationException("Stream ended unexpectedly.");
 			var payloadType = (PayloadType)readByte;
 			if (payloadType == PayloadType.BooleanFalse) return false;
@@ -312,9 +315,10 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
 		public char ReadChar()
 		{
-			var payloadType = ReadAndCheckPayloadType(PayloadType.Char_Native, PayloadType.Char_LEB128);
-			if (payloadType == PayloadType.Char_Native) return mSerializer.ReadPrimitive_Char_Native(mStream);
-			return mSerializer.ReadPrimitive_Char_LEB128(mStream);
+			PayloadType payloadType = ReadAndCheckPayloadType(PayloadType.Char_Native, PayloadType.Char_LEB128);
+			return payloadType == PayloadType.Char_Native
+				       ? Serializer.ReadPrimitive_Char_Native(Stream)
+				       : Serializer.ReadPrimitive_Char_LEB128(Stream);
 		}
 
 		#endregion
@@ -329,7 +333,7 @@ namespace GriffinPlus.Lib.Serialization
 		public decimal ReadDecimal()
 		{
 			ReadAndCheckPayloadType(PayloadType.Decimal);
-			return mSerializer.ReadPrimitive_Decimal(mStream);
+			return Serializer.ReadPrimitive_Decimal(Stream);
 		}
 
 		#endregion
@@ -344,7 +348,7 @@ namespace GriffinPlus.Lib.Serialization
 		public float ReadSingle()
 		{
 			ReadAndCheckPayloadType(PayloadType.Single);
-			return mSerializer.ReadPrimitive_Single(mStream);
+			return Serializer.ReadPrimitive_Single(Stream);
 		}
 
 		#endregion
@@ -359,7 +363,7 @@ namespace GriffinPlus.Lib.Serialization
 		public double ReadDouble()
 		{
 			ReadAndCheckPayloadType(PayloadType.Double);
-			return mSerializer.ReadPrimitive_Double(mStream);
+			return Serializer.ReadPrimitive_Double(Stream);
 		}
 
 		#endregion
@@ -374,7 +378,7 @@ namespace GriffinPlus.Lib.Serialization
 		public string ReadString()
 		{
 			CloseArchiveStream();
-			object obj = mSerializer.InnerDeserialize(mStream, null);
+			object obj = Serializer.InnerDeserialize(Stream, null);
 			CheckExpectedType(obj, typeof(string));
 			return obj as string;
 		}
@@ -391,7 +395,7 @@ namespace GriffinPlus.Lib.Serialization
 		public Type ReadType()
 		{
 			CloseArchiveStream();
-			object obj = mSerializer.InnerDeserialize(mStream, null);
+			object obj = Serializer.InnerDeserialize(Stream, null);
 			CheckExpectedType(obj, typeof(Type));
 			return obj as Type;
 		}
@@ -408,7 +412,7 @@ namespace GriffinPlus.Lib.Serialization
 		public DateTime ReadDateTime()
 		{
 			ReadAndCheckPayloadType(PayloadType.DateTime);
-			return mSerializer.ReadPrimitive_DateTime(mStream);
+			return Serializer.ReadPrimitive_DateTime(Stream);
 		}
 
 		#endregion
@@ -423,7 +427,7 @@ namespace GriffinPlus.Lib.Serialization
 		public DateTimeOffset ReadDateTimeOffset()
 		{
 			ReadAndCheckPayloadType(PayloadType.DateTimeOffset);
-			return mSerializer.ReadPrimitive_DateTimeOffset(mStream);
+			return Serializer.ReadPrimitive_DateTimeOffset(Stream);
 		}
 
 		#endregion
@@ -438,7 +442,7 @@ namespace GriffinPlus.Lib.Serialization
 		public Guid ReadGuid()
 		{
 			ReadAndCheckPayloadType(PayloadType.Guid);
-			return mSerializer.ReadPrimitive_Guid(mStream);
+			return Serializer.ReadPrimitive_Guid(Stream);
 		}
 
 		#endregion
@@ -454,7 +458,7 @@ namespace GriffinPlus.Lib.Serialization
 		public object ReadObject(object context = null)
 		{
 			CloseArchiveStream();
-			return mSerializer.InnerDeserialize(mStream, context);
+			return Serializer.InnerDeserialize(Stream, context);
 		}
 
 		#endregion
@@ -485,13 +489,13 @@ namespace GriffinPlus.Lib.Serialization
 		/// </exception>
 		public DeserializationArchive PrepareBaseArchive(object context)
 		{
-			var type = DataType.BaseType ?? throw new ArgumentException($"{DataType.FullName} does not have a base type.");
+			Type type = DataType.BaseType ?? throw new ArgumentException($"{DataType.FullName} does not have a base type.");
 
 			// read payload type (expecting a base class archive)
 			ReadAndCheckPayloadType(PayloadType.BaseArchiveStart);
 
 			// read version number
-			uint deserializedVersion = Leb128EncodingHelper.ReadUInt32(mStream);
+			uint deserializedVersion = Leb128EncodingHelper.ReadUInt32(Stream);
 
 			// check maximum supported version number
 			uint currentVersion = Serializer.GetSerializerVersion(type); // throws ArgumentException if type is not serializable
@@ -505,7 +509,7 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			// version is ok, create archive...
-			return new DeserializationArchive(mSerializer, mStream, type, deserializedVersion, context);
+			return new DeserializationArchive(Serializer, Stream, type, deserializedVersion, context);
 		}
 
 		#endregion
@@ -523,12 +527,12 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			// read payload type and size of the following buffer
 			ReadAndCheckPayloadType(PayloadType.Buffer);
-			long length = Leb128EncodingHelper.ReadInt64(mStream);
+			long length = Leb128EncodingHelper.ReadInt64(Stream);
 
 			// now we know how much bytes will be returned...
 			long bytesReturned = Math.Min(length, count);
 
-			if (mStream is MemoryBlockStream mbs)
+			if (Stream is MemoryBlockStream mbs)
 			{
 				// the MemoryBlockStream provides a direct way to read from the underlying buffer more efficiently
 				// => let the stream directly copy data into the specified buffer
@@ -545,12 +549,12 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				// some other stream
 				// => copying data to a temporary buffer is needed before passing it to the stream
-				mSerializer.EnsureTemporaryByteBufferSize(TempBufferMaxSize);
+				Serializer.EnsureTemporaryByteBufferSize(TempBufferMaxSize);
 				while (count > 0 && length > 0)
 				{
-					int bytesToRead = (int)Math.Min(count, mSerializer.TempBuffer_Buffer.Length);
-					if (mStream.Read(mSerializer.TempBuffer_Buffer, 0, bytesToRead) != bytesToRead) throw new SerializationException("Stream ended unexpectedly.");
-					Marshal.Copy(mSerializer.TempBuffer_Buffer, 0, new IntPtr(p), bytesToRead);
+					int bytesToRead = (int)Math.Min(count, Serializer.TempBuffer_Buffer.Length);
+					if (Stream.Read(Serializer.TempBuffer_Buffer, 0, bytesToRead) != bytesToRead) throw new SerializationException("Stream ended unexpectedly.");
+					Marshal.Copy(Serializer.TempBuffer_Buffer, 0, new IntPtr(p), bytesToRead);
 					length -= bytesToRead;
 					count -= bytesToRead;
 					p = (byte*)p + bytesToRead;
@@ -561,18 +565,18 @@ namespace GriffinPlus.Lib.Serialization
 			// (just for the case that that less bytes were requested)
 			if (length > 0)
 			{
-				if (mStream.CanSeek)
+				if (Stream.CanSeek)
 				{
-					if (mStream.Position + length >= mStream.Length) throw new SerializationException("Stream ended unexpectedly.");
-					mStream.Position += length;
+					if (Stream.Position + length >= Stream.Length) throw new SerializationException("Stream ended unexpectedly.");
+					Stream.Position += length;
 				}
 				else
 				{
-					mSerializer.EnsureTemporaryByteBufferSize(TempBufferMaxSize);
+					Serializer.EnsureTemporaryByteBufferSize(TempBufferMaxSize);
 					while (length > 0)
 					{
-						int bytesToRead = (int)Math.Min(length, mSerializer.TempBuffer_Buffer.Length);
-						if (mStream.Read(mSerializer.TempBuffer_Buffer, 0, bytesToRead) != bytesToRead) throw new SerializationException("Stream ended unexpectedly.");
+						int bytesToRead = (int)Math.Min(length, Serializer.TempBuffer_Buffer.Length);
+						if (Stream.Read(Serializer.TempBuffer_Buffer, 0, bytesToRead) != bytesToRead) throw new SerializationException("Stream ended unexpectedly.");
 						length -= bytesToRead;
 					}
 				}
@@ -596,9 +600,9 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			// read payload type and size of the following buffer
 			ReadAndCheckPayloadType(PayloadType.Buffer);
-			long length = Leb128EncodingHelper.ReadInt64(mStream);
+			long length = Leb128EncodingHelper.ReadInt64(Stream);
 
-			mArchiveStream = new SerializerArchiveStream(mStream, length);
+			mArchiveStream = new SerializerArchiveStream(Stream, length);
 			return mArchiveStream;
 		}
 
@@ -616,7 +620,7 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			CloseArchiveStream();
 
-			int readByte = mStream.ReadByte();
+			int readByte = Stream.ReadByte();
 			if (readByte < 0) throw new SerializationException("Stream ended unexpectedly.");
 			var payloadType = (PayloadType)readByte;
 			if (payloadType != type)
@@ -641,7 +645,7 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			CloseArchiveStream();
 
-			int readByte = mStream.ReadByte();
+			int readByte = Stream.ReadByte();
 			if (readByte < 0) throw new SerializationException("Stream ended unexpectedly.");
 			var payloadType = (PayloadType)readByte;
 			if (payloadType != type1 && payloadType != type2)
@@ -663,7 +667,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="obj">Object to check.</param>
 		/// <param name="type">Type to check the object for.</param>
 		/// <exception cref="SerializationException">Specified object is not of the specified type.</exception>
-		private void CheckExpectedType(object obj, Type type)
+		private static void CheckExpectedType(object obj, Type type)
 		{
 			if (obj == null)
 			{

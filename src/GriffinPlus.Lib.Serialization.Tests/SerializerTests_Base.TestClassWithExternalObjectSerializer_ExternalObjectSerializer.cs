@@ -15,9 +15,9 @@ namespace GriffinPlus.Lib.Serialization.Tests
 	public partial class SerializerTests_Base
 	{
 		[ExternalObjectSerializer(1)]
-		public class TestStructWithGenericObjectSerializer_ExternalObjectSerializer : ExternalObjectSerializer<TestStructWithExternalObjectSerializer>
+		public class TestClassWithGenericObjectSerializer_ExternalObjectSerializer : ExternalObjectSerializer<TestClassWithExternalObjectSerializer>
 		{
-			public override unsafe void Serialize(SerializationArchive archive, TestStructWithExternalObjectSerializer obj)
+			public override unsafe void Serialize(SerializationArchive archive, TestClassWithExternalObjectSerializer obj)
 			{
 				if (archive.Version == 1)
 				{
@@ -66,9 +66,9 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				throw new VersionNotSupportedException(archive);
 			}
 
-			public override unsafe TestStructWithExternalObjectSerializer Deserialize(DeserializationArchive archive)
+			public override unsafe TestClassWithExternalObjectSerializer Deserialize(DeserializationArchive archive)
 			{
-				var obj = new TestStructWithExternalObjectSerializer();
+				var obj = new TestClassWithExternalObjectSerializer();
 
 				if (archive.Version == 1)
 				{
@@ -111,7 +111,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 					// deserialize buffer via Stream
 					int buffer2Size = archive.ReadInt32();
-					var stream = archive.ReadStream();
+					Stream stream = archive.ReadStream();
 					obj.Buffer2 = new byte[buffer2Size];
 					int readByteCount = stream.Read(obj.Buffer2, 0, obj.Buffer2.Length);
 					stream.Dispose();

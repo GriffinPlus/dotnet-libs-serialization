@@ -18,9 +18,7 @@ namespace GriffinPlus.Lib.Serialization
 	{
 		#region Member Variables
 
-		private readonly Serializer          mSerializer;
-		private readonly IBufferWriter<byte> mBufferWriter;
-		private readonly object              mObjectToSerialize;
+		private readonly object mObjectToSerialize;
 
 		#endregion
 
@@ -43,8 +41,8 @@ namespace GriffinPlus.Lib.Serialization
 			uint                version,
 			object              context)
 		{
-			mSerializer = serializer;
-			mBufferWriter = writer;
+			Serializer = serializer;
+			Writer = writer;
 			mObjectToSerialize = objectToSerialize;
 			DataType = type;
 			Version = version;
@@ -77,14 +75,14 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Gets the <see cref="Serializer"/> the archive belongs to.
 		/// </summary>
-		public Serializer Serializer => mSerializer;
+		public Serializer Serializer { get; }
 
 		/// <summary>
 		/// Gets the <see cref="IBufferWriter{T}"/> that is used to write to the stream.
 		/// Usually it is more convenient to use the archive's Write() methods to write to the stream,
 		/// but if you need more control the <see cref="IBufferWriter{T}"/> allows to write byte-wise.
 		/// </summary>
-		public IBufferWriter<byte> Writer => mBufferWriter;
+		public IBufferWriter<byte> Writer { get; }
 
 		#endregion
 
@@ -96,7 +94,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="value">Value to write to the archive.</param>
 		public void Write(sbyte value)
 		{
-			mSerializer.WritePrimitive_SByte(value, mBufferWriter);
+			Serializer.WritePrimitive_SByte(value, Writer);
 		}
 
 		#endregion
@@ -109,7 +107,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="value">Value to write to the archive.</param>
 		public void Write(short value)
 		{
-			mSerializer.WritePrimitive_Int16(value, mBufferWriter);
+			Serializer.WritePrimitive_Int16(value, Writer);
 		}
 
 		#endregion
@@ -122,7 +120,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="value">Value to write to the archive.</param>
 		public void Write(int value)
 		{
-			mSerializer.WritePrimitive_Int32(value, mBufferWriter);
+			Serializer.WritePrimitive_Int32(value, Writer);
 		}
 
 		#endregion
@@ -135,7 +133,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="value">Value to write to the archive.</param>
 		public void Write(long value)
 		{
-			mSerializer.WritePrimitive_Int64(value, mBufferWriter);
+			Serializer.WritePrimitive_Int64(value, Writer);
 		}
 
 		#endregion
@@ -148,7 +146,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="value">Value to write to the archive.</param>
 		public void Write(byte value)
 		{
-			mSerializer.WritePrimitive_Byte(value, mBufferWriter);
+			Serializer.WritePrimitive_Byte(value, Writer);
 		}
 
 		#endregion
@@ -161,7 +159,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="value">Value to write to the archive.</param>
 		public void Write(ushort value)
 		{
-			mSerializer.WritePrimitive_UInt16(value, mBufferWriter);
+			Serializer.WritePrimitive_UInt16(value, Writer);
 		}
 
 		#endregion
@@ -174,7 +172,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="value">Value to write to the archive.</param>
 		public void Write(uint value)
 		{
-			mSerializer.WritePrimitive_UInt32(value, mBufferWriter);
+			Serializer.WritePrimitive_UInt32(value, Writer);
 		}
 
 		#endregion
@@ -187,7 +185,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="value">Value to write to the archive.</param>
 		public void Write(ulong value)
 		{
-			mSerializer.WritePrimitive_UInt64(value, mBufferWriter);
+			Serializer.WritePrimitive_UInt64(value, Writer);
 		}
 
 		#endregion
@@ -200,7 +198,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="value">Value to write to the archive.</param>
 		public void Write(Enum value)
 		{
-			mSerializer.InnerSerialize(mBufferWriter, value, null);
+			Serializer.InnerSerialize(Writer, value, null);
 		}
 
 		#endregion
@@ -213,7 +211,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="value">Value to write to the archive.</param>
 		public void Write(bool value)
 		{
-			mSerializer.WritePrimitive_Boolean(value, mBufferWriter);
+			Serializer.WritePrimitive_Boolean(value, Writer);
 		}
 
 		#endregion
@@ -226,7 +224,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="value">Value to write to the archive.</param>
 		public void Write(char value)
 		{
-			mSerializer.WritePrimitive_Char(value, mBufferWriter);
+			Serializer.WritePrimitive_Char(value, Writer);
 		}
 
 		#endregion
@@ -239,7 +237,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="value">Value to write to the archive.</param>
 		public void Write(decimal value)
 		{
-			mSerializer.WritePrimitive_Decimal(value, mBufferWriter);
+			Serializer.WritePrimitive_Decimal(value, Writer);
 		}
 
 		#endregion
@@ -252,7 +250,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="value">Value to write to the archive.</param>
 		public void Write(float value)
 		{
-			mSerializer.WritePrimitive_Single(value, mBufferWriter);
+			Serializer.WritePrimitive_Single(value, Writer);
 		}
 
 		#endregion
@@ -265,7 +263,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="value">Value to write to the archive.</param>
 		public void Write(double value)
 		{
-			mSerializer.WritePrimitive_Double(value, mBufferWriter);
+			Serializer.WritePrimitive_Double(value, Writer);
 		}
 
 		#endregion
@@ -279,7 +277,7 @@ namespace GriffinPlus.Lib.Serialization
 		public void Write(string value)
 		{
 			// use the serializer to ensure already serialized strings are handled properly
-			mSerializer.InnerSerialize(mBufferWriter, value, null);
+			Serializer.InnerSerialize(Writer, value, null);
 		}
 
 		#endregion
@@ -293,7 +291,7 @@ namespace GriffinPlus.Lib.Serialization
 		public void Write(Type value)
 		{
 			// use the serializer to ensure already serialized types are handled properly
-			mSerializer.InnerSerialize(mBufferWriter, value, null);
+			Serializer.InnerSerialize(Writer, value, null);
 		}
 
 		#endregion
@@ -306,7 +304,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="value">Value to write to the archive.</param>
 		public void Write(DateTime value)
 		{
-			mSerializer.WritePrimitive_DateTime(value, mBufferWriter);
+			Serializer.WritePrimitive_DateTime(value, Writer);
 		}
 
 		#endregion
@@ -319,7 +317,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="value">Value to write to the archive.</param>
 		public void Write(DateTimeOffset value)
 		{
-			mSerializer.WritePrimitive_DateTimeOffset(value, mBufferWriter);
+			Serializer.WritePrimitive_DateTimeOffset(value, Writer);
 		}
 
 		#endregion
@@ -332,7 +330,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="value">Value to write to the archive.</param>
 		public void Write(Guid value)
 		{
-			mSerializer.WritePrimitive_Guid(value, mBufferWriter);
+			Serializer.WritePrimitive_Guid(value, Writer);
 		}
 
 		#endregion
@@ -345,7 +343,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="obj">Object to write to the archive.</param>
 		public void Write(object obj)
 		{
-			mSerializer.InnerSerialize(mBufferWriter, obj, null);
+			Serializer.InnerSerialize(Writer, obj, null);
 		}
 
 		/// <summary>
@@ -355,7 +353,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="context">Context object to pass to the serializer via the serializer archive.</param>
 		public void Write(object obj, object context)
 		{
-			mSerializer.InnerSerialize(mBufferWriter, obj, context);
+			Serializer.InnerSerialize(Writer, obj, context);
 		}
 
 		#endregion
@@ -369,47 +367,47 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="ArgumentException">Specified type is not serializable.</exception>
 		public void WriteBaseArchive(object context = null)
 		{
-			var baseClassType = DataType.BaseType ?? throw new ArgumentException($"{DataType.FullName} does not have a base class.");
+			Type baseClassType = DataType.BaseType ?? throw new ArgumentException($"{DataType.FullName} does not have a base class.");
 
 			// try internal object serializer
-			var ios = Serializer.GetInternalObjectSerializer(mObjectToSerialize, baseClassType, out uint version);
+			IInternalObjectSerializer ios = Serializer.GetInternalObjectSerializer(mObjectToSerialize, baseClassType, out uint version);
 			if (ios != null)
 			{
 				// consider serializer version overrides...
-				if (mSerializer.GetSerializerVersionOverride(baseClassType, out uint versionOverride))
+				if (Serializer.GetSerializerVersionOverride(baseClassType, out uint versionOverride))
 					version = versionOverride;
 
 				// write base archive header
-				var buffer = mBufferWriter.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+				Span<byte> buffer = Writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.BaseArchiveStart;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), version);
-				mBufferWriter.Advance(bufferIndex);
+				Writer.Advance(bufferIndex);
 
 				// call the Serialize() method of the base class
-				var archive = new SerializationArchive(mSerializer, mBufferWriter, baseClassType, mObjectToSerialize, version, context);
-				var serializeDelegate = Serializer.GetInternalObjectSerializerSerializeCaller(baseClassType);
+				var archive = new SerializationArchive(Serializer, Writer, baseClassType, mObjectToSerialize, version, context);
+				Serializer.IosSerializeDelegate serializeDelegate = Serializer.GetInternalObjectSerializerSerializeCaller(baseClassType);
 				serializeDelegate(ios, archive);
 				return;
 			}
 
 			// try external object serializer
-			var eos = ExternalObjectSerializerFactory.GetExternalObjectSerializer(baseClassType, out version);
+			IExternalObjectSerializer eos = ExternalObjectSerializerFactory.GetExternalObjectSerializer(baseClassType, out version);
 			if (eos != null)
 			{
 				// consider serializer version overrides...
-				if (mSerializer.GetSerializerVersionOverride(baseClassType, out uint versionOverride))
+				if (Serializer.GetSerializerVersionOverride(baseClassType, out uint versionOverride))
 					version = versionOverride;
 
 				// write base archive header
-				var buffer = mBufferWriter.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+				Span<byte> buffer = Writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.BaseArchiveStart;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), version);
-				mBufferWriter.Advance(bufferIndex);
+				Writer.Advance(bufferIndex);
 
 				// serialize object
-				var archive = new SerializationArchive(mSerializer, mBufferWriter, baseClassType, mObjectToSerialize, version, context);
+				var archive = new SerializationArchive(Serializer, Writer, baseClassType, mObjectToSerialize, version, context);
 				eos.Serialize(archive, mObjectToSerialize);
 				return;
 			}
@@ -430,9 +428,9 @@ namespace GriffinPlus.Lib.Serialization
 		public unsafe void Write(void* p, long count)
 		{
 			// write payload type
-			var buffer = mBufferWriter.GetSpan(1);
+			Span<byte> buffer = Writer.GetSpan(1);
 			buffer[0] = (byte)PayloadType.Buffer;
-			mBufferWriter.Advance(1);
+			Writer.Advance(1);
 
 			// write data chunkwise
 			byte* pFrom = (byte*)p;
@@ -440,13 +438,13 @@ namespace GriffinPlus.Lib.Serialization
 			while (pFrom != pTo)
 			{
 				Debug.Assert(Serializer.MaxChunkSize > Leb128EncodingHelper.MaxBytesFor32BitValue);
-				buffer = mBufferWriter.GetSpan(Serializer.MaxChunkSize);
+				buffer = Writer.GetSpan(Serializer.MaxChunkSize);
 				int bytesToCopy = Math.Min((int)(pTo - pFrom), buffer.Length - Leb128EncodingHelper.MaxBytesFor32BitValue);
 				int bufferIndex = Leb128EncodingHelper.Write(buffer, bytesToCopy);
 				new Span<byte>(pFrom, bytesToCopy).CopyTo(buffer.Slice(bufferIndex));
 				bufferIndex += bytesToCopy;
 				pFrom += bytesToCopy;
-				mBufferWriter.Advance(bufferIndex);
+				Writer.Advance(bufferIndex);
 			}
 		}
 
@@ -461,25 +459,25 @@ namespace GriffinPlus.Lib.Serialization
 		public void Write(Stream s)
 		{
 			// write payload type
-			var buffer = mBufferWriter.GetSpan(1);
+			Span<byte> buffer = Writer.GetSpan(1);
 			buffer[0] = (byte)PayloadType.Buffer;
-			mBufferWriter.Advance(1);
+			Writer.Advance(1);
 
 			// write data chunkwise
 			while (true)
 			{
 				// read a chunk of data
-				int maxBytesToRead = Serializer.MaxChunkSize - Leb128EncodingHelper.MaxBytesFor32BitValue;
-				mSerializer.EnsureTemporaryByteBufferSize(maxBytesToRead);
-				int bytesRead = s.Read(mSerializer.TempBuffer_Buffer, 0, maxBytesToRead);
+				const int maxBytesToRead = Serializer.MaxChunkSize - Leb128EncodingHelper.MaxBytesFor32BitValue;
+				Serializer.EnsureTemporaryByteBufferSize(maxBytesToRead);
+				int bytesRead = s.Read(Serializer.TempBuffer_Buffer, 0, maxBytesToRead);
 				if (bytesRead == 0) break;
 
 				// write the chunk into the archive
-				buffer = mBufferWriter.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue + bytesRead);
+				buffer = Writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue + bytesRead);
 				int bufferIndex = Leb128EncodingHelper.Write(buffer, bytesRead);
-				mSerializer.TempBuffer_Buffer.AsSpan().Slice(0, bytesRead).CopyTo(buffer.Slice(bufferIndex));
+				Serializer.TempBuffer_Buffer.AsSpan().Slice(0, bytesRead).CopyTo(buffer.Slice(bufferIndex));
 				bufferIndex += bytesRead;
-				mBufferWriter.Advance(bufferIndex);
+				Writer.Advance(bufferIndex);
 			}
 		}
 

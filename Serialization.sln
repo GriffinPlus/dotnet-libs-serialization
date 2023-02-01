@@ -24,9 +24,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build.vs", "build.vs", "{94
 	ProjectSection(SolutionItems) = preProject
 		build.vs\Build+Deploy.psm1 = build.vs\Build+Deploy.psm1
 		build.vs\Build.psm1 = build.vs\Build.psm1
+		build.vs\CheckCommitIsTagged.psm1 = build.vs\CheckCommitIsTagged.psm1
+		build.vs\azure-pipelines\ci-csharp-netstandard20-with-deployment-on-tag.yml = build.vs\azure-pipelines\ci-csharp-netstandard20-with-deployment-on-tag.yml
 		build.vs\Clean.psm1 = build.vs\Clean.psm1
 		build.vs\CombineOutputBinaries.psm1 = build.vs\CombineOutputBinaries.psm1
 		build.vs\Configuration.psm1 = build.vs\Configuration.psm1
+		build.vs\ConvertMarkdown2Html.psm1 = build.vs\ConvertMarkdown2Html.psm1
 		build.vs\CopyFilesFromListToFolder.psm1 = build.vs\CopyFilesFromListToFolder.psm1
 		build.vs\CopyToReleaseFolder.psm1 = build.vs\CopyToReleaseFolder.psm1
 		build.vs\Directory.Build.Cpp.props = build.vs\Directory.Build.Cpp.props
@@ -54,6 +57,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GriffinPlus.Lib.Serializati
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GriffinPlus.Lib.Serialization.Tests", "src\GriffinPlus.Lib.Serialization.Tests\GriffinPlus.Lib.Serialization.Tests.csproj", "{56EF3587-F890-4A68-A0AC-55D39DC085A2}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "azure-pipelines", "azure-pipelines", "{EEBB9EC2-E0C0-4EC0-9330-2BE9135BE251}"
+	ProjectSection(SolutionItems) = preProject
+		build.vs\azure-pipelines\ci-csharp-netstandard20-with-deployment-on-tag.yml = build.vs\azure-pipelines\ci-csharp-netstandard20-with-deployment-on-tag.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,6 +79,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{EEBB9EC2-E0C0-4EC0-9330-2BE9135BE251} = {94B48F93-6B70-42DA-A27F-0496A8B95FB6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {144ED164-6EC1-42FC-912C-EB9C920DB329}

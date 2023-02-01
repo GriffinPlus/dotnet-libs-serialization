@@ -5,6 +5,7 @@
 
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -33,8 +34,8 @@ namespace GriffinPlus.Lib.Serialization
 				// => all elements should be written using native encoding
 
 				// write header with payload type and array length
-				int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-				var buffer = writer.GetSpan(maxBufferSize);
+				const int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.ArrayOfBoolean_Native;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -58,8 +59,8 @@ namespace GriffinPlus.Lib.Serialization
 				// => compress 8 booleans into 1 byte
 
 				// write header with payload type and array length
-				int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-				var buffer = writer.GetSpan(maxBufferSize);
+				const int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.ArrayOfBoolean_Compact;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -73,7 +74,7 @@ namespace GriffinPlus.Lib.Serialization
 					if (value) byteToWrite |= (byte)(1 << (i % 8));
 					if (i % 8 == 7)
 					{
-						var valueBuffer = writer.GetSpan(elementSize);
+						Span<byte> valueBuffer = writer.GetSpan(elementSize);
 						valueBuffer[0] = byteToWrite;
 						writer.Advance(elementSize);
 						byteToWrite = 0;
@@ -82,7 +83,7 @@ namespace GriffinPlus.Lib.Serialization
 
 				if (array.Length % 8 != 0)
 				{
-					var valueBuffer = writer.GetSpan(elementSize);
+					Span<byte> valueBuffer = writer.GetSpan(elementSize);
 					valueBuffer[0] = byteToWrite;
 					writer.Advance(elementSize);
 				}
@@ -168,8 +169,8 @@ namespace GriffinPlus.Lib.Serialization
 				// => all elements should be written using native encoding
 
 				// write header with payload type and array length
-				int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-				var buffer = writer.GetSpan(maxBufferSize);
+				const int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.ArrayOfChar_Native;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -208,7 +209,7 @@ namespace GriffinPlus.Lib.Serialization
 
 				// write header with payload type, array length and encoding
 				int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
-				var buffer = writer.GetSpan(maxBufferSize);
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.ArrayOfChar_Compact;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -217,21 +218,21 @@ namespace GriffinPlus.Lib.Serialization
 				writer.Advance(bufferIndex);
 
 				// write array elements
-				for (int i = 0; i < array.Length; i++)
+				foreach (char c in array)
 				{
-					char value = array[i];
+					char value = c;
 
 					if (IsLeb128EncodingMoreEfficient(value))
 					{
 						// use LEB128 encoding
-						var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
+						Span<byte> valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
 						int count = Leb128EncodingHelper.Write(valueBuffer, (uint)value);
 						writer.Advance(count);
 					}
 					else
 					{
 						// use native encoding
-						var valueBuffer = writer.GetSpan(elementSize);
+						Span<byte> valueBuffer = writer.GetSpan(elementSize);
 						MemoryMarshal.Write(valueBuffer, ref value);
 						writer.Advance(elementSize);
 					}
@@ -289,7 +290,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read array.</returns>
 		private char[] ReadArrayOfChar_Compact(Stream stream)
 		{
-			int elementSize = sizeof(char);
+			const int elementSize = sizeof(char);
 
 			// read array length
 			int length = Leb128EncodingHelper.ReadInt32(stream);
@@ -346,8 +347,8 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(sbyte);
 
 			// write header with payload type and array length
-			int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-			var buffer = writer.GetSpan(maxBufferSize);
+			const int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+			Span<byte> buffer = writer.GetSpan(maxBufferSize);
 			int bufferIndex = 0;
 			buffer[bufferIndex++] = (byte)PayloadType.ArrayOfSByte;
 			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -411,8 +412,8 @@ namespace GriffinPlus.Lib.Serialization
 		private void WriteArrayOfByte(byte[] array, IBufferWriter<byte> writer)
 		{
 			// write header with payload type and array length
-			int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-			var buffer = writer.GetSpan(maxBufferSize);
+			const int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+			Span<byte> buffer = writer.GetSpan(maxBufferSize);
 			int bufferIndex = 0;
 			buffer[bufferIndex++] = (byte)PayloadType.ArrayOfByte;
 			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -469,8 +470,8 @@ namespace GriffinPlus.Lib.Serialization
 				// => all elements should be written using native encoding
 
 				// write header with payload type and array length
-				int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-				var buffer = writer.GetSpan(maxBufferSize);
+				const int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.ArrayOfInt16_Native;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -504,7 +505,7 @@ namespace GriffinPlus.Lib.Serialization
 
 				// write header with payload type, array length and encoding
 				int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
-				var buffer = writer.GetSpan(maxBufferSize);
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.ArrayOfInt16_Compact;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -513,21 +514,21 @@ namespace GriffinPlus.Lib.Serialization
 				writer.Advance(bufferIndex);
 
 				// write array elements
-				for (int i = 0; i < array.Length; i++)
+				foreach (short x in array)
 				{
-					short value = array[i];
+					short value = x;
 
 					if (IsLeb128EncodingMoreEfficient(value))
 					{
 						// use LEB128 encoding
-						var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
+						Span<byte> valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
 						int count = Leb128EncodingHelper.Write(valueBuffer, value);
 						writer.Advance(count);
 					}
 					else
 					{
 						// use native encoding
-						var valueBuffer = writer.GetSpan(elementSize);
+						Span<byte> valueBuffer = writer.GetSpan(elementSize);
 						MemoryMarshal.Write(valueBuffer, ref value);
 						writer.Advance(elementSize);
 					}
@@ -585,7 +586,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read array.</returns>
 		private short[] ReadArrayOfInt16_Compact(Stream stream)
 		{
-			int elementSize = sizeof(short);
+			const int elementSize = sizeof(short);
 
 			// read array length
 			int length = Leb128EncodingHelper.ReadInt32(stream);
@@ -647,8 +648,8 @@ namespace GriffinPlus.Lib.Serialization
 				// => all elements should be written using native encoding
 
 				// prepare buffer for payload type and array length
-				int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-				var buffer = writer.GetSpan(maxBufferSize);
+				const int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.ArrayOfUInt16_Native;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -682,7 +683,7 @@ namespace GriffinPlus.Lib.Serialization
 
 				// write header with payload type, array length and encoding
 				int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
-				var buffer = writer.GetSpan(maxBufferSize);
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.ArrayOfUInt16_Compact;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -691,21 +692,21 @@ namespace GriffinPlus.Lib.Serialization
 				writer.Advance(bufferIndex);
 
 				// write array elements
-				for (int i = 0; i < array.Length; i++)
+				foreach (ushort x in array)
 				{
-					ushort value = array[i];
+					ushort value = x;
 
 					if (IsLeb128EncodingMoreEfficient(value))
 					{
 						// use LEB128 encoding
-						var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
+						Span<byte> valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
 						int count = Leb128EncodingHelper.Write(valueBuffer, value);
 						writer.Advance(count);
 					}
 					else
 					{
 						// use native encoding
-						var valueBuffer = writer.GetSpan(elementSize);
+						Span<byte> valueBuffer = writer.GetSpan(elementSize);
 						MemoryMarshal.Write(valueBuffer, ref value);
 						writer.Advance(elementSize);
 					}
@@ -763,7 +764,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read array.</returns>
 		private ushort[] ReadArrayOfUInt16_Compact(Stream stream)
 		{
-			int elementSize = sizeof(ushort);
+			const int elementSize = sizeof(ushort);
 
 			// read array length
 			int length = Leb128EncodingHelper.ReadInt32(stream);
@@ -825,8 +826,8 @@ namespace GriffinPlus.Lib.Serialization
 				// => all elements should be written using native encoding
 
 				// write header with payload type and array length
-				int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-				var buffer = writer.GetSpan(maxBufferSize);
+				const int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.ArrayOfInt32_Native;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -860,7 +861,7 @@ namespace GriffinPlus.Lib.Serialization
 
 				// write header with payload type, array length and encoding
 				int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
-				var buffer = writer.GetSpan(maxBufferSize);
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.ArrayOfInt32_Compact;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -869,21 +870,21 @@ namespace GriffinPlus.Lib.Serialization
 				writer.Advance(bufferIndex);
 
 				// write array elements
-				for (int i = 0; i < array.Length; i++)
+				foreach (int x in array)
 				{
-					int value = array[i];
+					int value = x;
 
 					if (IsLeb128EncodingMoreEfficient(value))
 					{
 						// use LEB128 encoding
-						var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
+						Span<byte> valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
 						int count = Leb128EncodingHelper.Write(valueBuffer, value);
 						writer.Advance(count);
 					}
 					else
 					{
 						// use native encoding
-						var valueBuffer = writer.GetSpan(elementSize);
+						Span<byte> valueBuffer = writer.GetSpan(elementSize);
 						MemoryMarshal.Write(valueBuffer, ref value);
 						writer.Advance(elementSize);
 					}
@@ -941,7 +942,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read array.</returns>
 		private Array ReadArrayOfInt32_Compact(Stream stream)
 		{
-			int elementSize = sizeof(int);
+			const int elementSize = sizeof(int);
 
 			// read array length
 			int length = Leb128EncodingHelper.ReadInt32(stream);
@@ -1003,8 +1004,8 @@ namespace GriffinPlus.Lib.Serialization
 				// => all elements should be written using native encoding
 
 				// prepare buffer for payload type and array length
-				int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-				var buffer = writer.GetSpan(maxBufferSize);
+				const int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.ArrayOfUInt32_Native;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -1038,7 +1039,7 @@ namespace GriffinPlus.Lib.Serialization
 
 				// write header with payload type, array length and encoding
 				int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
-				var buffer = writer.GetSpan(maxBufferSize);
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.ArrayOfUInt32_Compact;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -1047,21 +1048,21 @@ namespace GriffinPlus.Lib.Serialization
 				writer.Advance(bufferIndex);
 
 				// write array elements
-				for (int i = 0; i < array.Length; i++)
+				foreach (uint x in array)
 				{
-					uint value = array[i];
+					uint value = x;
 
 					if (IsLeb128EncodingMoreEfficient(value))
 					{
 						// use LEB128 encoding
-						var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
+						Span<byte> valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
 						int count = Leb128EncodingHelper.Write(valueBuffer, value);
 						writer.Advance(count);
 					}
 					else
 					{
 						// use native encoding
-						var valueBuffer = writer.GetSpan(elementSize);
+						Span<byte> valueBuffer = writer.GetSpan(elementSize);
 						MemoryMarshal.Write(valueBuffer, ref value);
 						writer.Advance(elementSize);
 					}
@@ -1119,7 +1120,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read array.</returns>
 		private uint[] ReadArrayOfUInt32_Compact(Stream stream)
 		{
-			int elementSize = sizeof(uint);
+			const int elementSize = sizeof(uint);
 
 			// read array length
 			int length = Leb128EncodingHelper.ReadInt32(stream);
@@ -1181,8 +1182,8 @@ namespace GriffinPlus.Lib.Serialization
 				// => all elements should be written using native encoding
 
 				// write header with payload type and array length
-				int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-				var buffer = writer.GetSpan(maxBufferSize);
+				const int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.ArrayOfInt64_Native;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -1216,7 +1217,7 @@ namespace GriffinPlus.Lib.Serialization
 
 				// write header with payload type, array length and encoding
 				int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
-				var buffer = writer.GetSpan(maxBufferSize);
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.ArrayOfInt64_Compact;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -1225,21 +1226,21 @@ namespace GriffinPlus.Lib.Serialization
 				writer.Advance(bufferIndex);
 
 				// write array elements
-				for (int i = 0; i < array.Length; i++)
+				foreach (long x in array)
 				{
-					long value = array[i];
+					long value = x;
 
 					if (IsLeb128EncodingMoreEfficient(value))
 					{
 						// use LEB128 encoding
-						var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor64BitValue);
+						Span<byte> valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor64BitValue);
 						int count = Leb128EncodingHelper.Write(valueBuffer, value);
 						writer.Advance(count);
 					}
 					else
 					{
 						// use native encoding
-						var valueBuffer = writer.GetSpan(elementSize);
+						Span<byte> valueBuffer = writer.GetSpan(elementSize);
 						MemoryMarshal.Write(valueBuffer, ref value);
 						writer.Advance(elementSize);
 					}
@@ -1297,7 +1298,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read array.</returns>
 		private long[] ReadArrayOfInt64_Compact(Stream stream)
 		{
-			int elementSize = sizeof(long);
+			const int elementSize = sizeof(long);
 
 			// read array length
 			int length = Leb128EncodingHelper.ReadInt32(stream);
@@ -1359,8 +1360,8 @@ namespace GriffinPlus.Lib.Serialization
 				// => all elements should be written using native encoding
 
 				// prepare buffer for payload type and array length
-				int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-				var buffer = writer.GetSpan(maxBufferSize);
+				const int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.ArrayOfUInt64_Native;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -1394,7 +1395,7 @@ namespace GriffinPlus.Lib.Serialization
 
 				// write header with payload type, array length and encoding
 				int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
-				var buffer = writer.GetSpan(maxBufferSize);
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.ArrayOfUInt64_Compact;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -1403,21 +1404,21 @@ namespace GriffinPlus.Lib.Serialization
 				writer.Advance(bufferIndex);
 
 				// write array elements
-				for (int i = 0; i < array.Length; i++)
+				foreach (ulong x in array)
 				{
-					ulong value = array[i];
+					ulong value = x;
 
 					if (IsLeb128EncodingMoreEfficient(value))
 					{
 						// use LEB128 encoding
-						var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor64BitValue);
+						Span<byte> valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor64BitValue);
 						int count = Leb128EncodingHelper.Write(valueBuffer, value);
 						writer.Advance(count);
 					}
 					else
 					{
 						// use native encoding
-						var valueBuffer = writer.GetSpan(elementSize);
+						Span<byte> valueBuffer = writer.GetSpan(elementSize);
 						MemoryMarshal.Write(valueBuffer, ref value);
 						writer.Advance(elementSize);
 					}
@@ -1475,7 +1476,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read array.</returns>
 		private ulong[] ReadArrayOfUInt64_Compact(Stream stream)
 		{
-			int elementSize = sizeof(ulong);
+			const int elementSize = sizeof(ulong);
 
 			// read array length
 			int length = Leb128EncodingHelper.ReadInt32(stream);
@@ -1532,8 +1533,8 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(float);
 
 			// write header with payload type and array length
-			int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-			var buffer = writer.GetSpan(maxBufferSize);
+			const int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+			Span<byte> buffer = writer.GetSpan(maxBufferSize);
 			int bufferIndex = 0;
 			buffer[bufferIndex++] = (byte)PayloadType.ArrayOfSingle;
 			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -1609,8 +1610,8 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(double);
 
 			// write header with payload type and array length
-			int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-			var buffer = writer.GetSpan(maxBufferSize);
+			const int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+			Span<byte> buffer = writer.GetSpan(maxBufferSize);
 			int bufferIndex = 0;
 			buffer[bufferIndex++] = (byte)PayloadType.ArrayOfDouble;
 			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -1681,23 +1682,23 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		/// <param name="array">Array to write.</param>
 		/// <param name="writer">Buffer writer to write the array to.</param>
-		private void WriteArray(decimal[] array, IBufferWriter<byte> writer)
+		private void WriteArray(IReadOnlyList<decimal> array, IBufferWriter<byte> writer)
 		{
 			const int elementSize = 16;
 
 			// write payload type and array length
-			int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-			var buffer = writer.GetSpan(maxBufferSize);
+			const int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+			Span<byte> buffer = writer.GetSpan(maxBufferSize);
 			int bufferIndex = 0;
 			buffer[bufferIndex++] = (byte)PayloadType.ArrayOfDecimal;
-			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
+			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Count);
 			writer.Advance(bufferIndex);
 
 			// write array elements
 			int fromIndex = 0;
-			while (fromIndex < array.Length)
+			while (fromIndex < array.Count)
 			{
-				int elementsToCopy = Math.Min(array.Length - fromIndex, MaxChunkSize / elementSize);
+				int elementsToCopy = Math.Min(array.Count - fromIndex, MaxChunkSize / elementSize);
 				int bytesToCopy = elementsToCopy * elementSize;
 				buffer = writer.GetSpan(bytesToCopy);
 #if NETSTANDARD2_0 || NETSTANDARD2_1 || NET461
@@ -1795,8 +1796,8 @@ namespace GriffinPlus.Lib.Serialization
 			WriteTypeMetadata(writer, array.GetType().GetElementType());
 
 			// write payload type and array length
-			int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
-			var buffer = writer.GetSpan(maxBufferSize);
+			const int maxBufferSize = 1 + Leb128EncodingHelper.MaxBytesFor32BitValue;
+			Span<byte> buffer = writer.GetSpan(maxBufferSize);
 			int bufferIndex = 0;
 			buffer[bufferIndex++] = (byte)PayloadType.ArrayOfObjects;
 			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Length);
@@ -1823,11 +1824,11 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			// assembly and type metadata has been read already
 
-			var t = mCurrentDeserializedType.Type;
+			Type t = mCurrentDeserializedType.Type;
 
 			// read array length and create an uninitialized array
 			int length = Leb128EncodingHelper.ReadInt32(stream);
-			var array = FastActivator.CreateArray(t, length);
+			Array array = FastActivator.CreateArray(t, length);
 
 			// assign an object id to the array before deserializing its elements
 			// (elements may refer to the array)
@@ -1861,7 +1862,7 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(bool);
 
 			// pin array in memory and get a pointer to it
-			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 			bool* pArray = (bool*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 			Debug.Assert(pArray != null);
 
@@ -1874,7 +1875,7 @@ namespace GriffinPlus.Lib.Serialization
 
 					// write payload type and array dimensions
 					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
-					var buffer = writer.GetSpan(maxBufferSize);
+					Span<byte> buffer = writer.GetSpan(maxBufferSize);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfBoolean_Native;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -1908,7 +1909,7 @@ namespace GriffinPlus.Lib.Serialization
 
 					// write payload type and array dimensions
 					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
-					var buffer = writer.GetSpan(maxBufferSize);
+					Span<byte> buffer = writer.GetSpan(maxBufferSize);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfBoolean_Compact;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -1932,7 +1933,7 @@ namespace GriffinPlus.Lib.Serialization
 						if (value) byteToWrite |= (byte)(1 << (i % 8));
 						if (i % 8 == 7)
 						{
-							var valueBuffer = writer.GetSpan(elementSize);
+							Span<byte> valueBuffer = writer.GetSpan(elementSize);
 							valueBuffer[0] = byteToWrite;
 							writer.Advance(elementSize);
 							byteToWrite = 0;
@@ -1941,7 +1942,7 @@ namespace GriffinPlus.Lib.Serialization
 
 					if (array.Length % 8 != 0)
 					{
-						var valueBuffer = writer.GetSpan(elementSize);
+						Span<byte> valueBuffer = writer.GetSpan(elementSize);
 						valueBuffer[0] = byteToWrite;
 						writer.Advance(elementSize);
 					}
@@ -2057,7 +2058,7 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(char);
 
 			// pin array in memory and get a pointer to it
-			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 			char* pArray = (char*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 			Debug.Assert(pArray != null);
 
@@ -2070,7 +2071,7 @@ namespace GriffinPlus.Lib.Serialization
 
 					// write payload type and array dimensions
 					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
-					var buffer = writer.GetSpan(maxBufferSize);
+					Span<byte> buffer = writer.GetSpan(maxBufferSize);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfChar_Native;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -2120,7 +2121,7 @@ namespace GriffinPlus.Lib.Serialization
 
 					// write payload type, array dimensions and encoding
 					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
-					var buffer = writer.GetSpan(maxBufferSize);
+					Span<byte> buffer = writer.GetSpan(maxBufferSize);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfChar_Compact;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -2145,14 +2146,14 @@ namespace GriffinPlus.Lib.Serialization
 						if (IsLeb128EncodingMoreEfficient(value))
 						{
 							// use LEB128 encoding
-							var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
+							Span<byte> valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
 							int count = Leb128EncodingHelper.Write(valueBuffer, (uint)value);
 							writer.Advance(count);
 						}
 						else
 						{
 							// use native encoding
-							var valueBuffer = writer.GetSpan(elementSize);
+							Span<byte> valueBuffer = writer.GetSpan(elementSize);
 							MemoryMarshal.Write(valueBuffer, ref value);
 							writer.Advance(elementSize);
 						}
@@ -2207,7 +2208,7 @@ namespace GriffinPlus.Lib.Serialization
 			// from the current system
 			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 			{
-				var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+				GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 				char* pArray = (char*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 				Debug.Assert(pArray != null);
 				for (int i = 0; i < totalCount; i++) EndiannessHelper.SwapBytes(ref pArray[i]);
@@ -2228,7 +2229,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read array.</returns>
 		private Array ReadMultidimensionalArrayOfChar_Compact(Stream stream)
 		{
-			int elementSize = sizeof(char);
+			const int elementSize = sizeof(char);
 
 			// read header
 			int totalCount = 1;
@@ -2304,7 +2305,7 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(sbyte);
 
 			// pin array in memory and get a pointer to it
-			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 			sbyte* pArray = (sbyte*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 			Debug.Assert(pArray != null);
 
@@ -2312,7 +2313,7 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				// write payload type and array dimensions
 				int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
-				var buffer = writer.GetSpan(maxBufferSize);
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfSByte;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -2404,7 +2405,7 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(byte);
 
 			// pin array in memory and get a pointer to it
-			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 			byte* pArray = (byte*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 			Debug.Assert(pArray != null);
 
@@ -2412,7 +2413,7 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				// write payload type and array dimensions
 				int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
-				var buffer = writer.GetSpan(maxBufferSize);
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfByte;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -2498,7 +2499,7 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(short);
 
 			// pin array in memory and get a pointer to it
-			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 			short* pArray = (short*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 			Debug.Assert(pArray != null);
 
@@ -2511,7 +2512,7 @@ namespace GriffinPlus.Lib.Serialization
 
 					// write payload type and array dimensions
 					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
-					var buffer = writer.GetSpan(maxBufferSize);
+					Span<byte> buffer = writer.GetSpan(maxBufferSize);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfInt16_Native;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -2556,7 +2557,7 @@ namespace GriffinPlus.Lib.Serialization
 
 					// write payload type, array dimensions and encoding
 					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
-					var buffer = writer.GetSpan(maxBufferSize);
+					Span<byte> buffer = writer.GetSpan(maxBufferSize);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfInt16_Compact;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -2581,14 +2582,14 @@ namespace GriffinPlus.Lib.Serialization
 						if (IsLeb128EncodingMoreEfficient(value))
 						{
 							// use LEB128 encoding
-							var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
+							Span<byte> valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
 							int count = Leb128EncodingHelper.Write(valueBuffer, value);
 							writer.Advance(count);
 						}
 						else
 						{
 							// use native encoding
-							var valueBuffer = writer.GetSpan(elementSize);
+							Span<byte> valueBuffer = writer.GetSpan(elementSize);
 							MemoryMarshal.Write(valueBuffer, ref value);
 							writer.Advance(elementSize);
 						}
@@ -2643,7 +2644,7 @@ namespace GriffinPlus.Lib.Serialization
 			// from the current system
 			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 			{
-				var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+				GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 				short* pArray = (short*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 				Debug.Assert(pArray != null);
 				for (int i = 0; i < totalCount; i++) EndiannessHelper.SwapBytes(ref pArray[i]);
@@ -2664,7 +2665,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read array.</returns>
 		private Array ReadMultidimensionalArrayOfInt16_Compact(Stream stream)
 		{
-			int elementSize = sizeof(short);
+			const int elementSize = sizeof(short);
 
 			// read header
 			int totalCount = 1;
@@ -2740,7 +2741,7 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(ushort);
 
 			// pin array in memory and get a pointer to it
-			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 			ushort* pArray = (ushort*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 			Debug.Assert(pArray != null);
 
@@ -2753,7 +2754,7 @@ namespace GriffinPlus.Lib.Serialization
 
 					// write payload type and array dimensions
 					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
-					var buffer = writer.GetSpan(maxBufferSize);
+					Span<byte> buffer = writer.GetSpan(maxBufferSize);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfUInt16_Native;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -2798,7 +2799,7 @@ namespace GriffinPlus.Lib.Serialization
 
 					// write payload type, array dimensions and encoding
 					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
-					var buffer = writer.GetSpan(maxBufferSize);
+					Span<byte> buffer = writer.GetSpan(maxBufferSize);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfUInt16_Compact;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -2823,14 +2824,14 @@ namespace GriffinPlus.Lib.Serialization
 						if (IsLeb128EncodingMoreEfficient(value))
 						{
 							// use LEB128 encoding
-							var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
+							Span<byte> valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
 							int count = Leb128EncodingHelper.Write(valueBuffer, (uint)value);
 							writer.Advance(count);
 						}
 						else
 						{
 							// use native encoding
-							var valueBuffer = writer.GetSpan(elementSize);
+							Span<byte> valueBuffer = writer.GetSpan(elementSize);
 							MemoryMarshal.Write(valueBuffer, ref value);
 							writer.Advance(elementSize);
 						}
@@ -2885,7 +2886,7 @@ namespace GriffinPlus.Lib.Serialization
 			// from the current system
 			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 			{
-				var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+				GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 				ushort* pArray = (ushort*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 				Debug.Assert(pArray != null);
 				for (int i = 0; i < totalCount; i++) EndiannessHelper.SwapBytes(ref pArray[i]);
@@ -2906,7 +2907,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read array.</returns>
 		private Array ReadMultidimensionalArrayOfUInt16_Compact(Stream stream)
 		{
-			int elementSize = sizeof(ushort);
+			const int elementSize = sizeof(ushort);
 
 			// read header
 			int totalCount = 1;
@@ -2982,7 +2983,7 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(int);
 
 			// pin array in memory and get a pointer to it
-			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 			int* pArray = (int*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 			Debug.Assert(pArray != null);
 
@@ -2995,7 +2996,7 @@ namespace GriffinPlus.Lib.Serialization
 
 					// write payload type and array dimensions
 					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
-					var buffer = writer.GetSpan(maxBufferSize);
+					Span<byte> buffer = writer.GetSpan(maxBufferSize);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfInt32_Native;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -3040,7 +3041,7 @@ namespace GriffinPlus.Lib.Serialization
 
 					// write payload type, array dimensions and encoding
 					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
-					var buffer = writer.GetSpan(maxBufferSize);
+					Span<byte> buffer = writer.GetSpan(maxBufferSize);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfInt32_Compact;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -3065,14 +3066,14 @@ namespace GriffinPlus.Lib.Serialization
 						if (IsLeb128EncodingMoreEfficient(value))
 						{
 							// use LEB128 encoding
-							var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
+							Span<byte> valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
 							int count = Leb128EncodingHelper.Write(valueBuffer, value);
 							writer.Advance(count);
 						}
 						else
 						{
 							// use native encoding
-							var valueBuffer = writer.GetSpan(elementSize);
+							Span<byte> valueBuffer = writer.GetSpan(elementSize);
 							MemoryMarshal.Write(valueBuffer, ref value);
 							writer.Advance(elementSize);
 						}
@@ -3127,7 +3128,7 @@ namespace GriffinPlus.Lib.Serialization
 			// from the current system
 			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 			{
-				var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+				GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 				int* pArray = (int*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 				Debug.Assert(pArray != null);
 				for (int i = 0; i < totalCount; i++) EndiannessHelper.SwapBytes(ref pArray[i]);
@@ -3148,7 +3149,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read array.</returns>
 		private Array ReadMultidimensionalArrayOfInt32_Compact(Stream stream)
 		{
-			int elementSize = sizeof(int);
+			const int elementSize = sizeof(int);
 
 			// read header
 			int totalCount = 1;
@@ -3224,7 +3225,7 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(uint);
 
 			// pin array in memory and get a pointer to it
-			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 			uint* pArray = (uint*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 			Debug.Assert(pArray != null);
 
@@ -3237,7 +3238,7 @@ namespace GriffinPlus.Lib.Serialization
 
 					// write payload type and array dimensions
 					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
-					var buffer = writer.GetSpan(maxBufferSize);
+					Span<byte> buffer = writer.GetSpan(maxBufferSize);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfUInt32_Native;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -3282,7 +3283,7 @@ namespace GriffinPlus.Lib.Serialization
 
 					// write payload type, array dimensions and encoding
 					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
-					var buffer = writer.GetSpan(maxBufferSize);
+					Span<byte> buffer = writer.GetSpan(maxBufferSize);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfUInt32_Compact;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -3307,14 +3308,14 @@ namespace GriffinPlus.Lib.Serialization
 						if (IsLeb128EncodingMoreEfficient(value))
 						{
 							// use LEB128 encoding
-							var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
+							Span<byte> valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor32BitValue);
 							int count = Leb128EncodingHelper.Write(valueBuffer, value);
 							writer.Advance(count);
 						}
 						else
 						{
 							// use native encoding
-							var valueBuffer = writer.GetSpan(elementSize);
+							Span<byte> valueBuffer = writer.GetSpan(elementSize);
 							MemoryMarshal.Write(valueBuffer, ref value);
 							writer.Advance(elementSize);
 						}
@@ -3369,7 +3370,7 @@ namespace GriffinPlus.Lib.Serialization
 			// from the current system
 			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 			{
-				var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+				GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 				uint* pArray = (uint*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 				Debug.Assert(pArray != null);
 				for (int i = 0; i < totalCount; i++) EndiannessHelper.SwapBytes(ref pArray[i]);
@@ -3390,7 +3391,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read array.</returns>
 		private Array ReadMultidimensionalArrayOfUInt32_Compact(Stream stream)
 		{
-			int elementSize = sizeof(uint);
+			const int elementSize = sizeof(uint);
 
 			// read header
 			int totalCount = 1;
@@ -3466,7 +3467,7 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(long);
 
 			// pin array in memory and get a pointer to it
-			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 			long* pArray = (long*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 			Debug.Assert(pArray != null);
 
@@ -3479,7 +3480,7 @@ namespace GriffinPlus.Lib.Serialization
 
 					// write payload type and array dimensions
 					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
-					var buffer = writer.GetSpan(maxBufferSize);
+					Span<byte> buffer = writer.GetSpan(maxBufferSize);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfInt64_Native;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -3524,7 +3525,7 @@ namespace GriffinPlus.Lib.Serialization
 
 					// write payload type, array dimensions and encoding
 					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
-					var buffer = writer.GetSpan(maxBufferSize);
+					Span<byte> buffer = writer.GetSpan(maxBufferSize);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfInt64_Compact;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -3549,14 +3550,14 @@ namespace GriffinPlus.Lib.Serialization
 						if (IsLeb128EncodingMoreEfficient(value))
 						{
 							// use LEB128 encoding
-							var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor64BitValue);
+							Span<byte> valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor64BitValue);
 							int count = Leb128EncodingHelper.Write(valueBuffer, value);
 							writer.Advance(count);
 						}
 						else
 						{
 							// use native encoding
-							var valueBuffer = writer.GetSpan(elementSize);
+							Span<byte> valueBuffer = writer.GetSpan(elementSize);
 							MemoryMarshal.Write(valueBuffer, ref value);
 							writer.Advance(elementSize);
 						}
@@ -3611,7 +3612,7 @@ namespace GriffinPlus.Lib.Serialization
 			// from the current system
 			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 			{
-				var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+				GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 				long* pArray = (long*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 				Debug.Assert(pArray != null);
 				for (int i = 0; i < totalCount; i++) EndiannessHelper.SwapBytes(ref pArray[i]);
@@ -3632,7 +3633,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read array.</returns>
 		private Array ReadMultidimensionalArrayOfInt64_Compact(Stream stream)
 		{
-			int elementSize = sizeof(long);
+			const int elementSize = sizeof(long);
 
 			// read header
 			int totalCount = 1;
@@ -3708,7 +3709,7 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(ulong);
 
 			// pin array in memory and get a pointer to it
-			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 			ulong* pArray = (ulong*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 			Debug.Assert(pArray != null);
 
@@ -3721,7 +3722,7 @@ namespace GriffinPlus.Lib.Serialization
 
 					// write payload type and array dimensions
 					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
-					var buffer = writer.GetSpan(maxBufferSize);
+					Span<byte> buffer = writer.GetSpan(maxBufferSize);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfUInt64_Native;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -3766,7 +3767,7 @@ namespace GriffinPlus.Lib.Serialization
 
 					// write payload type, array dimensions and encoding
 					int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue + encoding.Length;
-					var buffer = writer.GetSpan(maxBufferSize);
+					Span<byte> buffer = writer.GetSpan(maxBufferSize);
 					int bufferIndex = 0;
 					buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfUInt64_Compact;
 					bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -3791,14 +3792,14 @@ namespace GriffinPlus.Lib.Serialization
 						if (IsLeb128EncodingMoreEfficient(value))
 						{
 							// use LEB128 encoding
-							var valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor64BitValue);
+							Span<byte> valueBuffer = writer.GetSpan(Leb128EncodingHelper.MaxBytesFor64BitValue);
 							int count = Leb128EncodingHelper.Write(valueBuffer, value);
 							writer.Advance(count);
 						}
 						else
 						{
 							// use native encoding
-							var valueBuffer = writer.GetSpan(elementSize);
+							Span<byte> valueBuffer = writer.GetSpan(elementSize);
 							MemoryMarshal.Write(valueBuffer, ref value);
 							writer.Advance(elementSize);
 						}
@@ -3853,7 +3854,7 @@ namespace GriffinPlus.Lib.Serialization
 			// from the current system
 			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 			{
-				var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+				GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 				ulong* pArray = (ulong*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 				Debug.Assert(pArray != null);
 				for (int i = 0; i < totalCount; i++) EndiannessHelper.SwapBytes(ref pArray[i]);
@@ -3874,7 +3875,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <returns>The read array.</returns>
 		private Array ReadMultidimensionalArrayOfUInt64_Compact(Stream stream)
 		{
-			int elementSize = sizeof(ulong);
+			const int elementSize = sizeof(ulong);
 
 			// read header
 			int totalCount = 1;
@@ -3950,7 +3951,7 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(float);
 
 			// pin array in memory and get a pointer to it
-			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 			float* pArray = (float*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 			Debug.Assert(pArray != null);
 
@@ -3958,7 +3959,7 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				// write payload type and array dimensions
 				int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
-				var buffer = writer.GetSpan(maxBufferSize);
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfSingle;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -4033,7 +4034,7 @@ namespace GriffinPlus.Lib.Serialization
 			// from the current system
 			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 			{
-				var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+				GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 				float* pArray = (float*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 				Debug.Assert(pArray != null);
 				for (int i = 0; i < totalCount; i++) EndiannessHelper.SwapBytes(ref pArray[i]);
@@ -4061,7 +4062,7 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(double);
 
 			// pin array in memory and get a pointer to it
-			var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+			GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 			double* pArray = (double*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 			Debug.Assert(pArray != null);
 
@@ -4069,7 +4070,7 @@ namespace GriffinPlus.Lib.Serialization
 			{
 				// write payload type and array dimensions
 				int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
-				var buffer = writer.GetSpan(maxBufferSize);
+				Span<byte> buffer = writer.GetSpan(maxBufferSize);
 				int bufferIndex = 0;
 				buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfDouble;
 				bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -4144,7 +4145,7 @@ namespace GriffinPlus.Lib.Serialization
 			// from the current system
 			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 			{
-				var arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+				GCHandle arrayGcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 				double* pArray = (double*)Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
 				Debug.Assert(pArray != null);
 				for (int i = 0; i < totalCount; i++) EndiannessHelper.SwapBytes(ref pArray[i]);
@@ -4173,7 +4174,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// write payload type and array dimensions
 			int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
-			var buffer = writer.GetSpan(maxBufferSize);
+			Span<byte> buffer = writer.GetSpan(maxBufferSize);
 			int bufferIndex = 0;
 			buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfDecimal;
 			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -4289,7 +4290,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// write payload type and array dimensions
 			int maxBufferSize = 1 + (1 + 2 * array.Rank) * Leb128EncodingHelper.MaxBytesFor32BitValue;
-			var buffer = writer.GetSpan(maxBufferSize);
+			Span<byte> buffer = writer.GetSpan(maxBufferSize);
 			int bufferIndex = 0;
 			buffer[bufferIndex++] = (byte)PayloadType.MultidimensionalArrayOfObjects;
 			bufferIndex += Leb128EncodingHelper.Write(buffer.Slice(bufferIndex), array.Rank); // number of dimensions
@@ -4328,7 +4329,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <exception cref="SerializationException">Stream ended unexpectedly.</exception>
 		private Array ReadMultidimensionalArrayOfObjects(Stream stream, object context)
 		{
-			var type = mCurrentDeserializedType.Type;
+			Type type = mCurrentDeserializedType.Type;
 
 			// read header
 			int ranks = Leb128EncodingHelper.ReadInt32(stream);
@@ -4369,9 +4370,9 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		/// <param name="indices">Indexing vector.</param>
 		/// <param name="array">Array that is being accessed.</param>
-		private static void IncrementArrayIndices(int[] indices, Array array)
+		private static void IncrementArrayIndices(IList<int> indices, Array array)
 		{
-			for (int i = indices.Length; i > 0; i--)
+			for (int i = indices.Count; i > 0; i--)
 			{
 				if (indices[i - 1] == array.GetUpperBound(i - 1))
 				{

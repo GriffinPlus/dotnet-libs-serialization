@@ -29,7 +29,7 @@ namespace GriffinPlus.Lib.Serialization
 				archive.Write(count);
 
 				// write items
-				foreach (var item in queue)
+				foreach (T item in queue)
 				{
 					archive.Write(item, archive.Context);
 				}

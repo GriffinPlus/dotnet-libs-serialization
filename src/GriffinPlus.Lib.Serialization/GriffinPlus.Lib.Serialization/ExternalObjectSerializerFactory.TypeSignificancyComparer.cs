@@ -74,6 +74,7 @@ namespace GriffinPlus.Lib.Serialization
 				// specified type-parameters (e.g., ICollection<KeyValuePair<TKey,TValue>>) check whether the extended interface (e.g., ICollection<KeyValuePair<TKey,TValue>>)
 				// is a specific version of y (e.g., ICollection<T>) by checking the generic type definitions
 				if (x.GetInterfaces().Any(t => t.IsGenericType && y.IsGenericType && t.GetGenericTypeDefinition() == y.GetGenericTypeDefinition())) return -1;
+				// ReSharper disable once ConvertIfStatementToReturnStatement
 				if (y.GetInterfaces().Any(t => t.IsGenericType && x.IsGenericType && t.GetGenericTypeDefinition() == x.GetGenericTypeDefinition())) return 1;
 
 				// no further preference
