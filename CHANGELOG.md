@@ -1,6 +1,22 @@
 # Changelog
 ---
 
+## Release v1.2.1
+
+### Bugfixes
+
+#### Fix deserialization of reused generic type definition metadata
+
+The serializer failed reconstructing type metadata of generic types with the same generic type definition, but different generic type arguments.
+
+### Other Changes
+
+#### Let `TypeInfo` class log using level `Trace` instead of `Debug`
+
+Log level `Debug'` is usually used to emit information that may be interesting for other developers than the implementer of the class. The messages are about assemblies that are loaded for inspection, nothing another developers should be concerned about. Nevertheless errors that occur while loading an assembly are logged using log level `Debug` to inform other developers that a certain assembly could not be inspected. This is an edge case, but it can happen.
+
+---
+
 ## Release v1.2.0
 
 ### Features
