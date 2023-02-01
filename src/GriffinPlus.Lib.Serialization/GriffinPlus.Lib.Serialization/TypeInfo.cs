@@ -167,7 +167,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					try
 					{
-						sLog.Write(LogLevel.Debug, "Loading assembly in application directory ({0})...", filename);
+						sLog.Write(LogLevel.Trace, "Loading assembly in application directory ({0})...", filename);
 						Assembly.LoadFrom(filename);
 					}
 					catch (Exception ex)
@@ -239,7 +239,7 @@ namespace GriffinPlus.Lib.Serialization
 			// load references of the assembly
 			foreach (var referencedAssemblyName in assembly.GetReferencedAssemblies())
 			{
-				sLog.Write(LogLevel.Debug, "Loading referenced assembly ({0})...", referencedAssemblyName);
+				sLog.Write(LogLevel.Trace, "Loading referenced assembly ({0})...", referencedAssemblyName);
 
 				try
 				{
