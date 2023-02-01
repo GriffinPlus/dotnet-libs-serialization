@@ -1122,6 +1122,43 @@ namespace GriffinPlus.Lib.Serialization
 
 			if (mDeserializedTypeIdTable.TryGetValue(id, out var item))
 			{
+				if (item.Type.IsGenericTypeDefinition)
+				{
+					// read number of type arguments following the type definition
+					// (0, if the effective type is really a type definition and not a constructed generic type)
+					int genericTypeArgumentCount = Leb128EncodingHelper.ReadInt32(stream);
+
+					if (genericTypeArgumentCount > 0)
+					{
+						var genericTypeParameters = item.Type.GetTypeInfo().GenericTypeParameters;
+						var genericTypeArgumentTypeItems = new TypeItem[genericTypeParameters.Length];
+						for (int i = 0; i < genericTypeParameters.Length; i++)
+						{
+							var genericTypeArgument = ReadTypeObject(stream, false, out string genericTypeArgumentSourceName);
+							genericTypeArgumentTypeItems[i] = new TypeItem(genericTypeArgumentSourceName, genericTypeArgument);
+						}
+
+						// compose the generic type
+						var composedType = item.Type.MakeGenericType(genericTypeArgumentTypeItems.Select(x => x.Type).ToArray());
+						item = new TypeItem(MakeGenericTypeName(item.Name, genericTypeArgumentTypeItems.Select(x => x.Name)), composedType);
+
+						// remember the determined name-to-type mapping
+						lock (sTypeTableLock)
+						{
+							if (!sTypeTable.ContainsKey(item.Name))
+							{
+								var copy = new Dictionary<string, Type>(sTypeTable) { { item.Name, item.Type } };
+								Thread.MemoryBarrier();
+								sTypeTable = copy;
+							}
+						}
+
+						// assign a type id if the serializer uses assembly and type ids
+						item = new TypeItem(item.Name, composedType);
+						mDeserializedTypeIdTable.Add(mNextDeserializedTypeId++, item);
+					}
+				}
+
 				mCurrentDeserializedType = item;
 			}
 			else
