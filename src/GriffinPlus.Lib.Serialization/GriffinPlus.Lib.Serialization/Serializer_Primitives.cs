@@ -110,7 +110,7 @@ namespace GriffinPlus.Lib.Serialization
 			Debug.Assert(valuesWritten * sizeof(int) == elementSize);
 			MemoryMarshal.Cast<int, byte>(temp).CopyTo(buffer.Slice(1));
 #else
-			#error Unhandled .NET framework
+#error Unhandled .NET framework
 #endif
 			writer.Advance(1 + elementSize);
 		}
@@ -148,7 +148,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			return new decimal(intBuffer);
 #else
-			#error Unhandled .NET framework
+#error Unhandled .NET framework
 #endif
 		}
 
@@ -715,7 +715,7 @@ namespace GriffinPlus.Lib.Serialization
 #elif NETSTANDARD2_1 || NET5_0_OR_GREATER
 			value.TryWriteBytes(buffer.Slice(1));
 #else
-			#error Unhandled .NET framework
+#error Unhandled .NET framework
 #endif
 			writer.Advance(1 + elementSize);
 		}
@@ -738,7 +738,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
 			return new Guid(TempBuffer_Buffer.AsSpan(0, 16));
 #else
-			#error Unhandled .NET framework
+#error Unhandled .NET framework
 #endif
 		}
 
@@ -850,7 +850,7 @@ namespace GriffinPlus.Lib.Serialization
 #elif NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
 			string s = new string(buffer);
 #else
-			#error Unhandled .NET framework
+#error Unhandled .NET framework
 #endif
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, s);
 			return s;

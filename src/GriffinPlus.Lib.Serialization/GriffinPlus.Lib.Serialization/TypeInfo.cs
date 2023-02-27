@@ -49,7 +49,7 @@ namespace GriffinPlus.Lib.Serialization
 #elif NETSTANDARD2_0 || NETSTANDARD2_1 || NET461
 		// module initializers are not supported.
 #else
-		#error Unhandled .NET framework
+#error Unhandled .NET framework
 #endif
 
 		/// <summary>

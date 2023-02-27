@@ -107,7 +107,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// read array elements
 			bool[] array = new bool[length];
-#if NET461 || NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET461
 			EnsureTemporaryByteBufferSize(size);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
@@ -257,7 +257,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// read array elements
 			char[] array = new char[length];
-#if NET461 || NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET461
 			EnsureTemporaryByteBufferSize(size);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
@@ -384,7 +384,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// read array elements
 			sbyte[] array = new sbyte[length];
-#if NET461 || NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET461
 			EnsureTemporaryByteBufferSize(size);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
@@ -553,7 +553,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// read array elements
 			short[] array = new short[length];
-#if NET461 || NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET461
 			EnsureTemporaryByteBufferSize(size);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
@@ -731,7 +731,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// read array elements
 			ushort[] array = new ushort[length];
-#if NET461 || NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET461
 			EnsureTemporaryByteBufferSize(size);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
@@ -909,7 +909,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// read array elements
 			int[] array = new int[length];
-#if NET461 || NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET461
 			EnsureTemporaryByteBufferSize(size);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
@@ -1087,7 +1087,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// read array elements
 			uint[] array = new uint[length];
-#if NET461 || NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET461
 			EnsureTemporaryByteBufferSize(size);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
@@ -1265,7 +1265,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// read array elements
 			long[] array = new long[length];
-#if NET461 || NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET461
 			EnsureTemporaryByteBufferSize(size);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
@@ -1443,7 +1443,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// read array elements
 			ulong[] array = new ulong[length];
-#if NET461 || NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET461
 			EnsureTemporaryByteBufferSize(size);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
@@ -1570,7 +1570,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// read array elements
 			float[] array = new float[length];
-#if NET461 || NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET461
 			EnsureTemporaryByteBufferSize(size);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
@@ -1647,7 +1647,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// read array elements
 			double[] array = new double[length];
-#if NET461 || NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET461
 			EnsureTemporaryByteBufferSize(size);
 			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
@@ -1743,7 +1743,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			// convert elements to decimal
 			decimal[] array = new decimal[length];
-#if NET461 || NETSTANDARD2_0 || NETSTANDARD2_1
+#if NETSTANDARD2_0 || NETSTANDARD2_1 || NET461
 			int index = 0;
 			for (int i = 0; i < length; i++)
 			{
