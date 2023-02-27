@@ -61,8 +61,8 @@ More specific builds for .NET Standard 2.1, .NET Framework 4.6.1 and .NET 5.0 mi
 
 Therefore it should work on the following platforms (or higher):
 - .NET Framework 4.6.1
-- .NET Core 2
-- .NET 5.0
+- .NET Core 2/3
+- .NET 5/6/7
 - Mono 5.4
 - Xamarin iOS 10.14
 - Xamarin Mac 3.8
@@ -70,9 +70,10 @@ Therefore it should work on the following platforms (or higher):
 - Universal Windows Platform (UWP) 10.0.16299
 
 The library is tested automatically on the following frameworks and operating systems:
-- .NET Framework 4.6.1 (Windows Server 2019)
-- .NET Core 3.1 (Windows Server 2019 and Ubuntu 20.04)
-- .NET 5.0  (Windows Server 2019 and Ubuntu 20.04)
+- .NET Framework 4.6.1: Tests with library built for .NET Framework 4.6.1 (Windows Server 2022)
+- .NET Core 2.2: Tests with library built for .NET Standard 2.0 (Windows Server 2022 and Ubuntu 22.04)
+- .NET Core 3.1: Tests with library built for .NET Standard 2.1 (Windows Server 2022 and Ubuntu 22.04)
+- .NET 5.0/6.0/7.0: Tests with library built for .NET 5.0 (Windows Server 2022 and Ubuntu 22.04)
 
 ## Usage
 
