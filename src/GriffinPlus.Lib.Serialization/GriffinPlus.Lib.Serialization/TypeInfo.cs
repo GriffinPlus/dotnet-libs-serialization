@@ -239,11 +239,11 @@ namespace GriffinPlus.Lib.Serialization
 			// load references of the assembly
 			foreach (AssemblyName referencedAssemblyName in assembly.GetReferencedAssemblies())
 			{
-				sLog.Write(LogLevel.Trace, "Loading referenced assembly ({0})...", referencedAssemblyName);
-
 				try
 				{
 					Assembly referencedAssembly = Assembly.Load(referencedAssemblyName);
+					if (processedAssemblies.Contains(referencedAssembly)) continue;
+					sLog.Write(LogLevel.Trace, "Referenced assembly ({0}) has been loaded successfully.", referencedAssemblyName);
 					LoadReferencedAssemblies(referencedAssembly, processedAssemblies);
 				}
 				catch (Exception ex)
