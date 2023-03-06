@@ -71,7 +71,7 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 
-		#region Initialization (Scanning for Custom Serializers)
+		#region Initialization
 
 		private static          bool                                              sInitializing                        = false;
 		private static          bool                                              sInitialized                         = false;
@@ -85,38 +85,31 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		public static void Init()
 		{
-			if (!sInitialized)
-			{
-				lock (sInitializationSync)
-				{
-					if (!sInitialized && !sInitializing)
-					{
-						sInitializing = true;
-						TypeInfo.Init();
-						InitBuiltinSerializers();
-						InitBuiltinDeserializers();
-						InitCustomSerializers();
-						PrintToLog(LogLevel.Debug);
-						sInitialized = true;
-						sInitializing = false;
-					}
-				}
-			}
-		}
+			if (sInitialized)
+				return;
 
-		/// <summary>
-		/// Triggers initializing the serializer asynchronously, if necessary.
-		/// </summary>
-		public static void TriggerInit()
-		{
-			if (!sInitialized && !sInitializing)
+			lock (sInitializationSync)
 			{
-				lock (sInitializationSync)
+				if (!sInitialized && !sInitializing)
 				{
-					if (!sInitialized && !sInitializing)
+					// initialize built-in serializers
+					sInitializing = true;
+					InitBuiltinSerializers();
+					InitBuiltinDeserializers();
+
+					// hook up the event that is raised when an assembly is loaded into the application domain
+					// and run the event handler for already loaded assemblies to find custom serializers
+					RuntimeMetadata.LoadAssembliesInApplicationBaseDirectory();
+					AppDomain.CurrentDomain.AssemblyLoad += (sender, args) => ScanAssemblyForCustomSerializers(args.LoadedAssembly);
+					foreach (Assembly assembly in RuntimeMetadata.AssembliesByFullName.Select(x => x.Value))
 					{
-						ThreadPool.QueueUserWorkItem(x => Init());
+						ScanAssemblyForCustomSerializers(assembly);
 					}
+
+					// print the detected custom serializers to the log
+					PrintToLog(LogLevel.Debug);
+					sInitialized = true;
+					sInitializing = false;
 				}
 			}
 		}
@@ -678,34 +671,29 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
-		/// Adds serializers and deserializers for types that are supported via custom serializers.
+		/// Scans the specified assembly for custom serializers.
 		/// </summary>
-		private static void InitCustomSerializers()
+		/// <param name="assembly">Assembly to scan.</param>
+		private static void ScanAssemblyForCustomSerializers(Assembly assembly)
 		{
-			sLog.Write(LogLevel.Debug, "Scanning for custom serializers...");
-
-			foreach (KeyValuePair<Assembly, IReadOnlyList<Type>> kvp in TypeInfo.TypesByAssembly)
+			// register types implementing an internal object serializer or
+			// types that represent an external object serializer for some other type
+			foreach (Type type in RuntimeMetadata.TypesByAssembly[assembly])
 			{
-				// scan assembly for custom serializers
-				foreach (Type type in kvp.Value)
+				try
 				{
-					try
-					{
-						TryToAddInternalObjectSerializer(type);
-						ExternalObjectSerializerFactory.TryRegisterExternalObjectSerializer(type);
-					}
-					catch (Exception ex)
-					{
-						sLog.Write(
-							LogLevel.Error,
-							"Inspecting type ({0}) failed. Exception:\n{1}",
-							type.AssemblyQualifiedName,
-							ex);
-					}
+					TryToAddInternalObjectSerializer(type);
+					ExternalObjectSerializerFactory.TryRegisterExternalObjectSerializer(type);
+				}
+				catch (Exception ex)
+				{
+					sLog.Write(
+						LogLevel.Debug,
+						"Inspecting type ({0}) failed. Exception:\n{1}",
+						type.AssemblyQualifiedName,
+						ex);
 				}
 			}
-
-			sLog.Write(LogLevel.Debug, "Completed scanning for custom serializers.");
 		}
 
 		/// <summary>
@@ -854,8 +842,8 @@ namespace GriffinPlus.Lib.Serialization
 
 		#region Type Serialization
 
-		private static          Dictionary<string, Type>    sTypeTable                        = new Dictionary<string, Type>();    // assembly-qualified type name => type
-		private static readonly object                      sTypeTableLock                    = new object();                      // lock protecting the type table
+		private static          Dictionary<string, Type>    sTypeTable_Exact                  = new Dictionary<string, Type>();    // assembly-qualified type name => type (exact type resolution)
+		private static          Dictionary<string, Type>    sTypeTable_Tolerant               = new Dictionary<string, Type>();    // assembly-qualified type name => type (tolerant type resolution)
 		private static          TypeKeyedDictionary<byte[]> sSerializedTypeSnippetsByType     = new TypeKeyedDictionary<byte[]>(); // type => UTF-8 encoded assembly-qualified type name
 		private static readonly object                      sSerializedTypeSnippetsByTypeLock = new object();                      // lock protecting the type snippet table
 		private static readonly Regex                       sExtractFullTypeNameRegex         = new Regex(@"^([^[\[,]*)(\[[, ]*\])?(?:, )(.*)", RegexOptions.Compiled);
@@ -1040,34 +1028,9 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < length) throw new SerializationException("Unexpected end of stream.");
 			string typename = Encoding.UTF8.GetString(array, 0, length);
 
-			// try to get the type name from the type cache
-			TypeItem typeItem;
-			// ReSharper disable once InconsistentlySynchronizedField
-			if (sTypeTable.TryGetValue(typename, out Type type))
-			{
-				// assign a type id
-				typeItem = new TypeItem(typename, type);
-				mDeserializedTypeIdTable.Add(mNextDeserializedTypeId++, typeItem);
-			}
-			else
-			{
-				type = ResolveType(typename);
-
-				// remember the determined name-to-type mapping
-				lock (sTypeTableLock)
-				{
-					if (!sTypeTable.ContainsKey(typename))
-					{
-						var copy = new Dictionary<string, Type>(sTypeTable) { { typename, type } };
-						Thread.MemoryBarrier();
-						sTypeTable = copy;
-					}
-				}
-
-				// assign a type id if the serializer uses type ids
-				typeItem = new TypeItem(typename, type);
-				mDeserializedTypeIdTable.Add(mNextDeserializedTypeId++, typeItem);
-			}
+			// assign a type id if the serializer uses type ids
+			var typeItem = new TypeItem(typename, ResolveType(typename));
+			mDeserializedTypeIdTable.Add(mNextDeserializedTypeId++, typeItem);
 
 			if (typeItem.Type.IsGenericTypeDefinition)
 			{
@@ -1088,17 +1051,6 @@ namespace GriffinPlus.Lib.Serialization
 					// compose the generic type
 					Type composedType = typeItem.Type.MakeGenericType(genericTypeArgumentTypeItems.Select(x => x.Type).ToArray());
 					typeItem = new TypeItem(MakeGenericTypeName(typeItem.Name, genericTypeArgumentTypeItems.Select(x => x.Name)), composedType);
-
-					// remember the determined name-to-type mapping
-					lock (sTypeTableLock)
-					{
-						if (!sTypeTable.ContainsKey(typeItem.Name))
-						{
-							var copy = new Dictionary<string, Type>(sTypeTable) { { typeItem.Name, typeItem.Type } };
-							Thread.MemoryBarrier();
-							sTypeTable = copy;
-						}
-					}
 
 					// assign a type id if the serializer uses assembly and type ids
 					typeItem = new TypeItem(typeItem.Name, composedType);
@@ -1141,17 +1093,6 @@ namespace GriffinPlus.Lib.Serialization
 						Type composedType = item.Type.MakeGenericType(genericTypeArgumentTypeItems.Select(x => x.Type).ToArray());
 						item = new TypeItem(MakeGenericTypeName(item.Name, genericTypeArgumentTypeItems.Select(x => x.Name)), composedType);
 
-						// remember the determined name-to-type mapping
-						lock (sTypeTableLock)
-						{
-							if (!sTypeTable.ContainsKey(item.Name))
-							{
-								var copy = new Dictionary<string, Type>(sTypeTable) { { item.Name, item.Type } };
-								Thread.MemoryBarrier();
-								sTypeTable = copy;
-							}
-						}
-
 						// assign a type id if the serializer uses assembly and type ids
 						item = new TypeItem(item.Name, composedType);
 						mDeserializedTypeIdTable.Add(mNextDeserializedTypeId++, item);
@@ -1181,12 +1122,21 @@ namespace GriffinPlus.Lib.Serialization
 		private Type ResolveType(string assemblyQualifiedTypeName)
 		{
 			// -----------------------------------------------------------------------------------------------------------------
+			// try to resolve the type by looking up its fully qualified name
+			// -----------------------------------------------------------------------------------------------------------------
+
+			Dictionary<string, Type> typeTable = UseTolerantDeserialization ? sTypeTable_Tolerant : sTypeTable_Exact;
+			if (typeTable.TryGetValue(assemblyQualifiedTypeName, out Type resolvedType))
+				return resolvedType;
+
+			// -----------------------------------------------------------------------------------------------------------------
 			// split assembly name and type name, condition array types
 			// -----------------------------------------------------------------------------------------------------------------
+
 			Match match = sExtractFullTypeNameRegex.Match(assemblyQualifiedTypeName);
 			if (!match.Success) throw new SerializationException($"Detected invalid type name ({assemblyQualifiedTypeName}) during deserialization.");
 			string originalAssemblyQualifiedTypeName = assemblyQualifiedTypeName;
-			var assemblyName = new AssemblyName(match.Groups[3].Value);
+			string assemblyFullName = match.Groups[3].Value;
 			string fullTypeName;
 			int arrayRank = 0;
 
@@ -1213,15 +1163,46 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			// -----------------------------------------------------------------------------------------------------------------
+			// try to resolve the assembly name exactly and load the assembly, if necessary
+			// (updates the properties provided by the RuntimeMetadata class)
+			// -----------------------------------------------------------------------------------------------------------------
+
+			if (!RuntimeMetadata.AssembliesByFullName.TryGetValue(assemblyFullName, out Assembly assembly))
+			{
+				try
+				{
+					assembly = Assembly.Load(assemblyFullName);
+					Debug.Assert(RuntimeMetadata.AssembliesByFullName.ContainsKey(assemblyFullName));
+				}
+				catch (Exception)
+				{
+					// swallow
+				}
+			}
+
+			// -----------------------------------------------------------------------------------------------------------------
+			// try to resolve the type within the assembly
+			// => exact match of assembly qualified type name
+			// -----------------------------------------------------------------------------------------------------------------
+
+			if (assembly != null)
+			{
+				resolvedType = RuntimeMetadata.TypesByAssembly[assembly].FirstOrDefault(x => x.FullName == fullTypeName);
+				if (resolvedType != null)
+				{
+					Debug.Assert(resolvedType.AssemblyQualifiedName != null, "resolvedType.AssemblyQualifiedName != null");
+					goto proceed;
+				}
+			}
+
+			// -----------------------------------------------------------------------------------------------------------------
 			// determine types with the same full name (independent of the assembly the type is declared in)
 			// -----------------------------------------------------------------------------------------------------------------
 
-			IReadOnlyList<Type> matchingTypes = TypeInfo
-				.TypesByFullName
-				.Where(x => x.Key == fullTypeName)
-				.Select(x => x.Value)
-				.FirstOrDefault();
+			// load all assemblies that are reachable via references
+			RuntimeMetadata.LoadAllAssemblies(true);
 
+			RuntimeMetadata.TypesByFullName.TryGetValue(fullTypeName, out IReadOnlyList<Type> matchingTypes);
 			if (matchingTypes == null)
 			{
 				string message = $"Resolving type ({assemblyQualifiedTypeName}) failed. There is no assembly containing a type with that name ({fullTypeName}).";
@@ -1230,30 +1211,12 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			// -----------------------------------------------------------------------------------------------------------------
-			// take the type with the assembly matching exactly, if possible 
-			// -----------------------------------------------------------------------------------------------------------------
-
-			sLog.Write(
-				LogLevel.Debug,
-				"Trying to resolve type ({0}) by its assembly qualified name...",
-				assemblyQualifiedTypeName);
-
-			Type[] resolvedTypes = matchingTypes.Where(x => x.Assembly.FullName == assemblyName.FullName).ToArray();
-			if (resolvedTypes.Length == 1) goto proceed;
-			if (resolvedTypes.Length > 1)
-			{
-				string message = $"Resolving type ({assemblyQualifiedTypeName}) failed. The full assembly name is ambiguous.";
-				sLog.Write(LogLevel.Debug, message);
-				throw new AmbiguousTypeResolutionException(
-					message,
-					assemblyQualifiedTypeName,
-					resolvedTypes);
-			}
-
-			// -----------------------------------------------------------------------------------------------------------------
+			// the type in the assembly matching exactly has been handled above, so there is no need to check this here again...
 			// fall back to the type in an assembly with the same simple assembly name
 			// (this does not take the version and the public key into account)
 			// -----------------------------------------------------------------------------------------------------------------
+
+			var assemblyName = new AssemblyName(assemblyFullName);
 
 			sLog.Write(
 				LogLevel.Debug,
@@ -1262,8 +1225,12 @@ namespace GriffinPlus.Lib.Serialization
 				fullTypeName,
 				assemblyName.Name);
 
-			resolvedTypes = matchingTypes.Where(x => x.Assembly.GetName().Name == assemblyName.Name).ToArray();
-			if (resolvedTypes.Length == 1) goto proceed;
+			Type[] resolvedTypes = matchingTypes.Where(x => x.Assembly.GetName().Name == assemblyName.Name).ToArray();
+			if (resolvedTypes.Length == 1)
+			{
+				resolvedType = resolvedTypes[0];
+				goto proceed;
+			}
 			if (resolvedTypes.Length > 1)
 			{
 				string message = $"Resolving type ({assemblyQualifiedTypeName}) failed. The simple assembly name is ambiguous.";
@@ -1285,7 +1252,11 @@ namespace GriffinPlus.Lib.Serialization
 				assemblyQualifiedTypeName);
 
 			resolvedTypes = matchingTypes.ToArray();
-			if (resolvedTypes.Length == 1) goto proceed;
+			if (resolvedTypes.Length == 1)
+			{
+				resolvedType = resolvedTypes[0];
+				goto proceed;
+			}
 			if (resolvedTypes.Length > 1)
 			{
 				string message = $"Resolving type ({assemblyQualifiedTypeName}) failed. There are multiple assemblies defining a type with that name ({fullTypeName}).";
@@ -1300,38 +1271,75 @@ namespace GriffinPlus.Lib.Serialization
 
 			proceed:
 
-			// at this point there should be exactly one resolved type
-			// (other cases have been covered above)
-			Debug.Assert(resolvedTypes.Length == 1);
+			Debug.Assert(resolvedType != null, nameof(resolvedType) + " != null");
 
-			// check whether the resolution was done exactly or tolerantly
-			Type resolvedType = resolvedTypes[0];
-			if (resolvedType.AssemblyQualifiedName == assemblyQualifiedTypeName)
-			{
-				sLog.Write(
-					LogLevel.Debug,
-					"The type ({0}) was resolved exactly.",
-					assemblyQualifiedTypeName);
-			}
-			else
-			{
-				sLog.Write(
-					LogLevel.Debug,
-					"The type ({0}) was resolved tolerantly to ({1})",
-					assemblyQualifiedTypeName,
-					resolvedType.AssemblyQualifiedName);
-
-				if (!UseTolerantDeserialization)
-				{
-					throw new SerializationException(
-						"The type ({0}) could be resolved, but tolerant deserialization is disabled and the type was not resolved exactly.",
-						assemblyQualifiedTypeName);
-				}
-			}
+			// determine whether the type has been resolved exactly
+			bool isResolvedExactly = resolvedType.AssemblyQualifiedName == assemblyQualifiedTypeName;
 
 			// reconstruct array type, if the type to lookup was an array
+			// ReSharper disable once ConvertIfStatementToSwitchStatement
 			if (arrayRank == 1) resolvedType = resolvedType.MakeArrayType();
 			else if (arrayRank > 1) resolvedType = resolvedType.MakeArrayType(arrayRank);
+
+			Debug.Assert(resolvedType != null, nameof(resolvedType) + " != null");
+			Debug.Assert(resolvedType.AssemblyQualifiedName != null, "resolvedType.AssemblyQualifiedName != null");
+
+			// store the resolved type
+			lock (sSync)
+			{
+				if (isResolvedExactly)
+				{
+					sLog.Write(
+						LogLevel.Debug,
+						"The type ({0}) was resolved exactly.",
+						assemblyQualifiedTypeName);
+
+					if (!sTypeTable_Exact.ContainsKey(resolvedType.AssemblyQualifiedName))
+					{
+						var typeTable_Exact = new Dictionary<string, Type>(sTypeTable_Exact)
+						{
+							{ resolvedType.AssemblyQualifiedName, resolvedType }
+						};
+						Thread.MemoryBarrier();
+						sTypeTable_Exact = typeTable_Exact;
+					}
+
+					if (!sTypeTable_Tolerant.ContainsKey(resolvedType.AssemblyQualifiedName))
+					{
+						var typeTable_Tolerant = new Dictionary<string, Type>(sTypeTable_Tolerant)
+						{
+							{ resolvedType.AssemblyQualifiedName, resolvedType }
+						};
+						Thread.MemoryBarrier();
+						sTypeTable_Tolerant = typeTable_Tolerant;
+					}
+				}
+				else
+				{
+					sLog.Write(
+						LogLevel.Debug,
+						"The type ({0}) was resolved tolerantly to ({1})",
+						assemblyQualifiedTypeName,
+						resolvedType.AssemblyQualifiedName);
+
+					if (!sTypeTable_Tolerant.ContainsKey(resolvedType.AssemblyQualifiedName))
+					{
+						var typeTable_Tolerant = new Dictionary<string, Type>(sTypeTable_Tolerant)
+						{
+							{ resolvedType.AssemblyQualifiedName, resolvedType }
+						};
+						Thread.MemoryBarrier();
+						sTypeTable_Tolerant = typeTable_Tolerant;
+					}
+
+					if (!UseTolerantDeserialization)
+					{
+						throw new SerializationException(
+							"The type ({0}) could be resolved, but tolerant deserialization is disabled and the type was not resolved exactly.",
+							assemblyQualifiedTypeName);
+					}
+				}
+			}
 
 			return resolvedType;
 		}
@@ -1820,7 +1828,7 @@ namespace GriffinPlus.Lib.Serialization
 					serializer,
 					writer,
 					obj,
-					context) =>
+					_) =>
 				{
 					serializer.WriteTypeMetadata(writer, type);
 					Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
@@ -1837,7 +1845,7 @@ namespace GriffinPlus.Lib.Serialization
 					serializer,
 					writer,
 					obj,
-					context) =>
+					_) =>
 				{
 					serializer.WriteTypeMetadata(writer, type);
 					Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
@@ -1854,7 +1862,7 @@ namespace GriffinPlus.Lib.Serialization
 					serializer,
 					writer,
 					obj,
-					context) =>
+					_) =>
 				{
 					serializer.WriteTypeMetadata(writer, type);
 					Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
@@ -2096,32 +2104,9 @@ namespace GriffinPlus.Lib.Serialization
 				if (bytesRead < length) throw new SerializationException("Unexpected end of stream.");
 				string typename = Encoding.UTF8.GetString(array, 0, length);
 
-				// try to get the type name from the type cache
-				if (sTypeTable.TryGetValue(typename, out Type type))
-				{
-					// assign a type id
-					typeItem = new TypeItem(typename, type);
-					mDeserializedTypeIdTable.Add(mNextDeserializedTypeId++, typeItem);
-				}
-				else
-				{
-					type = ResolveType(typename);
-
-					// remember the determined name-to-type mapping
-					lock (sTypeTableLock)
-					{
-						if (!sTypeTable.ContainsKey(typename))
-						{
-							var copy = new Dictionary<string, Type>(sTypeTable) { { typename, type } };
-							Thread.MemoryBarrier();
-							sTypeTable = copy;
-						}
-					}
-
-					// assign a type id if the serializer uses assembly and type ids
-					typeItem = new TypeItem(typename, type);
-					mDeserializedTypeIdTable.Add(mNextDeserializedTypeId++, typeItem);
-				}
+				// assign a type id if the serializer uses type ids
+				typeItem = new TypeItem(typename, ResolveType(typename));
+				mDeserializedTypeIdTable.Add(mNextDeserializedTypeId++, typeItem);
 			}
 			else
 			{
@@ -2149,17 +2134,6 @@ namespace GriffinPlus.Lib.Serialization
 					// compose the generic type
 					Type composedType = typeItem.Type.MakeGenericType(genericTypeArgumentTypeItems.Select(x => x.Type).ToArray());
 					typeItem = new TypeItem(MakeGenericTypeName(typeItem.Name, genericTypeArgumentTypeItems.Select(x => x.Name)), composedType);
-
-					// remember the determined name-to-type mapping
-					lock (sTypeTableLock)
-					{
-						if (!sTypeTable.ContainsKey(typeItem.Name))
-						{
-							var copy = new Dictionary<string, Type>(sTypeTable) { { typeItem.Name, typeItem.Type } };
-							Thread.MemoryBarrier();
-							sTypeTable = copy;
-						}
-					}
 
 					// assign a type id if the serializer uses assembly and type ids
 					typeItem = new TypeItem(typeItem.Name, composedType);
