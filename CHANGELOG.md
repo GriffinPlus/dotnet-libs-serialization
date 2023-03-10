@@ -1,6 +1,57 @@
 # Changelog
 ---
 
+## Release v2.0.0
+
+### Breaking Changes
+
+#### Remove the `TypeInfo` class from the `GriffinPlus.Lib.Serialization` package
+
+The `TypeInfo` class has been replaced with the optimized `RuntimeMetadata` class from the `GriffinPlus.Lib.Common` package supporting .NET Framework 4+, .NET Core 2/3 and .NET 5+ properly.
+
+On .NET Framework 4+ the following assemblies are scanned for custom serializers:
+- Assemblies in the Global Assembly Cache (GAC)
+- Assemblies in the application's base directory or a private bin path below the base directory
+- Assemblies that have been generated dynamically
+
+On .NET Core 2/3 and .NET 5+ the following assemblies are scanned for custom serializers:
+- Assemblies that are loaded into the default assembly load context
+- Assemblies that have been generated dynamically
+
+### Optimizations
+
+#### Optimize type resolution process
+
+At startup only assemblies in the application's base directory are scanned for custom serializers now. This speeds up the startup of the application as only application specific assemblies are scanned for custom serializers. In the rare case that assemblies outside the application's base directory contain custom serializers these assemblies are scanned on demand when objects of types in these assemblies are deserialized.
+
+### Bugfixes
+
+#### Fix exact type resolution
+
+The serializer cached a tolerantly resolved type and used the cache to resolve the type even in cases where exact type resolution was requested.
+
+#### Avoid scanning assemblies for serializers repeatedly
+
+The serializer scanned referenced assemblies multiple times slowing down the startup unnecessarily.
+
+### Other Changes
+
+#### Update dependency on NuGet packages 
+
+- Updated `GriffinPlus.Lib.Common` package to version 3.1.1
+- Updated `GriffinPlus.Lib.FastActivator` package to version 1.1.1
+
+#### Add support for testing with other .NET frameworks
+
+- Tests on `net461` tests the library built for `net461`
+- Tests on `netcoreapp2.2` tests the library built for `netstandard2.0`
+- Tests on `netcoreapp3.1` tests the library built for `netstandard2.1`
+- Tests on `net5.0` tests the library built for `net5.0`
+- Tests on `net6.0` tests the library built for `net5.0`
+- Tests on `net7.0` tests the library built for `net5.0`
+
+---
+
 ## Release v1.2.1
 
 ### Bugfixes
