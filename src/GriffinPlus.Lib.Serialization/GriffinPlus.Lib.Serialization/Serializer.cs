@@ -115,6 +115,23 @@ namespace GriffinPlus.Lib.Serialization
 		}
 
 		/// <summary>
+		/// Triggers initializing the serializer asynchronously, if necessary.
+		/// </summary>
+		public static void TriggerInit()
+		{
+			if (!sInitialized && !sInitializing)
+			{
+				lock (sInitializationSync)
+				{
+					if (!sInitialized && !sInitializing)
+					{
+						ThreadPool.QueueUserWorkItem(x => Init());
+					}
+				}
+			}
+		}
+
+		/// <summary>
 		/// Adds serializers for types that are supported out of the box.
 		/// </summary>
 		private static void InitBuiltinSerializers()
