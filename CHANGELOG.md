@@ -1,6 +1,42 @@
 # Changelog
 ---
 
+## Release v2.0.3
+
+### Other Changes
+
+#### Update dependency on NuGet packages 
+
+- Updated `GriffinPlus.Lib.Common` package to version 3.1.4
+
+---
+
+## Release v2.0.2
+
+### Other Changes
+
+#### Update dependency on NuGet packages 
+
+- Updated `GriffinPlus.Lib.Common` package to version 3.1.3
+
+---
+
+## Release v2.0.1
+
+### Bugfixes
+
+#### Add initializing asynchronously
+
+The `Serializer` class can be initialized asynchronously using the `TriggerInit()` method again now. This method has been removed accidently with Release 2.0.0. It allows applications to perform the intialization in the background while starting up without significantly increasing its own startup time.
+
+### Other Changes
+
+#### Update dependency on NuGet packages 
+
+- Updated `GriffinPlus.Lib.Common` package to version 3.1.2
+
+---
+
 ## Release v2.0.0
 
 ### Breaking Changes
