@@ -1,6 +1,16 @@
 # Changelog
 ---
 
+## Release v2.0.4
+
+### Other Changes
+
+#### Update dependency on NuGet packages 
+
+- Updated `GriffinPlus.Lib.Common` package to version 3.1.5
+
+---
+
 ## Release v2.0.3
 
 ### Other Changes
