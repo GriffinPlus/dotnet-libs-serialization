@@ -2,6 +2,7 @@
 
 	<PropertyGroup>
 		<TargetFrameworks>netstandard2.0; netstandard2.1; net461; net5.0</TargetFrameworks>
+		<CheckEolTargetFramework>false</CheckEolTargetFramework>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
