@@ -36,6 +36,12 @@ The *Griffin+ Serialization Library* provides a serializer for almost all .NET o
   - Type objects: `System.Type`
   - GUIDs: `System.Guid`
   - Custom Buffers (supports streams and pointers)
+  - Types provided by the `GriffinPlus.Lib.Common` package
+    - `GriffinPlus.Lib.Imaging.BitmapPalette`
+    - `GriffinPlus.Lib.Imaging.Color`
+    - `GriffinPlus.Lib.Imaging.NativeBitmap`
+    - `GriffinPlus.Lib.Imaging.PixelFormat`
+    - `GriffinPlus.Lib.NativeBuffer`
   - Generic collections shipped with the .NET Framework
     - `System.Collection.Generic.Dictionary<TKey,TValue>`
     - `System.Collection.Generic.HashSet<T>`
