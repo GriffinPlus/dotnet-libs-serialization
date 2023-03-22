@@ -1,6 +1,26 @@
 # Changelog
 ---
 
+## Release v2.0.5
+
+### Other Changes
+
+#### Add custom serializers
+
+Added external object serializers for the following types in the `GriffinPlus.Lib.Common` package:
+
+- `GriffinPlus.Lib.Imaging.BitmapPalette`
+- `GriffinPlus.Lib.Imaging.Color`
+- `GriffinPlus.Lib.Imaging.NativeBitmap`
+- `GriffinPlus.Lib.Imaging.PixelFormat`
+- `GriffinPlus.Lib.NativeBuffer`
+
+#### Update dependency on NuGet packages 
+
+- Updated `GriffinPlus.Lib.Common` package to version 3.1.7
+
+---
+
 ## Release v2.0.4
 
 ### Other Changes
