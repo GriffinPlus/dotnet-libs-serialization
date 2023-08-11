@@ -21,6 +21,8 @@ using GriffinPlus.Lib.Collections;
 using GriffinPlus.Lib.Io;
 using GriffinPlus.Lib.Logging;
 
+#pragma warning disable CS0618
+
 // ReSharper disable ForCanBeConvertedToForeach
 // ReSharper disable InconsistentlySynchronizedField
 
@@ -1465,6 +1467,33 @@ namespace GriffinPlus.Lib.Serialization
 		private static          TypeKeyedDictionary<IosSerializeDelegate> sIosSerializeCallers              = new TypeKeyedDictionary<IosSerializeDelegate>();
 
 		/// <summary>
+		/// Serializes the specified object to a stream.
+		/// </summary>
+		/// <typeparam name="T">Type to serialize.</typeparam>
+		/// <param name="stream">Stream to serialize the object to.</param>
+		/// <param name="obj">Object to serialize.</param>
+		/// <param name="context">Context object to pass to the serializer (may be <c>null</c>).</param>
+		/// <param name="optimization">Optimization to apply when serializing.</param>
+		public static void Serialize<T>(
+			Stream                    stream,
+			T                         obj,
+			object                    context,
+			SerializationOptimization optimization)
+		{
+			Serializer serializer = null;
+
+			try
+			{
+				serializer = GetPooledSerializer(true, optimization);
+				serializer.Serialize(stream, obj, context);
+			}
+			finally
+			{
+				ReturnSerializerToPool(serializer);
+			}
+		}
+
+		/// <summary>
 		/// Serializes an object to a stream.
 		/// </summary>
 		/// <param name="stream">Stream to serialize the object to.</param>
@@ -1472,6 +1501,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="context">Context object to pass to the serializer of the specified object.</param>
 		/// <exception cref="VersionNotSupportedException">The serializer version of one of the objects in the specified object graph is not supported.</exception>
 		/// <exception cref="SerializationException">Serializing the object failed.</exception>
+		[Obsolete("Consider using the static Serialize() method instead to reduce the number of serializer instances.")]
 		public void Serialize(Stream stream, object obj, object context = null)
 		{
 			try
@@ -1993,6 +2023,29 @@ namespace GriffinPlus.Lib.Serialization
 		public bool IsDeserializingLittleEndian { get; private set; } = false;
 
 		/// <summary>
+		/// Deserializes an object from the stream.
+		/// </summary>
+		/// <typeparam name="T">Type to deserialize.</typeparam>
+		/// <param name="stream">Stream to deserialize the object from.</param>
+		/// <param name="context">Context object to pass to the serializer.</param>
+		/// <param name="useTolerantDeserialization"><c>true</c> to enable tolerant deserialization; otherwise <c>false</c>.</param>
+		/// <returns>The deserialized object.</returns>
+		public static T Deserialize<T>(Stream stream, object context, bool useTolerantDeserialization)
+		{
+			Serializer serializer = null;
+
+			try
+			{
+				serializer = GetPooledSerializer(useTolerantDeserialization, SerializationOptimization.Speed);
+				return (T)serializer.Deserialize(stream, context);
+			}
+			finally
+			{
+				ReturnSerializerToPool(serializer);
+			}
+		}
+
+		/// <summary>
 		/// Deserializes an object from a stream.
 		/// </summary>
 		/// <param name="stream">Stream to deserialize the object from.</param>
@@ -2003,6 +2056,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// Deserializing the object failed (the exception object contains a message describing the reason why
 		/// deserialization has failed).
 		/// </exception>
+		[Obsolete("Consider using the static Deserialize() method instead to reduce the number of serializer instances.")]
 		public object Deserialize(Stream stream, object context = null)
 		{
 			try

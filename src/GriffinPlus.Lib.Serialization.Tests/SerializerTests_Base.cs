@@ -9,6 +9,7 @@ using System.IO;
 
 using Xunit;
 
+#pragma warning disable CS0618
 #pragma warning disable xUnit1026 // Theory methods should use all of their parameters
 
 namespace GriffinPlus.Lib.Serialization.Tests
@@ -810,7 +811,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		public void SerializeAndDeserialize_Type(string description, Type type, object obj)
 		{
 			object copy = SerializeAndDeserializeObject(obj);
-			Assert.IsType(type, obj);
+			Assert.IsAssignableFrom(type, obj); // may also be System.RuntimeType deriving from System.Type on .NET Framework
 			Assert.Equal(obj, copy);
 		}
 

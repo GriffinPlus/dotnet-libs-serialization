@@ -123,6 +123,13 @@ The property `SerializationOptimization` allows to influence whether the seriali
 
 The property `UseTolerantDeserialization` determines whether tolerant deserialization is in place. Tolerant deserialization allows to deserialize objects that were serialized on a machine with a different .NET framework. The serializer will try to exactly map to existing types when deserializing. If this fails, it will try to find the type in some other assembly. This enables the serializer to handle type migrations. Different .NET framework versions define even primitive types in different assemblies, so deserializing on some other .NET version would fail, if done without tolerance. As a side effect you can move your own types between assemblies as well. The full type name (namespace + type name) must not change. The default is `false` to avoid unexpected behavior.
 
+Alternatively the `Serializer` class provides the following static methods to serialize and deserialize data using the internal serializer pool. This reduces the pressure on the garbage collection as serializer instances are reused:
+
+```csharp
+public static void Serialize<T>(Stream stream, T obj, object context, SerializationOptimization optimization);
+public static T Deserialize<T>(Stream stream, object context, bool useTolerantDeserialization);
+```
+
 #### Step 3a: Add Serialization Support to Own Types (Internal Object Serializer)
 
 Very basic example of a class with an internal object serializer illustrating the parts that are relevant for serialization.
