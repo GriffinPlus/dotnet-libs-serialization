@@ -1,6 +1,20 @@
 # Changelog
 ---
 
+## Release v2.1.0
+
+### Features
+
+#### Serialization/Deserialization using pooled serializers
+
+The `Serializer` class now provides the following static methods to serialize to and deserialize from a stream using pooled serializer instances to reduce pressure on the garbage collection in applications that make heavy use of serializers:
+
+```csharp
+public static void Serialize<T>(Stream stream, T obj, object context, SerializationOptimization optimization);
+public static T Deserialize<T>(Stream stream, object context, bool useTolerantDeserialization);
+```
+
+---
 ## Release v2.0.5
 
 ### Other Changes
