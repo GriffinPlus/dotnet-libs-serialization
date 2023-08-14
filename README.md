@@ -126,8 +126,8 @@ The property `UseTolerantDeserialization` determines whether tolerant deserializ
 Alternatively the `Serializer` class provides the following static methods to serialize and deserialize data using the internal serializer pool. This reduces the pressure on the garbage collection as serializer instances are reused:
 
 ```csharp
-public static void Serialize<T>(Stream stream, T obj, object context, SerializationOptimization optimization);
-public static T Deserialize<T>(Stream stream, object context, bool useTolerantDeserialization);
+public static void Serialize(Stream stream, T obj, object context, SerializationOptimization optimization);
+public static object Deserialize(Stream stream, object context, bool useTolerantDeserialization);
 ```
 
 #### Step 3a: Add Serialization Support to Own Types (Internal Object Serializer)

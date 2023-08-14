@@ -1,6 +1,20 @@
 # Changelog
 ---
 
+## Release v2.1.1
+
+### Other Changes
+
+#### Remove generic type parameter from serialization/deserialization methods using pooled serializers
+
+The generic type parameters do not offer any benefit, so the object to serialize, respectively the deserialized object, is `System.Object` now:
+
+```csharp
+public static void Serialize(Stream stream, object obj, object context, SerializationOptimization optimization);
+public static object Deserialize(Stream stream, object context, bool useTolerantDeserialization);
+```
+
+---
 ## Release v2.1.0
 
 ### Features

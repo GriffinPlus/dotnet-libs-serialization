@@ -1469,14 +1469,13 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Serializes the specified object to a stream.
 		/// </summary>
-		/// <typeparam name="T">Type to serialize.</typeparam>
 		/// <param name="stream">Stream to serialize the object to.</param>
 		/// <param name="obj">Object to serialize.</param>
 		/// <param name="context">Context object to pass to the serializer (may be <c>null</c>).</param>
 		/// <param name="optimization">Optimization to apply when serializing.</param>
-		public static void Serialize<T>(
+		public static void Serialize(
 			Stream                    stream,
-			T                         obj,
+			object                    obj,
 			object                    context,
 			SerializationOptimization optimization)
 		{
@@ -2025,19 +2024,18 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Deserializes an object from the stream.
 		/// </summary>
-		/// <typeparam name="T">Type to deserialize.</typeparam>
 		/// <param name="stream">Stream to deserialize the object from.</param>
 		/// <param name="context">Context object to pass to the serializer.</param>
 		/// <param name="useTolerantDeserialization"><c>true</c> to enable tolerant deserialization; otherwise <c>false</c>.</param>
 		/// <returns>The deserialized object.</returns>
-		public static T Deserialize<T>(Stream stream, object context, bool useTolerantDeserialization)
+		public static object Deserialize(Stream stream, object context, bool useTolerantDeserialization)
 		{
 			Serializer serializer = null;
 
 			try
 			{
 				serializer = GetPooledSerializer(useTolerantDeserialization, SerializationOptimization.Speed);
-				return (T)serializer.Deserialize(stream, context);
+				return serializer.Deserialize(stream, context);
 			}
 			finally
 			{
