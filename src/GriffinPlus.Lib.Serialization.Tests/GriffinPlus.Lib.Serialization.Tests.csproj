@@ -18,6 +18,7 @@
 		<OmitDocumentationFile>true</OmitDocumentationFile>
 		<RootNamespace>UnitTests</RootNamespace>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<NoWarn>$(NoWarn);NU1902;NU1903</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
