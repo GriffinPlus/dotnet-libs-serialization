@@ -4,7 +4,9 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using System;
+#if !NET8_0_OR_GREATER
 using System.Runtime.Serialization;
+#endif
 
 namespace GriffinPlus.Lib.Serialization
 {
@@ -12,7 +14,9 @@ namespace GriffinPlus.Lib.Serialization
 	/// <summary>
 	/// Exception that is thrown when the serializer cannot resolve a type unambiguously during deserialization.
 	/// </summary>
+#if !NET8_0_OR_GREATER
 	[Serializable]
+#endif
 	public class AmbiguousTypeResolutionException : TypeResolutionException
 	{
 		/// <summary>
@@ -27,6 +31,7 @@ namespace GriffinPlus.Lib.Serialization
 			ResolvedTypes = resolvedTypes;
 		}
 
+#if !NET8_0_OR_GREATER
 		/// <summary>
 		/// Initializes a new instance of the <see cref="AmbiguousTypeResolutionException"/> class (used during deserialization).
 		/// </summary>
@@ -48,6 +53,7 @@ namespace GriffinPlus.Lib.Serialization
 			base.GetObjectData(info, context);
 			info.AddValue("ResolvedTypes", ResolvedTypes);
 		}
+#endif
 
 		/// <summary>
 		/// Gets the types the <see cref="TypeResolutionException.TypeNameToResolve"/> was unambiguously resolved to.

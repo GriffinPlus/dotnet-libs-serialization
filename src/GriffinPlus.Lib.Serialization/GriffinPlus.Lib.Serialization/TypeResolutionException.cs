@@ -3,8 +3,10 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#if !NET8_0_OR_GREATER
 using System;
 using System.Runtime.Serialization;
+#endif
 
 namespace GriffinPlus.Lib.Serialization
 {
@@ -12,7 +14,9 @@ namespace GriffinPlus.Lib.Serialization
 	/// <summary>
 	/// Exception that is thrown when the serializer cannot resolve a type during deserialization.
 	/// </summary>
+#if !NET8_0_OR_GREATER
 	[Serializable]
+#endif
 	public class TypeResolutionException : SerializationException
 	{
 		/// <summary>
@@ -26,6 +30,7 @@ namespace GriffinPlus.Lib.Serialization
 			TypeNameToResolve = typeNameToResolve;
 		}
 
+#if !NET8_0_OR_GREATER
 		/// <summary>
 		/// Initializes a new instance of the <see cref="TypeResolutionException"/> class (used during deserialization).
 		/// </summary>
@@ -47,6 +52,7 @@ namespace GriffinPlus.Lib.Serialization
 			base.GetObjectData(info, context);
 			info.AddValue("TypeNameToResolve", TypeNameToResolve);
 		}
+#endif
 
 		/// <summary>
 		/// Gets the name of the type that that failed resolution.

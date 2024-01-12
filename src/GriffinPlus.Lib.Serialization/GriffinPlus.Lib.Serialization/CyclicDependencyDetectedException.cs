@@ -3,8 +3,10 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#if !NET8_0_OR_GREATER
 using System;
 using System.Runtime.Serialization;
+#endif
 
 namespace GriffinPlus.Lib.Serialization
 {
@@ -12,7 +14,9 @@ namespace GriffinPlus.Lib.Serialization
 	/// <summary>
 	/// Exception that is thrown when the serializer detects a cyclic dependency when serializing.
 	/// </summary>
+#if !NET8_0_OR_GREATER
 	[Serializable]
+#endif
 	public class CyclicDependencyDetectedException : SerializationException
 	{
 		/// <summary>
@@ -22,6 +26,7 @@ namespace GriffinPlus.Lib.Serialization
 		public CyclicDependencyDetectedException(string message) :
 			base(message) { }
 
+#if !NET8_0_OR_GREATER
 		/// <summary>
 		/// Initializes a new instance of the <see cref="CyclicDependencyDetectedException"/> class (used during deserialization).
 		/// </summary>
@@ -29,6 +34,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="context">The <see cref="StreamingContext"/> that contains contextual information about the source or destination.</param>
 		protected CyclicDependencyDetectedException(SerializationInfo info, StreamingContext context) :
 			base(info, context) { }
+#endif
 	}
 
 }

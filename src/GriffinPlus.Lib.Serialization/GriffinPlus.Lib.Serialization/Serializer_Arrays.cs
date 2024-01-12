@@ -233,7 +233,11 @@ namespace GriffinPlus.Lib.Serialization
 					{
 						// use native encoding
 						Span<byte> valueBuffer = writer.GetSpan(elementSize);
+#if NET8_0_OR_GREATER
+						MemoryMarshal.Write(valueBuffer, in value);
+#else
 						MemoryMarshal.Write(valueBuffer, ref value);
+#endif
 						writer.Advance(elementSize);
 					}
 				}
@@ -529,7 +533,11 @@ namespace GriffinPlus.Lib.Serialization
 					{
 						// use native encoding
 						Span<byte> valueBuffer = writer.GetSpan(elementSize);
+#if NET8_0_OR_GREATER
+						MemoryMarshal.Write(valueBuffer, in value);
+#else
 						MemoryMarshal.Write(valueBuffer, ref value);
+#endif
 						writer.Advance(elementSize);
 					}
 				}
@@ -707,7 +715,11 @@ namespace GriffinPlus.Lib.Serialization
 					{
 						// use native encoding
 						Span<byte> valueBuffer = writer.GetSpan(elementSize);
+#if NET8_0_OR_GREATER
+						MemoryMarshal.Write(valueBuffer, in value);
+#else
 						MemoryMarshal.Write(valueBuffer, ref value);
+#endif
 						writer.Advance(elementSize);
 					}
 				}
@@ -885,7 +897,11 @@ namespace GriffinPlus.Lib.Serialization
 					{
 						// use native encoding
 						Span<byte> valueBuffer = writer.GetSpan(elementSize);
+#if NET8_0_OR_GREATER
+						MemoryMarshal.Write(valueBuffer, in value);
+#else
 						MemoryMarshal.Write(valueBuffer, ref value);
+#endif
 						writer.Advance(elementSize);
 					}
 				}
@@ -1063,7 +1079,11 @@ namespace GriffinPlus.Lib.Serialization
 					{
 						// use native encoding
 						Span<byte> valueBuffer = writer.GetSpan(elementSize);
+#if NET8_0_OR_GREATER
+						MemoryMarshal.Write(valueBuffer, in value);
+#else
 						MemoryMarshal.Write(valueBuffer, ref value);
+#endif
 						writer.Advance(elementSize);
 					}
 				}
@@ -1241,7 +1261,11 @@ namespace GriffinPlus.Lib.Serialization
 					{
 						// use native encoding
 						Span<byte> valueBuffer = writer.GetSpan(elementSize);
+#if NET8_0_OR_GREATER
+						MemoryMarshal.Write(valueBuffer, in value);
+#else
 						MemoryMarshal.Write(valueBuffer, ref value);
+#endif
 						writer.Advance(elementSize);
 					}
 				}
@@ -1419,7 +1443,11 @@ namespace GriffinPlus.Lib.Serialization
 					{
 						// use native encoding
 						Span<byte> valueBuffer = writer.GetSpan(elementSize);
+#if NET8_0_OR_GREATER
+						MemoryMarshal.Write(valueBuffer, in value);
+#else
 						MemoryMarshal.Write(valueBuffer, ref value);
+#endif
 						writer.Advance(elementSize);
 					}
 				}
@@ -2154,7 +2182,11 @@ namespace GriffinPlus.Lib.Serialization
 						{
 							// use native encoding
 							Span<byte> valueBuffer = writer.GetSpan(elementSize);
+#if NET8_0_OR_GREATER
+							MemoryMarshal.Write(valueBuffer, in value);
+#else
 							MemoryMarshal.Write(valueBuffer, ref value);
+#endif
 							writer.Advance(elementSize);
 						}
 					}
@@ -2590,7 +2622,11 @@ namespace GriffinPlus.Lib.Serialization
 						{
 							// use native encoding
 							Span<byte> valueBuffer = writer.GetSpan(elementSize);
+#if NET8_0_OR_GREATER
+							MemoryMarshal.Write(valueBuffer, in value);
+#else
 							MemoryMarshal.Write(valueBuffer, ref value);
+#endif
 							writer.Advance(elementSize);
 						}
 					}
@@ -2832,7 +2868,11 @@ namespace GriffinPlus.Lib.Serialization
 						{
 							// use native encoding
 							Span<byte> valueBuffer = writer.GetSpan(elementSize);
+#if NET8_0_OR_GREATER
+							MemoryMarshal.Write(valueBuffer, in value);
+#else
 							MemoryMarshal.Write(valueBuffer, ref value);
+#endif
 							writer.Advance(elementSize);
 						}
 					}
@@ -3074,7 +3114,11 @@ namespace GriffinPlus.Lib.Serialization
 						{
 							// use native encoding
 							Span<byte> valueBuffer = writer.GetSpan(elementSize);
+#if NET8_0_OR_GREATER
+							MemoryMarshal.Write(valueBuffer, in value);
+#else
 							MemoryMarshal.Write(valueBuffer, ref value);
+#endif
 							writer.Advance(elementSize);
 						}
 					}
@@ -3316,7 +3360,11 @@ namespace GriffinPlus.Lib.Serialization
 						{
 							// use native encoding
 							Span<byte> valueBuffer = writer.GetSpan(elementSize);
+#if NET8_0_OR_GREATER
+							MemoryMarshal.Write(valueBuffer, in value);
+#else
 							MemoryMarshal.Write(valueBuffer, ref value);
+#endif
 							writer.Advance(elementSize);
 						}
 					}
@@ -3558,7 +3606,11 @@ namespace GriffinPlus.Lib.Serialization
 						{
 							// use native encoding
 							Span<byte> valueBuffer = writer.GetSpan(elementSize);
+#if NET8_0_OR_GREATER
+							MemoryMarshal.Write(valueBuffer, in value);
+#else
 							MemoryMarshal.Write(valueBuffer, ref value);
+#endif
 							writer.Advance(elementSize);
 						}
 					}
@@ -3800,7 +3852,11 @@ namespace GriffinPlus.Lib.Serialization
 						{
 							// use native encoding
 							Span<byte> valueBuffer = writer.GetSpan(elementSize);
+#if NET8_0_OR_GREATER
+							MemoryMarshal.Write(valueBuffer, in value);
+#else
 							MemoryMarshal.Write(valueBuffer, ref value);
+#endif
 							writer.Advance(elementSize);
 						}
 					}

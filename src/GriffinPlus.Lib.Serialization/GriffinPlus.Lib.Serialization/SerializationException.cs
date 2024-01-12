@@ -4,7 +4,9 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using System;
+#if !NET8_0_OR_GREATER
 using System.Runtime.Serialization;
+#endif
 
 namespace GriffinPlus.Lib.Serialization
 {
@@ -12,7 +14,9 @@ namespace GriffinPlus.Lib.Serialization
 	/// <summary>
 	/// Exception that is thrown when something unexpected occurs while serializing or deserializing an object.
 	/// </summary>
+#if !NET8_0_OR_GREATER
 	[Serializable]
+#endif
 	public class SerializationException : Exception
 	{
 		/// <summary>
@@ -38,12 +42,14 @@ namespace GriffinPlus.Lib.Serialization
 		public SerializationException(string message, Exception innerException) :
 			base(message, innerException) { }
 
+#if !NET8_0_OR_GREATER
 		/// <summary>
 		/// Initializes a new instance of the <see cref="SerializationException"/> class (used during deserialization).
 		/// </summary>
 		/// <param name="info">The <see cref="SerializationInfo"/> that receives the serialized object data about the object.</param>
 		/// <param name="context">The <see cref="StreamingContext"/> that contains contextual information about the source or destination.</param>
 		protected SerializationException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+#endif
 	}
 
 }

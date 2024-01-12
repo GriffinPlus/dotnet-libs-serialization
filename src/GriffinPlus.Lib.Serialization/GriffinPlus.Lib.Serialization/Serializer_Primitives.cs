@@ -47,7 +47,11 @@ namespace GriffinPlus.Lib.Serialization
 				// use native encoding
 				Span<byte> buffer = writer.GetSpan(3);
 				buffer[0] = (byte)PayloadType.Char_Native;
+#if NET8_0_OR_GREATER
+				MemoryMarshal.Write(buffer.Slice(1), in value);
+#else
 				MemoryMarshal.Write(buffer.Slice(1), ref value);
+#endif
 				writer.Advance(3);
 			}
 			else
@@ -137,7 +141,7 @@ namespace GriffinPlus.Lib.Serialization
 
 			return new decimal(TempBuffer_Int32);
 #elif NET5_0_OR_GREATER
-			var intBuffer = MemoryMarshal.Cast<byte, int>(TempBuffer_Buffer.AsSpan(0, elementSize));
+			Span<int> intBuffer = MemoryMarshal.Cast<byte, int>(TempBuffer_Buffer.AsSpan(0, elementSize));
 			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 			{
 				EndiannessHelper.SwapBytes(ref intBuffer[0]);
@@ -166,7 +170,11 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(float);
 			Span<byte> buffer = writer.GetSpan(1 + elementSize);
 			buffer[0] = (byte)PayloadType.Single;
+#if NET8_0_OR_GREATER
+			MemoryMarshal.Write(buffer.Slice(1), in value);
+#else
 			MemoryMarshal.Write(buffer.Slice(1), ref value);
+#endif
 			writer.Advance(1 + elementSize);
 		}
 
@@ -200,7 +208,11 @@ namespace GriffinPlus.Lib.Serialization
 			const int elementSize = sizeof(double);
 			Span<byte> buffer = writer.GetSpan(1 + elementSize);
 			buffer[0] = (byte)PayloadType.Double;
+#if NET8_0_OR_GREATER
+			MemoryMarshal.Write(buffer.Slice(1), in value);
+#else
 			MemoryMarshal.Write(buffer.Slice(1), ref value);
+#endif
 			writer.Advance(1 + elementSize);
 		}
 
@@ -270,7 +282,11 @@ namespace GriffinPlus.Lib.Serialization
 				// use native encoding
 				Span<byte> buffer = writer.GetSpan(3);
 				buffer[0] = (byte)PayloadType.Int16_Native;
+#if NET8_0_OR_GREATER
+				MemoryMarshal.Write(buffer.Slice(1), in value);
+#else
 				MemoryMarshal.Write(buffer.Slice(1), ref value);
+#endif
 				writer.Advance(3);
 			}
 			else
@@ -325,7 +341,11 @@ namespace GriffinPlus.Lib.Serialization
 				// use native encoding
 				Span<byte> buffer = writer.GetSpan(5);
 				buffer[0] = (byte)PayloadType.Int32_Native;
+#if NET8_0_OR_GREATER
+				MemoryMarshal.Write(buffer.Slice(1), in value);
+#else
 				MemoryMarshal.Write(buffer.Slice(1), ref value);
+#endif
 				writer.Advance(5);
 			}
 			else
@@ -380,7 +400,11 @@ namespace GriffinPlus.Lib.Serialization
 				// use native encoding
 				Span<byte> buffer = writer.GetSpan(9);
 				buffer[0] = (byte)PayloadType.Int64_Native;
+#if NET8_0_OR_GREATER
+				MemoryMarshal.Write(buffer.Slice(1), in value);
+#else
 				MemoryMarshal.Write(buffer.Slice(1), ref value);
+#endif
 				writer.Advance(9);
 			}
 			else
@@ -464,7 +488,11 @@ namespace GriffinPlus.Lib.Serialization
 				// use native encoding
 				Span<byte> buffer = writer.GetSpan(3);
 				buffer[0] = (byte)PayloadType.UInt16_Native;
+#if NET8_0_OR_GREATER
+				MemoryMarshal.Write(buffer.Slice(1), in value);
+#else
 				MemoryMarshal.Write(buffer.Slice(1), ref value);
+#endif
 				writer.Advance(3);
 			}
 			else
@@ -519,7 +547,11 @@ namespace GriffinPlus.Lib.Serialization
 				// use native encoding
 				Span<byte> buffer = writer.GetSpan(5);
 				buffer[0] = (byte)PayloadType.UInt32_Native;
+#if NET8_0_OR_GREATER
+				MemoryMarshal.Write(buffer.Slice(1), in value);
+#else
 				MemoryMarshal.Write(buffer.Slice(1), ref value);
+#endif
 				writer.Advance(5);
 			}
 			else
@@ -574,7 +606,11 @@ namespace GriffinPlus.Lib.Serialization
 				// use native encoding
 				Span<byte> buffer = writer.GetSpan(9);
 				buffer[0] = (byte)PayloadType.UInt64_Native;
+#if NET8_0_OR_GREATER
+				MemoryMarshal.Write(buffer.Slice(1), in value);
+#else
 				MemoryMarshal.Write(buffer.Slice(1), ref value);
+#endif
 				writer.Advance(9);
 			}
 			else
@@ -631,7 +667,11 @@ namespace GriffinPlus.Lib.Serialization
 			Span<byte> buffer = writer.GetSpan(1 + elementSize);
 			buffer[0] = (byte)PayloadType.DateTime;
 			long binaryValue = value.ToBinary();
+#if NET8_0_OR_GREATER
+			MemoryMarshal.Write(buffer.Slice(1), in binaryValue);
+#else
 			MemoryMarshal.Write(buffer.Slice(1), ref binaryValue);
+#endif
 			writer.Advance(1 + elementSize);
 		}
 
@@ -670,8 +710,13 @@ namespace GriffinPlus.Lib.Serialization
 			long timezoneOffsetTicks = value.Offset.Ticks;
 			Span<byte> buffer = writer.GetSpan(1 + elementSize);
 			buffer[0] = (byte)PayloadType.DateTimeOffset;
+#if NET8_0_OR_GREATER
+			MemoryMarshal.Write(buffer.Slice(1), in dateTimeTicks);
+			MemoryMarshal.Write(buffer.Slice(9), in timezoneOffsetTicks);
+#else
 			MemoryMarshal.Write(buffer.Slice(1), ref dateTimeTicks);
 			MemoryMarshal.Write(buffer.Slice(9), ref timezoneOffsetTicks);
+#endif
 			writer.Advance(1 + elementSize);
 		}
 
@@ -822,7 +867,11 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		/// <param name="stream">Stream to read the string object from.</param>
 		/// <returns>The read string.</returns>
-		internal unsafe string ReadPrimitive_String_UTF16(Stream stream)
+		internal
+#if NETSTANDARD2_0 || NET461
+		unsafe
+#endif
+		string ReadPrimitive_String_UTF16(Stream stream)
 		{
 			// read the number of UTF-16 code units
 			int codeUnitCount = Leb128EncodingHelper.ReadInt32(stream);

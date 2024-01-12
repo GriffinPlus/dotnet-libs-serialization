@@ -4,7 +4,9 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using System;
+#if !NET8_0_OR_GREATER
 using System.Runtime.Serialization;
+#endif
 
 namespace GriffinPlus.Lib.Serialization
 {
@@ -13,7 +15,9 @@ namespace GriffinPlus.Lib.Serialization
 	/// Exception that is thrown when a serializer fails serializing an object due to an unsupported
 	/// serializer version.
 	/// </summary>
+#if !NET8_0_OR_GREATER
 	[Serializable]
+#endif
 	public class VersionNotSupportedException : SerializationException
 	{
 		/// <summary>
@@ -40,6 +44,7 @@ namespace GriffinPlus.Lib.Serialization
 			MaxVersion = Serializer.GetSerializerVersion(Type);
 		}
 
+#if !NET8_0_OR_GREATER
 		/// <summary>
 		/// Initializes a new instance of the <see cref="VersionNotSupportedException"/> class (used during deserialization).
 		/// </summary>
@@ -65,6 +70,7 @@ namespace GriffinPlus.Lib.Serialization
 			info.AddValue("RequestedVersion", RequestedVersion);
 			info.AddValue("MaxVersion", MaxVersion);
 		}
+#endif
 
 		/// <summary>
 		/// Gets the type that failed serialization/deserialization.
