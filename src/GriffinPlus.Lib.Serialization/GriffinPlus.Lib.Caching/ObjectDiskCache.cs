@@ -85,7 +85,7 @@ namespace GriffinPlus.Lib.Caching
 		/// Releases occupied resources.
 		/// </summary>
 		/// <param name="disposing">
-		/// <c>true</c> in case of disposal;
+		/// <c>true</c> in case of disposal;<br/>
 		/// <c>false</c> in case of finalization.
 		/// </param>
 		public void Dispose(bool disposing)
@@ -109,26 +109,28 @@ namespace GriffinPlus.Lib.Caching
 					Items.Clear();
 				}
 
-				if (ObjectCacheDirectoryPath != null)
+				// abort if cache directory is not initialized
+				if (ObjectCacheDirectoryPath == null)
+					return;
+
+				// delete the directory storing cached objects
+				try
 				{
-					try
-					{
-						Directory.Delete(ObjectCacheDirectoryPath, true);
-					}
+					Directory.Delete(ObjectCacheDirectoryPath, true);
+				}
+				catch (Exception)
+				{
+					// removing directory failed
+					// => most probably the lock file is still locked
+
+					// dispose the lock file
+					mLockFile?.Dispose();
+
+					// try removing the directory once again
+					try { Directory.Delete(ObjectCacheDirectoryPath, true); }
 					catch (Exception)
 					{
-						// removing directory failed
-						// => most probably the lock file is still locked
-
-						// dispose the lock file
-						mLockFile?.Dispose();
-
-						// try removing the directory once again
-						try { Directory.Delete(ObjectCacheDirectoryPath, true); }
-						catch (Exception)
-						{
-							/* swallow... */
-						}
+						/* swallow... */
 					}
 				}
 			}
@@ -301,27 +303,25 @@ namespace GriffinPlus.Lib.Caching
 				{
 					string directoryName = Path.GetFileName(directoryPath);
 					Match match = sCacheLockFileRegex.Match(directoryName);
-					if (match.Success)
+					if (!match.Success) continue;
+					string cacheLockFilePath = Path.Combine(directoryPath, "cache.lock");
+					try
 					{
-						string cacheLockFilePath = Path.Combine(directoryPath, "cache.lock");
-						try
+						// try to open the cache lock file
+						if (File.Exists(cacheLockFilePath))
 						{
-							// try to open the cache lock file
-							if (File.Exists(cacheLockFilePath))
-							{
-								using (File.OpenRead(cacheLockFilePath)) { }
-							}
+							using (File.OpenRead(cacheLockFilePath)) { }
+						}
 
-							// opening the cache lock file succeeded
-							// => cache directory is not in use anymore
-							// => try to remove the directory
-							Directory.Delete(directoryPath, true);
-						}
-						catch
-						{
-							// most probably the cache.lock file is in use
-							// => swallow, we must not remove any files...
-						}
+						// opening the cache lock file succeeded
+						// => cache directory is not in use anymore
+						// => try to remove the directory
+						Directory.Delete(directoryPath, true);
+					}
+					catch
+					{
+						// most probably the cache.lock file is in use
+						// => swallow, we must not remove any files...
 					}
 				}
 			}
@@ -353,7 +353,7 @@ namespace GriffinPlus.Lib.Caching
 		/// </summary>
 		/// <param name="item">Object cache item to remove from the object cache.</param>
 		/// <returns>
-		/// <c>true</c> if the specified item was the last item referring to the file;
+		/// <c>true</c> if the specified item was the last item referring to the file;<br/>
 		/// <c>false</c> if the file is shared with other items.
 		/// </returns>
 		internal bool RemoveItemFromCache<T>(ObjectDiskCacheItem<T> item) where T : class

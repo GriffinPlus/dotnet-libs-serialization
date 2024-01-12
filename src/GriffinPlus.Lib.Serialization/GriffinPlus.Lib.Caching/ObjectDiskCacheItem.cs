@@ -239,16 +239,9 @@ namespace GriffinPlus.Lib.Caching
 
 					if (mWeakReference == null) return null;
 					if (mWeakReference.Target is T obj) return obj;
-					if (!mGetDelayedValueInProgress)
-					{
-						mGetDelayedValueInProgress = true;
-						ThreadPool.QueueUserWorkItem(
-							x =>
-							{
-								_ = Value;
-							});
-					}
-
+					if (mGetDelayedValueInProgress) return null;
+					mGetDelayedValueInProgress = true;
+					ThreadPool.QueueUserWorkItem(x => { _ = Value; });
 					return null;
 				}
 			}
@@ -314,16 +307,27 @@ namespace GriffinPlus.Lib.Caching
 		{
 			lock (mSync)
 			{
-				if (mState == ItemState.SavePending || mState == ItemState.SaveAndDisposePending)
-					throw new InvalidOperationException("The cached object is scheduled to be saved, so it cannot be dropped, yet.");
-
-				if (mState == ItemState.InUse)
+				switch (mState)
 				{
-					if (mWeakReference != null)
+					case ItemState.InUse:
 					{
-						if (mWeakReference.Target is IDisposable obj) obj.Dispose();
-						mWeakReference.Target = null;
+						if (mWeakReference != null)
+						{
+							if (mWeakReference.Target is IDisposable obj) obj.Dispose();
+							mWeakReference.Target = null;
+						}
+						break;
 					}
+
+					case ItemState.SavePending:
+					case ItemState.SaveAndDisposePending:
+						throw new InvalidOperationException("The cached object is scheduled to be saved, so it cannot be dropped, yet.");
+
+					case ItemState.Disposed:
+						break;
+
+					default:
+						throw new ArgumentOutOfRangeException();
 				}
 			}
 		}

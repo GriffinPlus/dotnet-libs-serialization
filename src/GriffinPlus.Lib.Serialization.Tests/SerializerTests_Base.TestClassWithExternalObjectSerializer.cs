@@ -50,6 +50,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			internal byte[]         Buffer1                      { get; set; }
 			internal byte[]         Buffer2                      { get; set; }
 
+			// ReSharper disable once ConvertConstructorToMemberInitializers
 			public TestClassWithExternalObjectSerializer()
 			{
 				BooleanFalse = false;

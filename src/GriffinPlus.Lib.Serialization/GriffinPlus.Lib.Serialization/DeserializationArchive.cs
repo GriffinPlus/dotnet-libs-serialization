@@ -5,6 +5,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -288,6 +289,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		/// <returns>The read value.</returns>
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
+		[SuppressMessage("ReSharper", "HeuristicUnreachableCode")]
 		public bool ReadBoolean()
 		{
 			CloseArchiveStream();
@@ -694,11 +696,9 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		private void CloseArchiveStream()
 		{
-			if (mArchiveStream != null)
-			{
-				mArchiveStream.Dispose();
-				mArchiveStream = null;
-			}
+			if (mArchiveStream == null) return;
+			mArchiveStream.Dispose();
+			mArchiveStream = null;
 		}
 
 		#endregion
