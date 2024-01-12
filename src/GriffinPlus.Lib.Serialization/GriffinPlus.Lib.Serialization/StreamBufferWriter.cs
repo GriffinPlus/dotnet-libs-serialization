@@ -196,7 +196,7 @@ namespace GriffinPlus.Lib.Serialization
 				if (sizeHint <= FreeCapacity)
 					return;
 
-				// the buffer has reached its maximum allowed size and it is empty now,
+				// the buffer has reached its maximum allowed size, and it is empty now,
 				// but it still does not have the requested amount of free space
 				// => implementation issue, the serializer should never request such big buffers...
 				sLog.Write(

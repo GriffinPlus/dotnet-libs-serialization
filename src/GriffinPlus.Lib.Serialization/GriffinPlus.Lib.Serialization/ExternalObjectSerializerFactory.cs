@@ -254,7 +254,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// </returns>
 		private static List<Type> GetPossibleSerializeeTypes(Type type)
 		{
-			// the best match is the an external object serializer for exactly the specified type
+			// the best match is an external object serializer for exactly the specified type
 			var possibleSerializeeTypes = new List<Type> { type };
 
 			// the specified type may implement interfaces

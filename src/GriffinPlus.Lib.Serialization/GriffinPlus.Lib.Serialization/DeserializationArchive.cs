@@ -239,7 +239,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Reads an enumeration value from the archive.
 		/// </summary>
-		/// <returns>Read value (must be casted to the concrete enumeration).</returns>
+		/// <returns>Read value (must be cast to the concrete enumeration).</returns>
 		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
 		public Enum ReadEnum()
 		{
@@ -469,7 +469,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// Prepares an archive for deserializing the base class of a serializable class.
 		/// </summary>
 		/// <returns>Deserialization archive for the base class.</returns>
-		/// <exception cref="ArgumentException">Type does not have a base type or it is not serializable.</exception>
+		/// <exception cref="ArgumentException">Type does not have a base type, or it is not serializable.</exception>
 		/// <exception cref="SerializationException">
 		/// The serializer version in the archive is greater than the maximum supported version of the base class.
 		/// </exception>
@@ -483,7 +483,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		/// <param name="context">Context object to pass to the serializer of the base class.</param>
 		/// <returns>Deserialization archive for the base class.</returns>
-		/// <exception cref="ArgumentException">Type does not have a base type or it is not serializable.</exception>
+		/// <exception cref="ArgumentException">Type does not have a base type, or it is not serializable.</exception>
 		/// <exception cref="SerializationException">
 		/// The serializer version in the archive is greater than the maximum supported version of the base class.
 		/// </exception>
@@ -529,7 +529,7 @@ namespace GriffinPlus.Lib.Serialization
 			ReadAndCheckPayloadType(PayloadType.Buffer);
 			long length = Leb128EncodingHelper.ReadInt64(Stream);
 
-			// now we know how much bytes will be returned...
+			// now we know how many bytes will be returned...
 			long bytesReturned = Math.Min(length, count);
 
 			if (Stream is MemoryBlockStream mbs)
@@ -562,7 +562,7 @@ namespace GriffinPlus.Lib.Serialization
 			}
 
 			// skip bytes that have not been read to ensure the stream can be read any further
-			// (just for the case that that less bytes were requested)
+			// (just for the case that fewer bytes were requested)
 			if (length > 0)
 			{
 				if (Stream.CanSeek)

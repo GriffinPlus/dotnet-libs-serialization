@@ -662,7 +662,7 @@ namespace GriffinPlus.Lib.Serialization
 		{
 			// always use native encoding as the serialized value encodes both ticks and
 			// datetime kind always resulting in a value that is too great to be encoded using
-			// LEB128 with 7 bytes or less
+			// LEB128 with 7 bytes or fewer
 			const int elementSize = sizeof(long); // binary representation of a DateTime
 			Span<byte> buffer = writer.GetSpan(1 + elementSize);
 			buffer[0] = (byte)PayloadType.DateTime;
@@ -703,7 +703,7 @@ namespace GriffinPlus.Lib.Serialization
 		internal void WritePrimitive_DateTimeOffset(DateTimeOffset value, IBufferWriter<byte> writer)
 		{
 			// always use native encoding as the serialized ticks are usually too great to be encoded using
-			// LEB128 with 7 bytes or less (using LEB128 encoding for the timezone offset could save some bytes,
+			// LEB128 with 7 bytes or fewer (using LEB128 encoding for the timezone offset could save some bytes,
 			// but the benefit is marginal and does not outweigh the overhead that comes with it)
 			const int elementSize = 2 * sizeof(long);
 			long dateTimeTicks = value.Ticks;

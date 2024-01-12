@@ -2011,7 +2011,7 @@ namespace GriffinPlus.Lib.Serialization
 			// create an array with the specified size
 			var array = Array.CreateInstance(typeof(bool), lengths, lowerBounds);
 
-			// read array data data into temporary buffer, then copy into the final array
+			// read array data into temporary buffer, then copy into the final array
 			// => avoids pinning the array while reading from the stream
 			//    (can have a negative impact on the performance of the garbage collector)
 			int bytesToRead = totalCount * elementSize;
@@ -2227,7 +2227,7 @@ namespace GriffinPlus.Lib.Serialization
 			// create an array with the specified size
 			var array = Array.CreateInstance(typeof(char), lengths, lowerBounds);
 
-			// read array data data into temporary buffer, then copy into the final array
+			// read array data into temporary buffer, then copy into the final array
 			// => avoids pinning the array while reading from the stream
 			//    (can have a negative impact on the performance of the garbage collector)
 			int bytesToRead = totalCount * elementSize;
@@ -2407,7 +2407,7 @@ namespace GriffinPlus.Lib.Serialization
 			// create an array with the specified size
 			var array = Array.CreateInstance(typeof(sbyte), lengths, lowerBounds);
 
-			// read array data data into temporary buffer, then copy into the final array
+			// read array data into temporary buffer, then copy into the final array
 			// => avoids pinning the array while reading from the stream
 			//    (can have a negative impact on the performance of the garbage collector)
 			int bytesToRead = totalCount * elementSize;
@@ -2667,7 +2667,7 @@ namespace GriffinPlus.Lib.Serialization
 			// create an array with the specified size
 			var array = Array.CreateInstance(typeof(short), lengths, lowerBounds);
 
-			// read array data data into temporary buffer, then copy into the final array
+			// read array data into temporary buffer, then copy into the final array
 			// => avoids pinning the array while reading from the stream
 			//    (can have a negative impact on the performance of the garbage collector)
 			int bytesToRead = totalCount * elementSize;
@@ -2913,7 +2913,7 @@ namespace GriffinPlus.Lib.Serialization
 			// create an array with the specified size
 			var array = Array.CreateInstance(typeof(ushort), lengths, lowerBounds);
 
-			// read array data data into temporary buffer, then copy into the final array
+			// read array data into temporary buffer, then copy into the final array
 			// => avoids pinning the array while reading from the stream
 			//    (can have a negative impact on the performance of the garbage collector)
 			int bytesToRead = totalCount * elementSize;
@@ -3159,7 +3159,7 @@ namespace GriffinPlus.Lib.Serialization
 			// create an array with the specified size
 			var array = Array.CreateInstance(typeof(int), lengths, lowerBounds);
 
-			// read array data data into temporary buffer, then copy into the final array
+			// read array data into temporary buffer, then copy into the final array
 			// => avoids pinning the array while reading from the stream
 			//    (can have a negative impact on the performance of the garbage collector)
 			int bytesToRead = totalCount * elementSize;
@@ -3405,7 +3405,7 @@ namespace GriffinPlus.Lib.Serialization
 			// create an array with the specified size
 			var array = Array.CreateInstance(typeof(uint), lengths, lowerBounds);
 
-			// read array data data into temporary buffer, then copy into the final array
+			// read array data into temporary buffer, then copy into the final array
 			// => avoids pinning the array while reading from the stream
 			//    (can have a negative impact on the performance of the garbage collector)
 			int bytesToRead = totalCount * elementSize;
@@ -3651,7 +3651,7 @@ namespace GriffinPlus.Lib.Serialization
 			// create an array with the specified size
 			var array = Array.CreateInstance(typeof(long), lengths, lowerBounds);
 
-			// read array data data into temporary buffer, then copy into the final array
+			// read array data into temporary buffer, then copy into the final array
 			// => avoids pinning the array while reading from the stream
 			//    (can have a negative impact on the performance of the garbage collector)
 			int bytesToRead = totalCount * elementSize;
@@ -3897,7 +3897,7 @@ namespace GriffinPlus.Lib.Serialization
 			// create an array with the specified size
 			var array = Array.CreateInstance(typeof(ulong), lengths, lowerBounds);
 
-			// read array data data into temporary buffer, then copy into the final array
+			// read array data into temporary buffer, then copy into the final array
 			// => avoids pinning the array while reading from the stream
 			//    (can have a negative impact on the performance of the garbage collector)
 			int bytesToRead = totalCount * elementSize;
@@ -4077,7 +4077,7 @@ namespace GriffinPlus.Lib.Serialization
 			// create an array with the specified size
 			var array = Array.CreateInstance(typeof(float), lengths, lowerBounds);
 
-			// read array data data into temporary buffer, then copy into the final array
+			// read array data into temporary buffer, then copy into the final array
 			// => avoids pinning the array while reading from the stream
 			//    (can have a negative impact on the performance of the garbage collector)
 			int bytesToRead = totalCount * elementSize;
@@ -4188,7 +4188,7 @@ namespace GriffinPlus.Lib.Serialization
 			// create an array with the specified size
 			var array = Array.CreateInstance(typeof(double), lengths, lowerBounds);
 
-			// read array data data into temporary buffer, then copy into the final array
+			// read array data into temporary buffer, then copy into the final array
 			// => avoids pinning the array while reading from the stream
 			//    (can have a negative impact on the performance of the garbage collector)
 			int bytesToRead = totalCount * elementSize;

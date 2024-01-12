@@ -44,7 +44,7 @@ namespace GriffinPlus.Lib.Caching
 		/// <summary>
 		/// Occurs when a property changes.
 		/// The event is raised using the synchronization context of the thread registering the event, if possible.
-		/// Otherwise the event is raised by a worker thread.
+		/// Otherwise, the event is raised by a worker thread.
 		/// </summary>
 		public event PropertyChangedEventHandler PropertyChanged
 		{
@@ -117,13 +117,13 @@ namespace GriffinPlus.Lib.Caching
 						if (mCache.GetFileReferenceCount(GetObjectFilePath()) > 1)
 						{
 							// there is other cache item referencing the same object cache file and the current item is responsible for saving the item
-							// => finish saving and dispose the current item afterwards...
+							// => finish saving and dispose the current item at the end...
 							mState = ItemState.SaveAndDisposePending;
 						}
 						else
 						{
 							// the current item is about to save its object, but it is the only item that references the object
-							// => it's save to skip saving...
+							// => it's safe to skip saving...
 							mCache.RemoveItemFromCache(this);
 							mStrongReference = null;
 							mWeakReference = null;
@@ -378,7 +378,7 @@ namespace GriffinPlus.Lib.Caching
 		}
 
 		/// <summary>
-		/// Assigns the the specified object cache item to the current one (the specified item is disposed at the end).
+		/// Assigns the specified object cache item to the current one (the specified item is disposed at the end).
 		/// </summary>
 		/// <param name="item">Object cache item to assign.</param>
 		public void TakeOwnership(IObjectCacheItem item)

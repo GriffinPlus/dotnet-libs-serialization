@@ -1724,7 +1724,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		}
 
 		/// <summary>
-		/// Creates a multi-dimensional array with the specified number of dimensions and populates it with the specified elements.
+		/// Creates a multidimensional array with the specified number of dimensions and populates it with the specified elements.
 		/// The first dimension will have its lower bound at 10, all other dimensions will start at a multiple of 10 (10, 20, 30).
 		/// The length of a dimension is the specified length of the first dimension plus 10 times the dimension
 		/// (first, first + 10, first + 20, first + 30, ...).
@@ -1771,7 +1771,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		/// <returns>Copy of the specified object.</returns>
 		private object SerializeAndDeserializeObject(object obj)
 		{
-			// create an copy of the object by serializing it to a stream
+			// create a copy of the object by serializing it to a stream
 			// and deserializing it from the stream
 			var stream = new MemoryStream();
 			Serializer serializer = CreateSerializer();

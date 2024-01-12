@@ -13,7 +13,7 @@ namespace GriffinPlus.Lib.Serialization
 	/// </summary>
 	/// <remarks>
 	/// A class implementing this interface must be stateless, since an external object serializer is created only once
-	/// for the entire application domain. Therefore the same instance is used again and again and multiple threads can
+	/// for the entire application domain. Therefore, the same instance is used again and again and multiple threads can
 	/// access it simultaneously.
 	/// </remarks>
 	public interface IExternalObjectSerializer

@@ -310,7 +310,7 @@ namespace GriffinPlus.Lib.Serialization
 		public const uint UInt32MaxValueEncodedWith5Bytes = uint.MaxValue;
 
 		/// <summary>
-		/// Determines how many bytes are needed to encode a the specified unsigned integer using the ULEB128 encoding.
+		/// Determines how many bytes are needed to encode the specified unsigned integer using the ULEB128 encoding.
 		/// </summary>
 		/// <param name="value">Integer to encode.</param>
 		/// <returns>Number of bytes needed to encode the specified integer.</returns>
@@ -551,7 +551,7 @@ namespace GriffinPlus.Lib.Serialization
 
 
 		/// <summary>
-		/// Determines how many bytes are needed to encode a the specified signed integer using the SLEB128 encoding.
+		/// Determines how many bytes are needed to encode the specified signed integer using the SLEB128 encoding.
 		/// </summary>
 		/// <param name="value">Integer to encode.</param>
 		/// <returns>Number of bytes needed to encode the specified integer.</returns>
@@ -813,7 +813,7 @@ namespace GriffinPlus.Lib.Serialization
 		public const ulong UInt64MaxValueEncodedWith10Bytes = 0xFFFFFFFFFFFFFFFF;
 
 		/// <summary>
-		/// Determines how many bytes are needed to encode a the specified unsigned integer using the ULEB128 encoding.
+		/// Determines how many bytes are needed to encode the specified unsigned integer using the ULEB128 encoding.
 		/// </summary>
 		/// <param name="value">Integer to encode.</param>
 		/// <returns>Number of bytes needed to encode the specified integer.</returns>

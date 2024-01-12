@@ -13,11 +13,11 @@ namespace GriffinPlus.Lib.Serialization
 	/// </summary>
 	/// <typeparam name="T">
 	/// Type to serialize
-	/// (may be a regular type, a closed generic type, a generic type definition or an interface).
+	/// (can be a regular type, a closed generic type, a generic type definition or an interface).
 	/// </typeparam>
 	/// <remarks>
 	/// A class deriving from this class must be stateless, since an external object serializer is created only once
-	/// for the entire application domain. Therefore the same instance is used again and again and multiple threads can
+	/// for the entire application domain. Therefore, the same instance is used again and again and multiple threads can
 	/// access it simultaneously.
 	/// </remarks>
 	public abstract class ExternalObjectSerializer<T> : IExternalObjectSerializer

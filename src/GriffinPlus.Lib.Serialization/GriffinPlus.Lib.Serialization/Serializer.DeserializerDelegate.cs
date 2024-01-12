@@ -15,7 +15,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		/// <param name="serializer">Serializer instance performing the deserialization.</param>
 		/// <param name="stream">Stream containing data to deserialize.</param>
-		/// <param name="context">A serialization context (may be <c>null</c>)</param>
+		/// <param name="context">A serialization context (can be <c>null</c>)</param>
 		/// <returns>The deserialized object.</returns>
 		private delegate object DeserializerDelegate(Serializer serializer, Stream stream, object context);
 	}

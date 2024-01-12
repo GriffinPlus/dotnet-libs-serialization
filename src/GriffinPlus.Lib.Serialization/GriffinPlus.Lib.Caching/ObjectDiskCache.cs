@@ -180,7 +180,7 @@ namespace GriffinPlus.Lib.Caching
 		/// <summary>
 		/// Puts a serializable object into the cache.
 		/// </summary>
-		/// <typeparam name="T">Type of the object to put into the cache (may be it's base type).</typeparam>
+		/// <typeparam name="T">Type of the object to put into the cache (can be its base type).</typeparam>
 		/// <param name="obj">Object to put into the cache.</param>
 		/// <returns>Cache item keeping track of the object.</returns>
 		public IObjectCacheItem<T> Set<T>(T obj) where T : class
@@ -215,7 +215,7 @@ namespace GriffinPlus.Lib.Caching
 
 				if (set)
 				{
-					// do next actions
+					// execute next actions
 					while (true)
 					{
 						Action action;
@@ -313,7 +313,7 @@ namespace GriffinPlus.Lib.Caching
 							}
 
 							// opening the cache lock file succeeded
-							// => cache directory is not in use any more
+							// => cache directory is not in use anymore
 							// => try to remove the directory
 							Directory.Delete(directoryPath, true);
 						}

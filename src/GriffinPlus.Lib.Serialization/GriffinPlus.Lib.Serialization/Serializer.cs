@@ -921,7 +921,7 @@ namespace GriffinPlus.Lib.Serialization
 			}
 			else
 			{
-				// its the first time this type is serialized
+				// it's the first time this type is serialized
 				// => write the fully qualified assembly name of the outermost type and recurse in case of generic types to cover
 				//    generic type arguments
 
@@ -1133,7 +1133,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <param name="assemblyQualifiedTypeName">The assembly qualified type name to resolve.</param>
 		/// <returns>
 		/// The <see cref="Type"/> object corresponding to the specified type name
-		/// (may be some other type than it was originally, if tolerant deserialization is enabled).
+		/// (can be some other type than it was originally, if tolerant deserialization is enabled).
 		/// </returns>
 		/// <exception cref="TypeResolutionException">The type could not be resolved.</exception>
 		/// <exception cref="AmbiguousTypeResolutionException">The type could not be resolved unambiguously.</exception>
@@ -1162,7 +1162,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (match.Groups[2].Length > 0)
 			{
 				// type name identifies an array
-				// => strip array brackets, otherwise they will break the look up
+				// => strip array brackets, otherwise they will break the look-up
 
 				arrayRank = match.Groups[2].Value.Count(x => x == ',') + 1;
 				fullTypeName = match.Groups[1].Value;
@@ -1434,7 +1434,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Gets or sets the default value indicating whether the serializer is tolerant when deserializing.
 		/// Enabling this allows to deserialize an object even if the assembly is strong-name signed and the version does not match.
-		/// Furthermore types may travel between different assemblies. In this case the full type name is used to find a certain type.
+		/// Furthermore, types may travel between different assemblies. In this case the full type name is used to find a certain type.
 		/// This is strictly necessary when using .NET framework types and serialization and deserialization is done on different .NET
 		/// versions. New serializer instances will use this setting to initialize their <see cref="UseTolerantDeserialization"/> property.
 		/// </summary>
@@ -1447,7 +1447,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Gets or sets a value indicating whether the serializer is tolerant when deserializing.
 		/// Enabling this allows to deserialize an object even if the assembly is strong-name signed and the version does not match.
-		/// Furthermore types may travel between different assemblies. In this case the full type name is used to find a certain type.
+		/// Furthermore, types may travel between different assemblies. In this case the full type name is used to find a certain type.
 		/// This is strictly necessary when using .NET framework types and serialization and deserialization is done on different .NET
 		/// versions. New serializer instances will use this setting to initialize their <see cref="UseTolerantDeserialization"/> property.
 		/// </summary>
@@ -1471,7 +1471,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// </summary>
 		/// <param name="stream">Stream to serialize the object to.</param>
 		/// <param name="obj">Object to serialize.</param>
-		/// <param name="context">Context object to pass to the serializer (may be <c>null</c>).</param>
+		/// <param name="context">Context object to pass to the serializer (can be <c>null</c>).</param>
 		/// <param name="optimization">Optimization to apply when serializing.</param>
 		public static void Serialize(
 			Stream                    stream,
@@ -1566,7 +1566,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (type.IsArray)
 			{
 				// the type is an array
-				// => differentiate one-dimensional arrays (SZARRAY) and multi-dimensional arrays (MDARRAY)
+				// => differentiate one-dimensional arrays (SZARRAY) and multidimensional arrays (MDARRAY)
 
 				var array = (Array)obj;
 				if (type.GetArrayRank() == 1 && array.GetLowerBound(0) == 0)
@@ -1770,7 +1770,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// Creates a dynamic method that calls the <see cref="IInternalObjectSerializer.Serialize"/> method of the specified type
 		/// that may be implemented implicitly or explicitly.
 		/// </summary>
-		/// <param name="type">Type of a class implementing the <see cref="IInternalObjectSerializer"/> interface.</param>
+		/// <param name="type">The type implementing the <see cref="IInternalObjectSerializer"/> interface.</param>
 		/// <returns>A delegate to a dynamic method that simply calls the <see cref="IInternalObjectSerializer.Serialize"/> method of the specified type.</returns>
 		private static IosSerializeDelegate CreateIosSerializeCaller(Type type)
 		{
@@ -2047,7 +2047,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// Deserializes an object from a stream.
 		/// </summary>
 		/// <param name="stream">Stream to deserialize the object from.</param>
-		/// <param name="context">Context object to pass to the serializer of the expected object (may be <c>null</c>).</param>
+		/// <param name="context">Context object to pass to the serializer of the expected object (can be <c>null</c>).</param>
 		/// <returns>Deserialized object.</returns>
 		/// <exception cref="VersionNotSupportedException">The serializer version of one of the objects in the specified stream is not supported.</exception>
 		/// <exception cref="SerializationException">
@@ -2844,7 +2844,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// Gets the internal object serializer interface of the specified object's base class, if it implements it.
 		/// </summary>
 		/// <param name="obj">Object to retrieve the internal serializer interface for.</param>
-		/// <param name="type">Type of a base class the specified object's class derives from.</param>
+		/// <param name="type">The base class the specified object's class derives from.</param>
 		/// <param name="version">Receives the version of the serializer for the specified type.</param>
 		/// <returns>
 		/// Internal object serializer interface implemented by the specified base class of the specified object;

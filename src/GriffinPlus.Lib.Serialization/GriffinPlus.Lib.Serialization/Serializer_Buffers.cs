@@ -35,7 +35,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// <summary>
 		/// Returns the specified buffer to the corresponding array pool and resets the buffer reference.
 		/// </summary>
-		/// <typeparam name="T">Type of a buffer element.</typeparam>
+		/// <typeparam name="T">Buffer element type.</typeparam>
 		/// <param name="buffer">Buffer to return.</param>
 		private static void ReleaseBuffer<T>(ref T[] buffer)
 		{

@@ -16,7 +16,7 @@ namespace GriffinPlus.Lib.Serialization
 		/// A comparer that compares two types taking their significancy into account.
 		/// The comparer is used to sort type lists to determine the order in which types are checked for serializers.
 		/// Classes/structs are most significant, followed by interface types. Generic interface types are considered
-		/// more specific than non generic interface types.
+		/// more specific than non-generic interface types.
 		/// </summary>
 		public class TypeSignificancyComparer : IComparer<Type>
 		{
@@ -43,7 +43,7 @@ namespace GriffinPlus.Lib.Serialization
 				if (x == null) return 1;
 				if (y == null) return -1;
 
-				// classes/structs are less then interfaces
+				// classes/structs are less than interfaces
 				// => put classes/structs in front of interfaces when sorting, sorted by their name
 				if (!x.IsInterface && !y.IsInterface)
 					return StringComparer.Ordinal.Compare(x.ToCSharpFormattedString(), y.ToCSharpFormattedString());
