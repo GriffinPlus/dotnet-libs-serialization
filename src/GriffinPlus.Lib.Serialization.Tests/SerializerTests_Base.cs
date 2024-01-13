@@ -43,15 +43,30 @@ namespace GriffinPlus.Lib.Serialization.Tests
 
 		#region Serializing/Deserializing: System.Object
 
+		public static IEnumerable<object[]> SerializeAndDeserializeTestData_Object
+		{
+			get
+			{
+				object[] data = { null, new object() };
+				foreach (object[] record in GenerateTestData(data))
+				{
+					yield return record;
+				}
+			}
+		}
+
 		/// <summary>
 		/// Tests serializing and deserializing <see cref="System.Object"/>.
 		/// </summary>
-		[Fact]
-		public void SerializeAndDeserialize_Object()
+		/// <param name="description">Test case description (for documentation purposes).</param>
+		/// <param name="type">Type of the object to test (for documentation purposes).</param>
+		/// <param name="obj">Object to test with.</param>
+		[Theory]
+		[MemberData(nameof(SerializeAndDeserializeTestData_Object))]
+		public void SerializeAndDeserialize_Object(string description, Type type, object obj)
 		{
-			object obj = new object();
 			object copy = SerializeAndDeserializeObject(obj);
-			Assert.IsType<object>(copy);
+			CheckEquals(obj, copy);
 		}
 
 		#endregion
@@ -138,7 +153,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			get
 			{
 				// speed/size optimized: 1 byte (native encoding)
-				int[] data =
+				sbyte[] data =
 				{
 					-128,
 					0,
@@ -177,7 +192,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			get
 			{
 				// speed/size optimized: 1 byte (native encoding)
-				int[] data =
+				byte[] data =
 				{
 					0,
 					255
@@ -215,7 +230,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			{
 				// speed optimized: 2 bytes (native encoding)
 				// size optimized: encoding chosen per value
-				int[] data =
+				short[] data =
 				{
 					unchecked((short)0x8000), // -32768: size optimized: 2 bytes (native encoding)
 					unchecked((short)0xFFBF), // -65: size optimized: 2 bytes (native encoding)
@@ -258,7 +273,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			{
 				// speed optimized: 2 bytes (native encoding)
 				// size optimized: encoding chosen per value
-				int[] data =
+				ushort[] data =
 				{
 					0,      // 0, size optimized: 1 byte (LEB128 encoding)
 					0x007F, // 127, size optimized: 1 byte (LEB128 encoding)
@@ -748,7 +763,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				Guid[] data =
 				{
 					Guid.Empty,
 					Guid.NewGuid()
@@ -823,7 +838,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				TestEnum_S8[] data =
 				{
 					TestEnum_S8.A,
 					TestEnum_S8.B,
@@ -860,7 +875,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				TestEnum_U8[] data =
 				{
 					TestEnum_U8.A,
 					TestEnum_U8.B,
@@ -897,7 +912,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				TestEnum_S16[] data =
 				{
 					TestEnum_S16.A,
 					TestEnum_S16.B,
@@ -934,7 +949,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				TestEnum_U16[] data =
 				{
 					TestEnum_U16.A,
 					TestEnum_U16.B,
@@ -971,7 +986,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				TestEnum_S32[] data =
 				{
 					TestEnum_S32.A,
 					TestEnum_S32.B,
@@ -1009,7 +1024,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				TestEnum_U32[] data =
 				{
 					TestEnum_U32.A,
 					TestEnum_U32.B,
@@ -1046,7 +1061,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				TestEnum_S64[] data =
 				{
 					TestEnum_S64.A,
 					TestEnum_S64.B,
@@ -1083,7 +1098,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				TestEnum_U64[] data =
 				{
 					TestEnum_U64.A,
 					TestEnum_U64.B,
@@ -1167,7 +1182,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				Dictionary<char, string>[] data =
 				{
 					new Dictionary<char, string>
 					{
@@ -1225,7 +1240,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				HashSet<string>[] data =
 				{
 					new HashSet<string>
 					{
@@ -1283,7 +1298,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				Queue<string>[] data =
 				{
 					new Queue<string>(
 						new[]
@@ -1344,7 +1359,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				SortedDictionary<char, string>[] data =
 				{
 					new SortedDictionary<char, string>
 					{
@@ -1402,7 +1417,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				SortedList<char, string>[] data =
 				{
 					new SortedList<char, string>
 					{
@@ -1460,7 +1475,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				SortedSet<string>[] data =
 				{
 					new SortedSet<string>
 					{
@@ -1518,7 +1533,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		{
 			get
 			{
-				var data = new[]
+				Stack<string>[] data =
 				{
 					new Stack<string>(
 						new[]
@@ -1640,6 +1655,58 @@ namespace GriffinPlus.Lib.Serialization.Tests
 		#region Helpers
 
 		/// <summary>
+		/// Checks whether the specified objects are equal after a serializer copy.
+		/// </summary>
+		/// <param name="expected">The original object.</param>
+		/// <param name="actual">The deserialized object.</param>
+		private void CheckEquals(object expected, object actual)
+		{
+			Assert.True(expected != null == (actual != null));
+			if (expected == null)
+			{
+				Assert.Null(expected);
+				Assert.Null(actual);
+			}
+			else
+			{
+				Assert.Equal(expected.GetType(), actual.GetType());
+				if (expected.GetType().IsArray)
+				{
+					var expectedArray = (Array)expected;
+					var actualArray = (Array)actual;
+					Assert.Equal(expectedArray.Rank, actualArray.Rank);
+					Assert.Equal(expectedArray.Length, actualArray.Length);
+					Assert.Equal(expectedArray.LongLength, actualArray.LongLength);
+					for (int dimension = 0; dimension < expectedArray.Rank; dimension++)
+					{
+						Assert.Equal(expectedArray.GetLowerBound(dimension), actualArray.GetLowerBound(dimension));
+						Assert.Equal(expectedArray.GetUpperBound(dimension), actualArray.GetUpperBound(dimension));
+					}
+
+					if (expectedArray.GetType().GetElementType() == typeof(object))
+					{
+						Assert.Equal(expectedArray, actualArray, (x, y) => x?.GetType() == y?.GetType());
+					}
+					else
+					{
+						Assert.Equal(expectedArray, actualArray);
+					}
+				}
+				else
+				{
+					if (expected.GetType() == typeof(object))
+					{
+						Assert.Equal(expected, actual, (x, y) => x?.GetType() == y?.GetType());
+					}
+					else
+					{
+						Assert.Equal(expected, actual);
+					}
+				}
+			}
+		}
+
+		/// <summary>
 		/// Generates test data for the specified type containing a mix of the specified elements.
 		/// </summary>
 		/// <typeparam name="T">Type of the elements.</typeparam>
@@ -1650,7 +1717,7 @@ namespace GriffinPlus.Lib.Serialization.Tests
 			// simple values
 			foreach (T value in elements)
 			{
-				yield return new object[] { "Value", value.GetType(), value };
+				yield return new object[] { "Value", value?.GetType(), value };
 			}
 
 			// arrays
