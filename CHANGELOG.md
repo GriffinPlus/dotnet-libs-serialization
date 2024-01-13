@@ -1,6 +1,23 @@
 # Changelog
 ---
 
+## Release v2.2.0
+
+### Other
+
+#### Add specific builds for .NET 6/7/8
+
+Specific builds for .NET 6/7/8 ensure that all recent .NET frameworks are supported appropriately.
+
+#### Optimize deserializing empty arrays
+
+When deserializing empty one-dimensional, zero-based arrays Array.Empty<T>() is used to provide the array instance. This removes unnecessary load from the garbage collector as empty arrays are immutable and can therefore be shared.
+
+#### Update dependency on NuGet packages 
+
+- Updated `GriffinPlus.Lib.Common` package to version 3.3.1
+
+---
 ## Release v2.1.1
 
 ### Other Changes
