@@ -106,18 +106,26 @@ namespace GriffinPlus.Lib.Serialization
 			int size = length * elementSize;
 
 			// read array elements
-			bool[] array = new bool[length];
+			bool[] array;
+			if (length > 0)
+			{
+				array = new bool[length];
 #if NETSTANDARD2_0 || NET461
-			EnsureTemporaryByteBufferSize(size);
-			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
-			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
+				EnsureTemporaryByteBufferSize(size);
+				int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
 #elif NETSTANDARD2_1 || NET5_0_OR_GREATER
-			int bytesRead = stream.Read(MemoryMarshal.Cast<bool, byte>(array.AsSpan()));
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				int bytesRead = stream.Read(MemoryMarshal.Cast<bool, byte>(array.AsSpan()));
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
 #else
 #error Unhandled .NET framework.
 #endif
+			}
+			else
+			{
+				array = Array.Empty<bool>();
+			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
@@ -140,10 +148,18 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < compactedArrayLength) throw new SerializationException("Unexpected end of stream.");
 
 			// build boolean array to return
-			bool[] array = new bool[length];
-			for (int i = 0; i < length; i++)
+			bool[] array;
+			if (length > 0)
 			{
-				array[i] = (TempBuffer_Buffer[i / 8] & (byte)(1 << (i % 8))) != 0;
+				array = new bool[length];
+				for (int i = 0; i < length; i++)
+				{
+					array[i] = (TempBuffer_Buffer[i / 8] & (byte)(1 << (i % 8))) != 0;
+				}
+			}
+			else
+			{
+				array = Array.Empty<bool>();
 			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
@@ -260,27 +276,34 @@ namespace GriffinPlus.Lib.Serialization
 			int size = length * elementSize;
 
 			// read array elements
-			char[] array = new char[length];
+			char[] array;
+			if (length > 0)
+			{
+				array = new char[length];
 #if NETSTANDARD2_0 || NET461
-			EnsureTemporaryByteBufferSize(size);
-			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
-			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
+				EnsureTemporaryByteBufferSize(size);
+				int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
 #elif NETSTANDARD2_1 || NET5_0_OR_GREATER
-			int bytesRead = stream.Read(MemoryMarshal.Cast<char, byte>(array.AsSpan()));
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				int bytesRead = stream.Read(MemoryMarshal.Cast<char, byte>(array.AsSpan()));
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
 #else
 #error Unhandled .NET framework.
 #endif
-
-			// swap bytes if the endianness of the system that has serialized the array is different
-			// from the current system
-			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-			{
-				for (int i = 0; i < length; i++)
+				// swap bytes if the endianness of the system that has serialized the array is different
+				// from the current system
+				if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				{
-					EndiannessHelper.SwapBytes(ref array[i]);
+					for (int i = 0; i < length; i++)
+					{
+						EndiannessHelper.SwapBytes(ref array[i]);
+					}
 				}
+			}
+			else
+			{
+				array = Array.Empty<char>();
 			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
@@ -306,31 +329,39 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 
 			// read array elements
-			char[] array = new char[length];
-			for (int i = 0; i < length; i++)
+			char[] array;
+			if (length > 0)
 			{
-				bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
-				if (useLeb128Encoding)
+				array = new char[length];
+				for (int i = 0; i < length; i++)
 				{
-					// use LEB128 encoding
-					array[i] = (char)Leb128EncodingHelper.ReadUInt32(stream);
-				}
-				else
-				{
-					// use native encoding
-					// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
-					bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
-					if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
-					char value = BitConverter.ToChar(TempBuffer_Buffer, 0);
+					bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
+					if (useLeb128Encoding)
+					{
+						// use LEB128 encoding
+						array[i] = (char)Leb128EncodingHelper.ReadUInt32(stream);
+					}
+					else
+					{
+						// use native encoding
+						// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
+						bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+						if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+						char value = BitConverter.ToChar(TempBuffer_Buffer, 0);
 
-					// swap bytes if the endianness of the system that has serialized the value is different
-					// from the current system
-					if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-						EndiannessHelper.SwapBytes(ref value);
+						// swap bytes if the endianness of the system that has serialized the value is different
+						// from the current system
+						if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+							EndiannessHelper.SwapBytes(ref value);
 
-					// store value in array
-					array[i] = value;
+						// store value in array
+						array[i] = value;
+					}
 				}
+			}
+			else
+			{
+				array = Array.Empty<char>();
 			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
@@ -387,18 +418,26 @@ namespace GriffinPlus.Lib.Serialization
 			int size = length * elementSize;
 
 			// read array elements
-			sbyte[] array = new sbyte[length];
+			sbyte[] array;
+			if (length > 0)
+			{
+				array = new sbyte[length];
 #if NETSTANDARD2_0 || NET461
-			EnsureTemporaryByteBufferSize(size);
-			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
-			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
+				EnsureTemporaryByteBufferSize(size);
+				int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
 #elif NETSTANDARD2_1 || NET5_0_OR_GREATER
-			int bytesRead = stream.Read(MemoryMarshal.Cast<sbyte, byte>(array.AsSpan()));
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				int bytesRead = stream.Read(MemoryMarshal.Cast<sbyte, byte>(array.AsSpan()));
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
 #else
 #error Unhandled .NET framework.
 #endif
+			}
+			else
+			{
+				array = Array.Empty<sbyte>();
+			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
@@ -560,27 +599,34 @@ namespace GriffinPlus.Lib.Serialization
 			int size = length * elementSize;
 
 			// read array elements
-			short[] array = new short[length];
+			short[] array;
+			if (length > 0)
+			{
+				array = new short[length];
 #if NETSTANDARD2_0 || NET461
-			EnsureTemporaryByteBufferSize(size);
-			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
-			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
+				EnsureTemporaryByteBufferSize(size);
+				int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
 #elif NETSTANDARD2_1 || NET5_0_OR_GREATER
-			int bytesRead = stream.Read(MemoryMarshal.Cast<short, byte>(array.AsSpan()));
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				int bytesRead = stream.Read(MemoryMarshal.Cast<short, byte>(array.AsSpan()));
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
 #else
 #error Unhandled .NET framework.
 #endif
-
-			// swap bytes if the endianness of the system that has serialized the array is different
-			// from the current system
-			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-			{
-				for (int i = 0; i < length; i++)
+				// swap bytes if the endianness of the system that has serialized the array is different
+				// from the current system
+				if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				{
-					EndiannessHelper.SwapBytes(ref array[i]);
+					for (int i = 0; i < length; i++)
+					{
+						EndiannessHelper.SwapBytes(ref array[i]);
+					}
 				}
+			}
+			else
+			{
+				array = Array.Empty<short>();
 			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
@@ -606,31 +652,39 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 
 			// read array elements
-			short[] array = new short[length];
-			for (int i = 0; i < length; i++)
+			short[] array;
+			if (length > 0)
 			{
-				bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
-				if (useLeb128Encoding)
+				array = new short[length];
+				for (int i = 0; i < length; i++)
 				{
-					// use LEB128 encoding
-					array[i] = (short)Leb128EncodingHelper.ReadInt32(stream);
-				}
-				else
-				{
-					// use native encoding
-					// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
-					bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
-					if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
-					short value = BitConverter.ToInt16(TempBuffer_Buffer, 0);
+					bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
+					if (useLeb128Encoding)
+					{
+						// use LEB128 encoding
+						array[i] = (short)Leb128EncodingHelper.ReadInt32(stream);
+					}
+					else
+					{
+						// use native encoding
+						// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
+						bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+						if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+						short value = BitConverter.ToInt16(TempBuffer_Buffer, 0);
 
-					// swap bytes if the endianness of the system that has serialized the value is different
-					// from the current system
-					if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-						EndiannessHelper.SwapBytes(ref value);
+						// swap bytes if the endianness of the system that has serialized the value is different
+						// from the current system
+						if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+							EndiannessHelper.SwapBytes(ref value);
 
-					// store value in array
-					array[i] = value;
+						// store value in array
+						array[i] = value;
+					}
 				}
+			}
+			else
+			{
+				array = Array.Empty<short>();
 			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
@@ -742,27 +796,34 @@ namespace GriffinPlus.Lib.Serialization
 			int size = length * elementSize;
 
 			// read array elements
-			ushort[] array = new ushort[length];
+			ushort[] array;
+			if (length > 0)
+			{
+				array = new ushort[length];
 #if NETSTANDARD2_0 || NET461
-			EnsureTemporaryByteBufferSize(size);
-			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
-			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
+				EnsureTemporaryByteBufferSize(size);
+				int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
 #elif NETSTANDARD2_1 || NET5_0_OR_GREATER
-			int bytesRead = stream.Read(MemoryMarshal.Cast<ushort, byte>(array.AsSpan()));
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				int bytesRead = stream.Read(MemoryMarshal.Cast<ushort, byte>(array.AsSpan()));
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
 #else
 #error Unhandled .NET framework.
 #endif
-
-			// swap bytes if the endianness of the system that has serialized the array is different
-			// from the current system
-			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-			{
-				for (int i = 0; i < length; i++)
+				// swap bytes if the endianness of the system that has serialized the array is different
+				// from the current system
+				if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				{
-					EndiannessHelper.SwapBytes(ref array[i]);
+					for (int i = 0; i < length; i++)
+					{
+						EndiannessHelper.SwapBytes(ref array[i]);
+					}
 				}
+			}
+			else
+			{
+				array = Array.Empty<ushort>();
 			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
@@ -788,31 +849,39 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 
 			// read array elements
-			ushort[] array = new ushort[length];
-			for (int i = 0; i < length; i++)
+			ushort[] array;
+			if (length > 0)
 			{
-				bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
-				if (useLeb128Encoding)
+				array = new ushort[length];
+				for (int i = 0; i < length; i++)
 				{
-					// use LEB128 encoding
-					array[i] = (ushort)Leb128EncodingHelper.ReadUInt32(stream);
-				}
-				else
-				{
-					// use native encoding
-					// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
-					bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
-					if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
-					ushort value = BitConverter.ToUInt16(TempBuffer_Buffer, 0);
+					bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
+					if (useLeb128Encoding)
+					{
+						// use LEB128 encoding
+						array[i] = (ushort)Leb128EncodingHelper.ReadUInt32(stream);
+					}
+					else
+					{
+						// use native encoding
+						// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
+						bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+						if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+						ushort value = BitConverter.ToUInt16(TempBuffer_Buffer, 0);
 
-					// swap bytes if the endianness of the system that has serialized the value is different
-					// from the current system
-					if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-						EndiannessHelper.SwapBytes(ref value);
+						// swap bytes if the endianness of the system that has serialized the value is different
+						// from the current system
+						if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+							EndiannessHelper.SwapBytes(ref value);
 
-					// store value in array
-					array[i] = value;
+						// store value in array
+						array[i] = value;
+					}
 				}
+			}
+			else
+			{
+				array = Array.Empty<ushort>();
 			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
@@ -924,27 +993,34 @@ namespace GriffinPlus.Lib.Serialization
 			int size = length * elementSize;
 
 			// read array elements
-			int[] array = new int[length];
+			int[] array;
+			if (length > 0)
+			{
+				array = new int[length];
 #if NETSTANDARD2_0 || NET461
-			EnsureTemporaryByteBufferSize(size);
-			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
-			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
+				EnsureTemporaryByteBufferSize(size);
+				int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
 #elif NETSTANDARD2_1 || NET5_0_OR_GREATER
-			int bytesRead = stream.Read(MemoryMarshal.Cast<int, byte>(array.AsSpan()));
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				int bytesRead = stream.Read(MemoryMarshal.Cast<int, byte>(array.AsSpan()));
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
 #else
 #error Unhandled .NET framework.
 #endif
-
-			// swap bytes if the endianness of the system that has serialized the array is different
-			// from the current system
-			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-			{
-				for (int i = 0; i < length; i++)
+				// swap bytes if the endianness of the system that has serialized the array is different
+				// from the current system
+				if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				{
-					EndiannessHelper.SwapBytes(ref array[i]);
+					for (int i = 0; i < length; i++)
+					{
+						EndiannessHelper.SwapBytes(ref array[i]);
+					}
 				}
+			}
+			else
+			{
+				array = Array.Empty<int>();
 			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
@@ -970,31 +1046,39 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 
 			// read array elements
-			int[] array = new int[length];
-			for (int i = 0; i < length; i++)
+			int[] array;
+			if (length > 0)
 			{
-				bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
-				if (useLeb128Encoding)
+				array = new int[length];
+				for (int i = 0; i < length; i++)
 				{
-					// use LEB128 encoding
-					array[i] = Leb128EncodingHelper.ReadInt32(stream);
-				}
-				else
-				{
-					// use native encoding
-					// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
-					bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
-					if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
-					int value = BitConverter.ToInt32(TempBuffer_Buffer, 0);
+					bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
+					if (useLeb128Encoding)
+					{
+						// use LEB128 encoding
+						array[i] = Leb128EncodingHelper.ReadInt32(stream);
+					}
+					else
+					{
+						// use native encoding
+						// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
+						bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+						if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+						int value = BitConverter.ToInt32(TempBuffer_Buffer, 0);
 
-					// swap bytes if the endianness of the system that has serialized the value is different
-					// from the current system
-					if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-						EndiannessHelper.SwapBytes(ref value);
+						// swap bytes if the endianness of the system that has serialized the value is different
+						// from the current system
+						if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+							EndiannessHelper.SwapBytes(ref value);
 
-					// store value in array
-					array[i] = value;
+						// store value in array
+						array[i] = value;
+					}
 				}
+			}
+			else
+			{
+				array = Array.Empty<int>();
 			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
@@ -1106,27 +1190,34 @@ namespace GriffinPlus.Lib.Serialization
 			int size = length * elementSize;
 
 			// read array elements
-			uint[] array = new uint[length];
+			uint[] array;
+			if (length > 0)
+			{
+				array = new uint[length];
 #if NETSTANDARD2_0 || NET461
-			EnsureTemporaryByteBufferSize(size);
-			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
-			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
+				EnsureTemporaryByteBufferSize(size);
+				int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
 #elif NETSTANDARD2_1 || NET5_0_OR_GREATER
-			int bytesRead = stream.Read(MemoryMarshal.Cast<uint, byte>(array.AsSpan()));
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				int bytesRead = stream.Read(MemoryMarshal.Cast<uint, byte>(array.AsSpan()));
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
 #else
 #error Unhandled .NET framework.
 #endif
-
-			// swap bytes if the endianness of the system that has serialized the array is different
-			// from the current system
-			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-			{
-				for (int i = 0; i < length; i++)
+				// swap bytes if the endianness of the system that has serialized the array is different
+				// from the current system
+				if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				{
-					EndiannessHelper.SwapBytes(ref array[i]);
+					for (int i = 0; i < length; i++)
+					{
+						EndiannessHelper.SwapBytes(ref array[i]);
+					}
 				}
+			}
+			else
+			{
+				array = Array.Empty<uint>();
 			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
@@ -1152,31 +1243,39 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 
 			// read array elements
-			uint[] array = new uint[length];
-			for (int i = 0; i < length; i++)
+			uint[] array;
+			if (length > 0)
 			{
-				bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
-				if (useLeb128Encoding)
+				array = new uint[length];
+				for (int i = 0; i < length; i++)
 				{
-					// use LEB128 encoding
-					array[i] = Leb128EncodingHelper.ReadUInt32(stream);
-				}
-				else
-				{
-					// use native encoding
-					// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
-					bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
-					if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
-					uint value = BitConverter.ToUInt32(TempBuffer_Buffer, 0);
+					bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
+					if (useLeb128Encoding)
+					{
+						// use LEB128 encoding
+						array[i] = Leb128EncodingHelper.ReadUInt32(stream);
+					}
+					else
+					{
+						// use native encoding
+						// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
+						bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+						if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+						uint value = BitConverter.ToUInt32(TempBuffer_Buffer, 0);
 
-					// swap bytes if the endianness of the system that has serialized the value is different
-					// from the current system
-					if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-						EndiannessHelper.SwapBytes(ref value);
+						// swap bytes if the endianness of the system that has serialized the value is different
+						// from the current system
+						if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+							EndiannessHelper.SwapBytes(ref value);
 
-					// store value in array
-					array[i] = value;
+						// store value in array
+						array[i] = value;
+					}
 				}
+			}
+			else
+			{
+				array = Array.Empty<uint>();
 			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
@@ -1288,27 +1387,34 @@ namespace GriffinPlus.Lib.Serialization
 			int size = length * elementSize;
 
 			// read array elements
-			long[] array = new long[length];
+			long[] array;
+			if (length > 0)
+			{
+				array = new long[length];
 #if NETSTANDARD2_0 || NET461
-			EnsureTemporaryByteBufferSize(size);
-			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
-			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
+				EnsureTemporaryByteBufferSize(size);
+				int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
 #elif NETSTANDARD2_1 || NET5_0_OR_GREATER
-			int bytesRead = stream.Read(MemoryMarshal.Cast<long, byte>(array.AsSpan()));
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				int bytesRead = stream.Read(MemoryMarshal.Cast<long, byte>(array.AsSpan()));
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
 #else
 #error Unhandled .NET framework.
 #endif
-
-			// swap bytes if the endianness of the system that has serialized the array is different
-			// from the current system
-			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-			{
-				for (int i = 0; i < length; i++)
+				// swap bytes if the endianness of the system that has serialized the array is different
+				// from the current system
+				if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				{
-					EndiannessHelper.SwapBytes(ref array[i]);
+					for (int i = 0; i < length; i++)
+					{
+						EndiannessHelper.SwapBytes(ref array[i]);
+					}
 				}
+			}
+			else
+			{
+				array = Array.Empty<long>();
 			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
@@ -1334,31 +1440,39 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 
 			// read array elements
-			long[] array = new long[length];
-			for (int i = 0; i < length; i++)
+			long[] array;
+			if (length > 0)
 			{
-				bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
-				if (useLeb128Encoding)
+				array = new long[length];
+				for (int i = 0; i < length; i++)
 				{
-					// use LEB128 encoding
-					array[i] = Leb128EncodingHelper.ReadInt64(stream);
-				}
-				else
-				{
-					// use native encoding
-					// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
-					bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
-					if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
-					long value = BitConverter.ToInt64(TempBuffer_Buffer, 0);
+					bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
+					if (useLeb128Encoding)
+					{
+						// use LEB128 encoding
+						array[i] = Leb128EncodingHelper.ReadInt64(stream);
+					}
+					else
+					{
+						// use native encoding
+						// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
+						bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+						if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+						long value = BitConverter.ToInt64(TempBuffer_Buffer, 0);
 
-					// swap bytes if the endianness of the system that has serialized the value is different
-					// from the current system
-					if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-						EndiannessHelper.SwapBytes(ref value);
+						// swap bytes if the endianness of the system that has serialized the value is different
+						// from the current system
+						if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+							EndiannessHelper.SwapBytes(ref value);
 
-					// store value in array
-					array[i] = value;
+						// store value in array
+						array[i] = value;
+					}
 				}
+			}
+			else
+			{
+				array = Array.Empty<long>();
 			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
@@ -1470,27 +1584,34 @@ namespace GriffinPlus.Lib.Serialization
 			int size = length * elementSize;
 
 			// read array elements
-			ulong[] array = new ulong[length];
+			ulong[] array;
+			if (length > 0)
+			{
+				array = new ulong[length];
 #if NETSTANDARD2_0 || NET461
-			EnsureTemporaryByteBufferSize(size);
-			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
-			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
+				EnsureTemporaryByteBufferSize(size);
+				int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
 #elif NETSTANDARD2_1 || NET5_0_OR_GREATER
-			int bytesRead = stream.Read(MemoryMarshal.Cast<ulong, byte>(array.AsSpan()));
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				int bytesRead = stream.Read(MemoryMarshal.Cast<ulong, byte>(array.AsSpan()));
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
 #else
 #error Unhandled .NET framework.
 #endif
-
-			// swap bytes if the endianness of the system that has serialized the array is different
-			// from the current system
-			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-			{
-				for (int i = 0; i < length; i++)
+				// swap bytes if the endianness of the system that has serialized the array is different
+				// from the current system
+				if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				{
-					EndiannessHelper.SwapBytes(ref array[i]);
+					for (int i = 0; i < length; i++)
+					{
+						EndiannessHelper.SwapBytes(ref array[i]);
+					}
 				}
+			}
+			else
+			{
+				array = Array.Empty<ulong>();
 			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
@@ -1516,31 +1637,39 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < bytesToRead) throw new SerializationException("Unexpected end of stream.");
 
 			// read array elements
-			ulong[] array = new ulong[length];
-			for (int i = 0; i < length; i++)
+			ulong[] array;
+			if (length > 0)
 			{
-				bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
-				if (useLeb128Encoding)
+				array = new ulong[length];
+				for (int i = 0; i < length; i++)
 				{
-					// use LEB128 encoding
-					array[i] = Leb128EncodingHelper.ReadUInt64(stream);
-				}
-				else
-				{
-					// use native encoding
-					// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
-					bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
-					if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
-					ulong value = BitConverter.ToUInt64(TempBuffer_Buffer, 0);
+					bool useLeb128Encoding = (TempBuffer_Buffer[elementSize + i / 8] & (1 << (i % 8))) != 0;
+					if (useLeb128Encoding)
+					{
+						// use LEB128 encoding
+						array[i] = Leb128EncodingHelper.ReadUInt64(stream);
+					}
+					else
+					{
+						// use native encoding
+						// EnsureTemporaryByteBufferSize(elementSize); // not necessary, the buffer has at least 256 bytes
+						bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+						if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+						ulong value = BitConverter.ToUInt64(TempBuffer_Buffer, 0);
 
-					// swap bytes if the endianness of the system that has serialized the value is different
-					// from the current system
-					if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-						EndiannessHelper.SwapBytes(ref value);
+						// swap bytes if the endianness of the system that has serialized the value is different
+						// from the current system
+						if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+							EndiannessHelper.SwapBytes(ref value);
 
-					// store value in array
-					array[i] = value;
+						// store value in array
+						array[i] = value;
+					}
 				}
+			}
+			else
+			{
+				array = Array.Empty<ulong>();
 			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
@@ -1597,27 +1726,34 @@ namespace GriffinPlus.Lib.Serialization
 			int size = length * elementSize;
 
 			// read array elements
-			float[] array = new float[length];
+			float[] array;
+			if (length > 0)
+			{
+				array = new float[length];
 #if NETSTANDARD2_0 || NET461
-			EnsureTemporaryByteBufferSize(size);
-			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
-			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
+				EnsureTemporaryByteBufferSize(size);
+				int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
 #elif NETSTANDARD2_1 || NET5_0_OR_GREATER
-			int bytesRead = stream.Read(MemoryMarshal.Cast<float, byte>(array.AsSpan()));
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				int bytesRead = stream.Read(MemoryMarshal.Cast<float, byte>(array.AsSpan()));
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
 #else
 #error Unhandled .NET framework.
 #endif
-
-			// swap bytes if the endianness of the system that has serialized the array is different
-			// from the current system
-			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-			{
-				for (int i = 0; i < length; i++)
+				// swap bytes if the endianness of the system that has serialized the array is different
+				// from the current system
+				if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				{
-					EndiannessHelper.SwapBytes(ref array[i]);
+					for (int i = 0; i < length; i++)
+					{
+						EndiannessHelper.SwapBytes(ref array[i]);
+					}
 				}
+			}
+			else
+			{
+				array = Array.Empty<float>();
 			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
@@ -1674,27 +1810,34 @@ namespace GriffinPlus.Lib.Serialization
 			int size = length * elementSize;
 
 			// read array elements
-			double[] array = new double[length];
+			double[] array;
+			if (length > 0)
+			{
+				array = new double[length];
 #if NETSTANDARD2_0 || NET461
-			EnsureTemporaryByteBufferSize(size);
-			int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
-			Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
+				EnsureTemporaryByteBufferSize(size);
+				int bytesRead = stream.Read(TempBuffer_Buffer, 0, size);
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				Buffer.BlockCopy(TempBuffer_Buffer, 0, array, 0, size);
 #elif NETSTANDARD2_1 || NET5_0_OR_GREATER
-			int bytesRead = stream.Read(MemoryMarshal.Cast<double, byte>(array.AsSpan()));
-			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
+				int bytesRead = stream.Read(MemoryMarshal.Cast<double, byte>(array.AsSpan()));
+				if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
 #else
 #error Unhandled .NET framework.
 #endif
-
-			// swap bytes if the endianness of the system that has serialized the array is different
-			// from the current system
-			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-			{
-				for (int i = 0; i < length; i++)
+				// swap bytes if the endianness of the system that has serialized the array is different
+				// from the current system
+				if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				{
-					EndiannessHelper.SwapBytes(ref array[i]);
+					for (int i = 0; i < length; i++)
+					{
+						EndiannessHelper.SwapBytes(ref array[i]);
+					}
 				}
+			}
+			else
+			{
+				array = Array.Empty<double>();
 			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
@@ -1770,40 +1913,48 @@ namespace GriffinPlus.Lib.Serialization
 			if (bytesRead < size) throw new SerializationException("Unexpected end of stream.");
 
 			// convert elements to decimal
-			decimal[] array = new decimal[length];
-#if NETSTANDARD2_0 || NETSTANDARD2_1 || NET461
-			int index = 0;
-			for (int i = 0; i < length; i++)
+			decimal[] array;
+			if (length > 0)
 			{
-				// copy bytes of one decimal value to int32 buffer
-				Buffer.BlockCopy(TempBuffer_Buffer, index, TempBuffer_Int32, 0, elementSize);
+				array = new decimal[length];
+#if NETSTANDARD2_0 || NETSTANDARD2_1 || NET461
+				int index = 0;
+				for (int i = 0; i < length; i++)
+				{
+					// copy bytes of one decimal value to int32 buffer
+					Buffer.BlockCopy(TempBuffer_Buffer, index, TempBuffer_Int32, 0, elementSize);
 
-				// swap bytes if the endianness of the system that has serialized the array is different
-				// from the current system
+					// swap bytes if the endianness of the system that has serialized the array is different
+					// from the current system
+					if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+					{
+						EndiannessHelper.SwapBytes(ref TempBuffer_Int32[0]);
+						EndiannessHelper.SwapBytes(ref TempBuffer_Int32[1]);
+						EndiannessHelper.SwapBytes(ref TempBuffer_Int32[2]);
+						EndiannessHelper.SwapBytes(ref TempBuffer_Int32[3]);
+					}
+
+					array[i] = new decimal(TempBuffer_Int32);
+					index += elementSize;
+				}
+#elif NET5_0_OR_GREATER
+				var data = MemoryMarshal.Cast<byte, int>(TempBuffer_Buffer.AsSpan(0, size)); // temporary byte array should be aligned to a 4-byte boundary
 				if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				{
-					EndiannessHelper.SwapBytes(ref TempBuffer_Int32[0]);
-					EndiannessHelper.SwapBytes(ref TempBuffer_Int32[1]);
-					EndiannessHelper.SwapBytes(ref TempBuffer_Int32[2]);
-					EndiannessHelper.SwapBytes(ref TempBuffer_Int32[3]);
+					for (int i = 0; i < data.Length; i++)
+						EndiannessHelper.SwapBytes(ref data[i]);
 				}
 
-				array[i] = new decimal(TempBuffer_Int32);
-				index += elementSize;
-			}
-#elif NET5_0_OR_GREATER
-			var data = MemoryMarshal.Cast<byte, int>(TempBuffer_Buffer.AsSpan(0, size)); // temporary byte array should be aligned to a 4-byte boundary
-			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-			{
-				for (int i = 0; i < data.Length; i++)
-					EndiannessHelper.SwapBytes(ref data[i]);
-			}
-
-			for (int i = 0; i < length; i++)
-			{
-				array[i] = new decimal(data.Slice(4 * i, 4));
-			}
+				for (int i = 0; i < length; i++)
+				{
+					array[i] = new decimal(data.Slice(4 * i, 4));
+				}
 #endif
+			}
+			else
+			{
+				array = Array.Empty<decimal>();
+			}
 
 			mDeserializedObjectIdTable.Add(mNextDeserializedObjectId++, array);
 			return array;
