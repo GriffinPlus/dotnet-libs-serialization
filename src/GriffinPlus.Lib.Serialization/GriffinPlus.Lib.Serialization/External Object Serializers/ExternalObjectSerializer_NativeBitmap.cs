@@ -3,6 +3,8 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+using System;
+
 using GriffinPlus.Lib.Imaging;
 
 namespace GriffinPlus.Lib.Serialization
@@ -32,7 +34,7 @@ namespace GriffinPlus.Lib.Serialization
 				archive.Write(bitmap.Palette);
 				archive.Write(bitmap.BufferStride);
 				archive.Write(bitmap.BufferSize);
-				archive.Write(bitmap.UnsafeBufferStart.ToPointer(), bitmap.BufferSize);
+				archive.Write((void*)bitmap.UnsafeBufferStart, bitmap.BufferSize);
 				return;
 			}
 
@@ -57,9 +59,10 @@ namespace GriffinPlus.Lib.Serialization
 				var palette = (BitmapPalette)archive.ReadObject();
 				long stride = archive.ReadInt64();
 				long bufferSize = archive.ReadInt64();
-				var buffer = NativeBuffer.CreatePageAligned(bufferSize);
-				var bitmap = new NativeBitmap(buffer, pixelWidth, pixelHeight, stride, dpiX, dpiY, format, palette, true);
-				archive.ReadBuffer(bitmap.UnsafeBufferStart.ToPointer(), bufferSize);
+				if (sizeof(nint) == 4 && (bufferSize > int.MaxValue || stride > int.MaxValue)) throw new OutOfMemoryException();
+				var buffer = NativeBuffer.CreatePageAligned((nint)bufferSize);
+				var bitmap = new NativeBitmap(buffer, pixelWidth, pixelHeight, (nint)stride, dpiX, dpiY, format, palette, true);
+				archive.ReadBuffer((void*)bitmap.UnsafeBufferStart, bufferSize);
 				return bitmap;
 			}
 

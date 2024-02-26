@@ -3,6 +3,8 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+using System;
+
 namespace GriffinPlus.Lib.Serialization
 {
 
@@ -23,7 +25,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (archive.Version == 1)
 			{
 				archive.Write(buffer.Size);
-				archive.Write(buffer.UnsafeAddress.ToPointer(), buffer.Size);
+				archive.Write((void*)buffer.UnsafeAddress, buffer.Size);
 				return;
 			}
 
@@ -41,8 +43,9 @@ namespace GriffinPlus.Lib.Serialization
 			if (archive.Version == 1)
 			{
 				long size = archive.ReadInt64();
-				var buffer = NativeBuffer.CreatePageAligned(size); // safe alignment choice
-				archive.ReadBuffer(buffer.UnsafeAddress.ToPointer(), size);
+				if (sizeof(nint) == 4 && size > int.MaxValue ) throw new OutOfMemoryException();
+				var buffer = NativeBuffer.CreatePageAligned((nint)size); // safe alignment choice
+				archive.ReadBuffer((void*)buffer.UnsafeAddress, size);
 				return buffer;
 			}
 

@@ -556,7 +556,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					int bytesToRead = (int)Math.Min(count, Serializer.TempBuffer_Buffer.Length);
 					if (Stream.Read(Serializer.TempBuffer_Buffer, 0, bytesToRead) != bytesToRead) throw new SerializationException("Stream ended unexpectedly.");
-					Marshal.Copy(Serializer.TempBuffer_Buffer, 0, new IntPtr(p), bytesToRead);
+					Marshal.Copy(Serializer.TempBuffer_Buffer, 0, (nint)p, bytesToRead);
 					length -= bytesToRead;
 					count -= bytesToRead;
 					p = (byte*)p + bytesToRead;
