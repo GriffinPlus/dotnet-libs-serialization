@@ -43,7 +43,7 @@ namespace GriffinPlus.Lib.Serialization
 			if (archive.Version == 1)
 			{
 				long size = archive.ReadInt64();
-				if (sizeof(nint) == 4 && size > int.MaxValue ) throw new OutOfMemoryException();
+				if (sizeof(nint) == 4 && size > int.MaxValue) throw new OutOfMemoryException();
 				var buffer = NativeBuffer.CreatePageAligned((nint)size); // safe alignment choice
 				archive.ReadBuffer((void*)buffer.UnsafeAddress, size);
 				return buffer;

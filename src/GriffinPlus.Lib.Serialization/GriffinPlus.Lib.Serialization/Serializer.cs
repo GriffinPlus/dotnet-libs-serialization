@@ -149,6 +149,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WritePrimitive_Boolean((bool)obj, writer);
 				});
+
 			sSerializers.Add(
 				typeof(char),
 				(
@@ -159,6 +160,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WritePrimitive_Char((char)obj, writer);
 				});
+
 			sSerializers.Add(
 				typeof(sbyte),
 				(
@@ -169,6 +171,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WritePrimitive_SByte((sbyte)obj, writer);
 				});
+
 			sSerializers.Add(
 				typeof(short),
 				(
@@ -179,6 +182,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WritePrimitive_Int16((short)obj, writer);
 				});
+
 			sSerializers.Add(
 				typeof(int),
 				(
@@ -189,6 +193,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WritePrimitive_Int32((int)obj, writer);
 				});
+
 			sSerializers.Add(
 				typeof(long),
 				(
@@ -199,6 +204,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WritePrimitive_Int64((long)obj, writer);
 				});
+
 			sSerializers.Add(
 				typeof(byte),
 				(
@@ -209,6 +215,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WritePrimitive_Byte((byte)obj, writer);
 				});
+
 			sSerializers.Add(
 				typeof(ushort),
 				(
@@ -219,6 +226,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WritePrimitive_UInt16((ushort)obj, writer);
 				});
+
 			sSerializers.Add(
 				typeof(uint),
 				(
@@ -229,6 +237,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WritePrimitive_UInt32((uint)obj, writer);
 				});
+
 			sSerializers.Add(
 				typeof(ulong),
 				(
@@ -239,6 +248,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WritePrimitive_UInt64((ulong)obj, writer);
 				});
+
 			sSerializers.Add(
 				typeof(float),
 				(
@@ -249,6 +259,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WritePrimitive_Single((float)obj, writer);
 				});
+
 			sSerializers.Add(
 				typeof(double),
 				(
@@ -259,6 +270,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WritePrimitive_Double((double)obj, writer);
 				});
+
 			sSerializers.Add(
 				typeof(decimal),
 				(
@@ -269,6 +281,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WritePrimitive_Decimal((decimal)obj, writer);
 				});
+
 			sSerializers.Add(
 				typeof(string),
 				(
@@ -279,6 +292,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WritePrimitive_String((string)obj, writer);
 				});
+
 			sSerializers.Add(
 				typeof(DateTime),
 				(
@@ -289,6 +303,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WritePrimitive_DateTime((DateTime)obj, writer);
 				});
+
 			sSerializers.Add(
 				typeof(DateTimeOffset),
 				(
@@ -299,6 +314,31 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WritePrimitive_DateTimeOffset((DateTimeOffset)obj, writer);
 				});
+
+#if NET6_0_OR_GREATER
+			sSerializers.Add(
+				typeof(DateOnly),
+				(
+					serializer,
+					writer,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_DateOnly((DateOnly)obj, writer);
+				});
+
+			sSerializers.Add(
+				typeof(TimeOnly),
+				(
+					serializer,
+					writer,
+					obj,
+					context) =>
+				{
+					serializer.WritePrimitive_TimeOnly((TimeOnly)obj, writer);
+				});
+#endif
+
 			sSerializers.Add(
 				typeof(Guid),
 				(
@@ -309,6 +349,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WritePrimitive_Guid((Guid)obj, writer);
 				});
+
 			sSerializers.Add(
 				typeof(object),
 				(
@@ -321,6 +362,7 @@ namespace GriffinPlus.Lib.Serialization
 				});
 
 			// arrays of simple types (one-dimensional, zero-based indexing)
+
 			sSerializers.Add(
 				typeof(bool[]),
 				(
@@ -331,6 +373,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteArray(array as bool[], writer);
 				});
+
 			sSerializers.Add(
 				typeof(char[]),
 				(
@@ -341,6 +384,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteArray(array as char[], writer);
 				});
+
 			sSerializers.Add(
 				typeof(sbyte[]),
 				(
@@ -351,6 +395,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteArray(array as sbyte[], writer);
 				});
+
 			sSerializers.Add(
 				typeof(short[]),
 				(
@@ -361,6 +406,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteArray(array as short[], writer);
 				});
+
 			sSerializers.Add(
 				typeof(int[]),
 				(
@@ -371,6 +417,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteArray(array as int[], writer);
 				});
+
 			sSerializers.Add(
 				typeof(long[]),
 				(
@@ -381,6 +428,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteArray(array as long[], writer);
 				});
+
 			sSerializers.Add(
 				typeof(byte[]),
 				(
@@ -391,6 +439,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteArrayOfByte(array as byte[], writer);
 				});
+
 			sSerializers.Add(
 				typeof(ushort[]),
 				(
@@ -401,6 +450,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteArray(array as ushort[], writer);
 				});
+
 			sSerializers.Add(
 				typeof(uint[]),
 				(
@@ -411,6 +461,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteArray(array as uint[], writer);
 				});
+
 			sSerializers.Add(
 				typeof(ulong[]),
 				(
@@ -421,6 +472,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteArray(array as ulong[], writer);
 				});
+
 			sSerializers.Add(
 				typeof(float[]),
 				(
@@ -431,6 +483,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteArray(array as float[], writer);
 				});
+
 			sSerializers.Add(
 				typeof(double[]),
 				(
@@ -441,6 +494,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteArray(array as double[], writer);
 				});
+
 			sSerializers.Add(
 				typeof(decimal[]),
 				(
@@ -453,6 +507,7 @@ namespace GriffinPlus.Lib.Serialization
 				});
 
 			// multidimensional arrays
+
 			sMultidimensionalArraySerializers.Add(
 				typeof(bool),
 				(
@@ -463,6 +518,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteMultidimensionalArrayOfBoolean(array as Array, writer);
 				});
+
 			sMultidimensionalArraySerializers.Add(
 				typeof(char),
 				(
@@ -473,6 +529,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteMultidimensionalArrayOfChar(array as Array, writer);
 				});
+
 			sMultidimensionalArraySerializers.Add(
 				typeof(sbyte),
 				(
@@ -483,6 +540,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteMultidimensionalArrayOfSByte(array as Array, writer);
 				});
+
 			sMultidimensionalArraySerializers.Add(
 				typeof(short),
 				(
@@ -493,6 +551,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteMultidimensionalArrayOfInt16(array as Array, writer);
 				});
+
 			sMultidimensionalArraySerializers.Add(
 				typeof(int),
 				(
@@ -503,6 +562,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteMultidimensionalArrayOfInt32(array as Array, writer);
 				});
+
 			sMultidimensionalArraySerializers.Add(
 				typeof(long),
 				(
@@ -513,6 +573,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteMultidimensionalArrayOfInt64(array as Array, writer);
 				});
+
 			sMultidimensionalArraySerializers.Add(
 				typeof(byte),
 				(
@@ -523,6 +584,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteMultidimensionalArrayOfByte(array as Array, writer);
 				});
+
 			sMultidimensionalArraySerializers.Add(
 				typeof(ushort),
 				(
@@ -533,6 +595,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteMultidimensionalArrayOfUInt16(array as Array, writer);
 				});
+
 			sMultidimensionalArraySerializers.Add(
 				typeof(uint),
 				(
@@ -543,6 +606,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteMultidimensionalArrayOfUInt32(array as Array, writer);
 				});
+
 			sMultidimensionalArraySerializers.Add(
 				typeof(ulong),
 				(
@@ -553,6 +617,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteMultidimensionalArrayOfUInt64(array as Array, writer);
 				});
+
 			sMultidimensionalArraySerializers.Add(
 				typeof(float),
 				(
@@ -563,6 +628,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteMultidimensionalArrayOfSingle(array as Array, writer);
 				});
+
 			sMultidimensionalArraySerializers.Add(
 				typeof(double),
 				(
@@ -573,6 +639,7 @@ namespace GriffinPlus.Lib.Serialization
 				{
 					serializer.WriteMultidimensionalArrayOfDouble(array as Array, writer);
 				});
+
 			sMultidimensionalArraySerializers.Add(
 				typeof(decimal),
 				(
@@ -622,9 +689,15 @@ namespace GriffinPlus.Lib.Serialization
 			sDeserializersByPayloadType[(int)PayloadType.String_UTF16] = (serializer,   stream, context) => serializer.ReadPrimitive_String_UTF16(stream);
 			sDeserializersByPayloadType[(int)PayloadType.DateTime] = (serializer,       stream, context) => serializer.ReadPrimitive_DateTime(stream);
 			sDeserializersByPayloadType[(int)PayloadType.DateTimeOffset] = (serializer, stream, context) => serializer.ReadPrimitive_DateTimeOffset(stream);
-			sDeserializersByPayloadType[(int)PayloadType.Guid] = (serializer,           stream, context) => serializer.ReadPrimitive_Guid(stream);
-			sDeserializersByPayloadType[(int)PayloadType.Object] = (serializer,         stream, context) => serializer.ReadPrimitive_Object();
-			sDeserializersByPayloadType[(int)PayloadType.TypeObject] = (serializer,     stream, context) => serializer.ReadTypeObject(stream, true, out string _);
+#if NET6_0_OR_GREATER
+			sDeserializersByPayloadType[(int)PayloadType.DateOnly_Native] = (serializer, stream, context) => serializer.ReadPrimitive_DateOnly_Native(stream);
+			sDeserializersByPayloadType[(int)PayloadType.DateOnly_LEB128] = (serializer, stream, context) => serializer.ReadPrimitive_DateOnly_LEB128(stream);
+			sDeserializersByPayloadType[(int)PayloadType.TimeOnly_Native] = (serializer, stream, context) => serializer.ReadPrimitive_TimeOnly_Native(stream);
+			sDeserializersByPayloadType[(int)PayloadType.TimeOnly_LEB128] = (serializer, stream, context) => serializer.ReadPrimitive_TimeOnly_LEB128(stream);
+#endif
+			sDeserializersByPayloadType[(int)PayloadType.Guid] = (serializer,       stream, context) => serializer.ReadPrimitive_Guid(stream);
+			sDeserializersByPayloadType[(int)PayloadType.Object] = (serializer,     stream, context) => serializer.ReadPrimitive_Object();
+			sDeserializersByPayloadType[(int)PayloadType.TypeObject] = (serializer, stream, context) => serializer.ReadTypeObject(stream, true, out string _);
 
 			// one-dimensional arrays with zero-based indexing
 			sDeserializersByPayloadType[(int)PayloadType.ArrayOfBoolean_Native] = (serializer,  stream, context) => serializer.ReadArrayOfBoolean_Native(stream);

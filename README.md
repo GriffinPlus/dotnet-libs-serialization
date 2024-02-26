@@ -33,6 +33,8 @@ The *Griffin+ Serialization Library* provides a serializer for almost all .NET o
   - 64-bit integer types: `System.Int64` and `System.UInt64`
   - Floating point types: `System.Single`, `System.Double` and `System.Decimal`
   - Date/Time types: `System.DateTime` and `System.DateTimeOffset`
+  - Date-Only type: `System.DateOnly` (.NET 6+ only)
+  - Time-Only type: `System.TimeOnly` (.NET 6+ only)
   - Type objects: `System.Type`
   - GUIDs: `System.Guid`
   - Custom Buffers (supports streams and pointers)

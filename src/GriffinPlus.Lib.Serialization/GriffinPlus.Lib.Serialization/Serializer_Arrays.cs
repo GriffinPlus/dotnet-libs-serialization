@@ -1879,7 +1879,7 @@ namespace GriffinPlus.Lib.Serialization
 					MemoryMarshal.Cast<int, byte>(bits.AsSpan()).CopyTo(buffer.Slice(i * elementSize));
 				}
 #elif NET5_0_OR_GREATER
-				var intBuffer = MemoryMarshal.Cast<byte, int>(buffer);
+				Span<int> intBuffer = MemoryMarshal.Cast<byte, int>(buffer);
 				for (int i = 0; i < elementsToCopy; i++)
 				{
 					decimal.GetBits(array[fromIndex++], intBuffer.Slice(4 * i, 4));
@@ -1938,11 +1938,13 @@ namespace GriffinPlus.Lib.Serialization
 					index += elementSize;
 				}
 #elif NET5_0_OR_GREATER
-				var data = MemoryMarshal.Cast<byte, int>(TempBuffer_Buffer.AsSpan(0, size)); // temporary byte array should be aligned to a 4-byte boundary
+				Span<int> data = MemoryMarshal.Cast<byte, int>(TempBuffer_Buffer.AsSpan(0, size)); // temporary byte array should be aligned to a 4-byte boundary
 				if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
 				{
 					for (int i = 0; i < data.Length; i++)
+					{
 						EndiannessHelper.SwapBytes(ref data[i]);
+					}
 				}
 
 				for (int i = 0; i < length; i++)
@@ -4413,7 +4415,7 @@ namespace GriffinPlus.Lib.Serialization
 					int[] bits = decimal.GetBits(value);
 					MemoryMarshal.Cast<int, byte>(bits.AsSpan()).CopyTo(buffer.Slice(bufferIndex));
 #elif NET5_0_OR_GREATER
-					var intBuffer = MemoryMarshal.Cast<byte, int>(buffer.Slice(bufferIndex));
+					Span<int> intBuffer = MemoryMarshal.Cast<byte, int>(buffer.Slice(bufferIndex));
 					decimal.GetBits(value, intBuffer);
 #else
 					#error Unhandled .NET framework

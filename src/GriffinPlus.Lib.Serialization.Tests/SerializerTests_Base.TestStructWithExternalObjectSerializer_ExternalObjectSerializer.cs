@@ -3,11 +3,11 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// ReSharper disable NonReadonlyMemberInGetHashCode
-
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+
+// ReSharper disable NonReadonlyMemberInGetHashCode
 
 namespace GriffinPlus.Lib.Serialization.Tests
 {
@@ -38,6 +38,10 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					archive.Write(obj.String);
 					archive.Write(obj.DateTime);
 					archive.Write(obj.DateTimeOffset);
+#if NET6_0_OR_GREATER
+					archive.Write(obj.DateOnly);
+					archive.Write(obj.TimeOnly);
+#endif
 					archive.Write(obj.Guid);
 					archive.Write(obj.NonGenericType);
 					archive.Write(obj.GenericTypeDefinition);
@@ -89,6 +93,10 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					obj.String = archive.ReadString();
 					obj.DateTime = archive.ReadDateTime();
 					obj.DateTimeOffset = archive.ReadDateTimeOffset();
+#if NET6_0_OR_GREATER
+					obj.DateOnly = archive.ReadDateOnly();
+					obj.TimeOnly = archive.ReadTimeOnly();
+#endif
 					obj.Guid = archive.ReadGuid();
 					obj.NonGenericType = archive.ReadType();
 					obj.GenericTypeDefinition = archive.ReadType();

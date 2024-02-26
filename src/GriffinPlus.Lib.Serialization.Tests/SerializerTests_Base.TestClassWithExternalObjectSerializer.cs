@@ -16,39 +16,43 @@ namespace GriffinPlus.Lib.Serialization.Tests
 	{
 		public class TestClassWithExternalObjectSerializer
 		{
-			internal bool           BooleanFalse                 { get; set; }
-			internal bool           BooleanTrue                  { get; set; }
-			internal char           Char                         { get; set; }
-			internal sbyte          SByte                        { get; set; }
-			internal byte           Byte                         { get; set; }
-			internal short          Int16                        { get; set; }
-			internal ushort         UInt16                       { get; set; }
-			internal int            Int32                        { get; set; }
-			internal uint           UInt32                       { get; set; }
-			internal long           Int64                        { get; set; }
-			internal ulong          UInt64                       { get; set; }
-			internal float          Single                       { get; set; }
-			internal double         Double                       { get; set; }
-			internal decimal        Decimal                      { get; set; }
-			internal string         String                       { get; set; }
-			internal DateTime       DateTime                     { get; set; }
-			internal DateTimeOffset DateTimeOffset               { get; set; }
-			internal Guid           Guid                         { get; set; }
-			internal Type           NonGenericType               { get; set; }
-			internal Type           GenericTypeDefinition        { get; set; }
-			internal Type           ClosedConstructedGenericType { get; set; }
-			internal object         NullReference                { get; set; }
-			internal TestEnum_S8    Enum_S8                      { get; set; }
-			internal TestEnum_U8    Enum_U8                      { get; set; }
-			internal TestEnum_S16   Enum_S16                     { get; set; }
-			internal TestEnum_U16   Enum_U16                     { get; set; }
-			internal TestEnum_S32   Enum_S32                     { get; set; }
-			internal TestEnum_U32   Enum_U32                     { get; set; }
-			internal TestEnum_S64   Enum_S64                     { get; set; }
-			internal TestEnum_U64   Enum_U64                     { get; set; }
-			internal List<int>      SerializableObject           { get; set; }
-			internal byte[]         Buffer1                      { get; set; }
-			internal byte[]         Buffer2                      { get; set; }
+			internal bool           BooleanFalse   { get; set; }
+			internal bool           BooleanTrue    { get; set; }
+			internal char           Char           { get; set; }
+			internal sbyte          SByte          { get; set; }
+			internal byte           Byte           { get; set; }
+			internal short          Int16          { get; set; }
+			internal ushort         UInt16         { get; set; }
+			internal int            Int32          { get; set; }
+			internal uint           UInt32         { get; set; }
+			internal long           Int64          { get; set; }
+			internal ulong          UInt64         { get; set; }
+			internal float          Single         { get; set; }
+			internal double         Double         { get; set; }
+			internal decimal        Decimal        { get; set; }
+			internal string         String         { get; set; }
+			internal DateTime       DateTime       { get; set; }
+			internal DateTimeOffset DateTimeOffset { get; set; }
+#if NET6_0_OR_GREATER
+			internal DateOnly DateOnly { get; set; }
+			internal TimeOnly TimeOnly { get; set; }
+#endif
+			internal Guid         Guid                         { get; set; }
+			internal Type         NonGenericType               { get; set; }
+			internal Type         GenericTypeDefinition        { get; set; }
+			internal Type         ClosedConstructedGenericType { get; set; }
+			internal object       NullReference                { get; set; }
+			internal TestEnum_S8  Enum_S8                      { get; set; }
+			internal TestEnum_U8  Enum_U8                      { get; set; }
+			internal TestEnum_S16 Enum_S16                     { get; set; }
+			internal TestEnum_U16 Enum_U16                     { get; set; }
+			internal TestEnum_S32 Enum_S32                     { get; set; }
+			internal TestEnum_U32 Enum_U32                     { get; set; }
+			internal TestEnum_S64 Enum_S64                     { get; set; }
+			internal TestEnum_U64 Enum_U64                     { get; set; }
+			internal List<int>    SerializableObject           { get; set; }
+			internal byte[]       Buffer1                      { get; set; }
+			internal byte[]       Buffer2                      { get; set; }
 
 			// ReSharper disable once ConvertConstructorToMemberInitializers
 			public TestClassWithExternalObjectSerializer()
@@ -70,6 +74,10 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				String = "A String";
 				DateTime = DateTime.Now;
 				DateTimeOffset = DateTimeOffset.Now;
+#if NET6_0_OR_GREATER
+				DateOnly = DateOnly.FromDateTime(DateTime);
+				TimeOnly = TimeOnly.FromDateTime(DateTime);
+#endif
 				Guid = Guid.NewGuid();
 				NonGenericType = typeof(int);
 				GenericTypeDefinition = typeof(Dictionary<,>);
@@ -109,6 +117,10 @@ namespace GriffinPlus.Lib.Serialization.Tests
 					hashCode = (hashCode * 397) ^ String.GetHashCode();
 					hashCode = (hashCode * 397) ^ DateTime.GetHashCode();
 					hashCode = (hashCode * 397) ^ DateTimeOffset.GetHashCode();
+#if NET6_0_OR_GREATER
+					hashCode = (hashCode * 397) ^ DateOnly.GetHashCode();
+					hashCode = (hashCode * 397) ^ TimeOnly.GetHashCode();
+#endif
 					hashCode = (hashCode * 397) ^ Guid.GetHashCode();
 					hashCode = (hashCode * 397) ^ NonGenericType.GetHashCode();
 					hashCode = (hashCode * 397) ^ GenericTypeDefinition.GetHashCode();
@@ -148,6 +160,10 @@ namespace GriffinPlus.Lib.Serialization.Tests
 				       String == other.String &&
 				       DateTime == other.DateTime &&
 				       DateTimeOffset == other.DateTimeOffset &&
+#if NET6_0_OR_GREATER
+				       DateOnly == other.DateOnly &&
+				       TimeOnly == other.TimeOnly &&
+#endif
 				       Guid == other.Guid &&
 				       NonGenericType == other.NonGenericType &&
 				       GenericTypeDefinition == other.GenericTypeDefinition &&

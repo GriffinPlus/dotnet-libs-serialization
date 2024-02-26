@@ -434,6 +434,44 @@ namespace GriffinPlus.Lib.Serialization
 
 		#endregion
 
+		#region System.DateOnly (.NET 6+ only)
+
+#if NET6_0_OR_GREATER
+		/// <summary>
+		/// Reads a <see cref="System.DateOnly"/> value from the archive.
+		/// </summary>
+		/// <returns>The read value.</returns>
+		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
+		public DateOnly ReadDateOnly()
+		{
+			PayloadType payloadType = ReadAndCheckPayloadType(PayloadType.DateOnly_Native, PayloadType.DateOnly_LEB128);
+			return payloadType == PayloadType.DateOnly_Native
+				       ? Serializer.ReadPrimitive_DateOnly_Native(Stream)
+				       : Serializer.ReadPrimitive_DateOnly_LEB128(Stream);
+		}
+#endif
+
+		#endregion
+
+		#region System.TimeOnly (.NET 6+ only)
+
+#if NET6_0_OR_GREATER
+		/// <summary>
+		/// Reads a <see cref="System.TimeOnly"/> value from the archive.
+		/// </summary>
+		/// <returns>The read value.</returns>
+		/// <exception cref="SerializationException">Thrown if deserialization fails due to some reason.</exception>
+		public TimeOnly ReadTimeOnly()
+		{
+			PayloadType payloadType = ReadAndCheckPayloadType(PayloadType.TimeOnly_Native, PayloadType.TimeOnly_LEB128);
+			return payloadType == PayloadType.TimeOnly_Native
+				       ? Serializer.ReadPrimitive_TimeOnly_Native(Stream)
+				       : Serializer.ReadPrimitive_TimeOnly_LEB128(Stream);
+		}
+#endif
+
+		#endregion
+
 		#region System.Guid
 
 		/// <summary>
