@@ -1,6 +1,15 @@
 # Changelog
 ---
 
+## Release v2.3.0
+
+### Features
+
+#### Add built-in support for `System.DateOnly` and `System.TimeOnly` (.NET 6+ only)
+
+The serializer now provides built-in support for `System.DateOnly` and `System.TimeOnly` that have been introduced with .NET 6. The serialization of both types is optimized for speed and size - depending on the configuration of the serializer.
+
+---
 ## Release v2.2.0
 
 ### Other
