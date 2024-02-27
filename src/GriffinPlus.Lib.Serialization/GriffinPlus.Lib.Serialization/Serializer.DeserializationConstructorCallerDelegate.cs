@@ -3,16 +3,13 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-namespace GriffinPlus.Lib.Serialization
+namespace GriffinPlus.Lib.Serialization;
+
+public partial class Serializer
 {
-
-	public partial class Serializer
-	{
-		/// <summary>
-		/// Creates a new object using the deserialization constructor.
-		/// </summary>
-		/// <param name="archive">Deserialization archive to pass to the constructor.</param>
-		private delegate object DeserializationConstructorCallerDelegate(ref DeserializationArchive archive);
-	}
-
+	/// <summary>
+	/// Creates a new object using the deserialization constructor.
+	/// </summary>
+	/// <param name="archive">Deserialization archive to pass to the constructor.</param>
+	private delegate object DeserializationConstructorCallerDelegate(ref DeserializationArchive archive);
 }

@@ -5,23 +5,20 @@
 
 using System.Buffers;
 
-namespace GriffinPlus.Lib.Serialization
+namespace GriffinPlus.Lib.Serialization;
+
+public partial class Serializer
 {
-
-	public partial class Serializer
-	{
-		/// <summary>
-		/// Serializes an object.
-		/// </summary>
-		/// <param name="serializer">Serializer instance performing the serialization.</param>
-		/// <param name="writer">Buffer writer to write to.</param>
-		/// <param name="obj">Object to serialize.</param>
-		/// <param name="context">A serialization context (can be <c>null</c>)</param>
-		private delegate void SerializerDelegate(
-			Serializer          serializer,
-			IBufferWriter<byte> writer,
-			object              obj,
-			object              context);
-	}
-
+	/// <summary>
+	/// Serializes an object.
+	/// </summary>
+	/// <param name="serializer">Serializer instance performing the serialization.</param>
+	/// <param name="writer">Buffer writer to write to.</param>
+	/// <param name="obj">Object to serialize.</param>
+	/// <param name="context">A serialization context (can be <c>null</c>)</param>
+	private delegate void SerializerDelegate(
+		Serializer          serializer,
+		IBufferWriter<byte> writer,
+		object              obj,
+		object              context);
 }

@@ -102,7 +102,22 @@ Add the namespace `GriffinPlus.Lib.Serialization` to your source file.
 using GriffinPlus.Lib.Serialization;
 ```
 
-Create a new `Serializer` instance, configure it to suit your needs and serialize/deserialize your object.
+For best performance the `Serializer` class provides the static `Serialize(...)` and `Deserialize(...)` methods to serialize and deserialize data. These methods use an internal serializer pool effectively reducing garbage collection pressure as serializer instances are reused.
+
+```csharp
+// object to serialize
+var obj = 42;
+
+// serialize the object into a stream
+var stream = new MemoryStream();
+Serializer.Serialize(stream, obj, context: null, optimization: SerializationOptimization.Speed);
+
+// rewind the stream and deserialize the object
+stream.Position = 0;
+var copy = Serializer.Deserialize(stream, context: null, useTolerantDeserialization: true);
+```
+
+Alternatively, you can create a new `Serializer` instance, configure it to suit your needs and serialize/deserialize your object.
 
 ```csharp
 // object to serialize
@@ -127,13 +142,6 @@ var copy = serializer.Deserialize(stream);
 The property `SerializationOptimization` allows to influence whether the serializer optimizes for `Size` (most probably when serializing to a file or network connection) or for `Speed` (most probably when staying in-process, e.g. to create a deep copy of an object). The default is to optimize for `Speed`.
 
 The property `UseTolerantDeserialization` determines whether tolerant deserialization is in place. Tolerant deserialization allows to deserialize objects that were serialized on a machine with a different .NET framework. The serializer will try to exactly map to existing types when deserializing. If this fails, it will try to find the type in some other assembly. This enables the serializer to handle type migrations. Different .NET framework versions define even primitive types in different assemblies, so deserializing on some other .NET version would fail, if done without tolerance. As a side effect you can move your own types between assemblies as well. The full type name (namespace + type name) must not change. The default is `false` to avoid unexpected behavior.
-
-Alternatively the `Serializer` class provides the following static methods to serialize and deserialize data using the internal serializer pool. This reduces the pressure on the garbage collection as serializer instances are reused:
-
-```csharp
-public static void Serialize(Stream stream, T obj, object context, SerializationOptimization optimization);
-public static object Deserialize(Stream stream, object context, bool useTolerantDeserialization);
-```
 
 #### Step 3a: Add Serialization Support to Own Types (Internal Object Serializer)
 

@@ -3,23 +3,20 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-namespace GriffinPlus.Lib.Serialization
+namespace GriffinPlus.Lib.Serialization;
+
+/// <summary>
+/// Determines whether to optimize for speed or for size when serializing.
+/// </summary>
+public enum SerializationOptimization
 {
+	/// <summary>
+	/// Optimize for speed.
+	/// </summary>
+	Speed,
 
 	/// <summary>
-	/// Determines whether to optimize for speed or for size when serializing.
+	/// Optimize for size.
 	/// </summary>
-	public enum SerializationOptimization
-	{
-		/// <summary>
-		/// Optimize for speed.
-		/// </summary>
-		Speed,
-
-		/// <summary>
-		/// Optimize for size.
-		/// </summary>
-		Size
-	}
-
+	Size
 }

@@ -7,24 +7,22 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace GriffinPlus.Lib.Serialization.Tests
+namespace GriffinPlus.Lib.Serialization.Tests;
+
+public partial class SerializerTests_Base
 {
-
-	public partial class SerializerTests_Base
+	[DebuggerDisplay("{" + nameof(Name) + "}")]
+	public class GraphNode
 	{
-		[DebuggerDisplay("{Name}")]
-		public class GraphNode
+		public string          Name { get; set; }
+		public List<GraphNode> Next { get; set; }
+
+		public GraphNode() { }
+
+		public GraphNode(string name)
 		{
-			public string          Name { get; set; }
-			public List<GraphNode> Next { get; set; }
-
-			public GraphNode() { }
-
-			public GraphNode(string name)
-			{
-				Next = new List<GraphNode>();
-			}
+			Name = name;
+			Next = [];
 		}
 	}
-
 }

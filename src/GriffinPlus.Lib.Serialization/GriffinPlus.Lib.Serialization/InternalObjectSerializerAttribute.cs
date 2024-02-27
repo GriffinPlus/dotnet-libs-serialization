@@ -5,29 +5,26 @@
 
 using System;
 
-namespace GriffinPlus.Lib.Serialization
+namespace GriffinPlus.Lib.Serialization;
+
+/// <summary>
+/// Attribute that must be attached to a struct/class that is able to serialize/deserialize itself by implementing an
+/// internal object serializer.
+/// </summary>
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
+public class InternalObjectSerializerAttribute : Attribute
 {
-
 	/// <summary>
-	/// Attribute that must be attached to a struct/class that is able to serialize/deserialize itself by implementing an
-	/// internal object serializer.
+	/// Initializes a new instance of the <see cref="InternalObjectSerializerAttribute"/> class.
 	/// </summary>
-	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
-	public class InternalObjectSerializerAttribute : Attribute
+	/// <param name="version">Current version of the annotated internal object serializer.</param>
+	public InternalObjectSerializerAttribute(uint version)
 	{
-		/// <summary>
-		/// Initializes a new instance of the <see cref="InternalObjectSerializerAttribute"/> class.
-		/// </summary>
-		/// <param name="version">Current version of the annotated internal object serializer.</param>
-		public InternalObjectSerializerAttribute(uint version)
-		{
-			Version = version;
-		}
-
-		/// <summary>
-		/// Gets the current version of the internal object serializer.
-		/// </summary>
-		public uint Version { get; }
+		Version = version;
 	}
 
+	/// <summary>
+	/// Gets the current version of the internal object serializer.
+	/// </summary>
+	public uint Version { get; }
 }

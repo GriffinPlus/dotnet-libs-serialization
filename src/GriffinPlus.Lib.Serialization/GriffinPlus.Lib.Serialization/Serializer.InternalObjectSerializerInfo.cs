@@ -3,30 +3,27 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-namespace GriffinPlus.Lib.Serialization
-{
+namespace GriffinPlus.Lib.Serialization;
 
-	public partial class Serializer
+public partial class Serializer
+{
+	/// <summary>
+	/// Stores some information about an internal object serializer.
+	/// </summary>
+	private sealed class InternalObjectSerializerInfo
 	{
 		/// <summary>
-		/// Stores some information about an internal object serializer.
+		/// Initializes a new instance of the <see cref="InternalObjectSerializerInfo"/> class.
 		/// </summary>
-		private class InternalObjectSerializerInfo
+		/// <param name="version">Version of the internal object serializer.</param>
+		public InternalObjectSerializerInfo(uint version)
 		{
-			/// <summary>
-			/// Initializes a new instance of the <see cref="InternalObjectSerializerInfo"/> class.
-			/// </summary>
-			/// <param name="version">Version of the internal object serializer.</param>
-			public InternalObjectSerializerInfo(uint version)
-			{
-				SerializerVersion = version;
-			}
-
-			/// <summary>
-			/// Gets the version of the internal object serializer.
-			/// </summary>
-			public uint SerializerVersion { get; }
+			SerializerVersion = version;
 		}
-	}
 
+		/// <summary>
+		/// Gets the version of the internal object serializer.
+		/// </summary>
+		public uint SerializerVersion { get; }
+	}
 }

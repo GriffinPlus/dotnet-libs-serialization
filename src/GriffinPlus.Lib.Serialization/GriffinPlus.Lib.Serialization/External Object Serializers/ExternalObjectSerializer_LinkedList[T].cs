@@ -5,69 +5,68 @@
 
 using System.Collections.Generic;
 
-namespace GriffinPlus.Lib.Serialization
+namespace GriffinPlus.Lib.Serialization;
+
+/// <summary>
+/// External object serializer for the <see cref="LinkedList{T}"/> class.
+/// </summary>
+[ExternalObjectSerializer(1)]
+public class ExternalObjectSerializer_LinkedList<T> : ExternalObjectSerializer<LinkedList<T>>
 {
-
 	/// <summary>
-	/// External object serializer for the <see cref="LinkedList{T}"/> class.
+	/// Serializes the object.
 	/// </summary>
-	[ExternalObjectSerializer(1)]
-	public class ExternalObjectSerializer_LinkedList<T> : ExternalObjectSerializer<LinkedList<T>>
+	/// <param name="archive">Archive to serialize into.</param>
+	/// <param name="list">The list to serialize.</param>
+	/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
+	public override void Serialize(SerializationArchive archive, LinkedList<T> list)
 	{
-		/// <summary>
-		/// Serializes the object.
-		/// </summary>
-		/// <param name="archive">Archive to serialize into.</param>
-		/// <param name="list">The list to serialize.</param>
-		/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
-		public override void Serialize(SerializationArchive archive, LinkedList<T> list)
+		// ReSharper disable once InvertIf
+		if (archive.Version == 1)
 		{
-			if (archive.Version == 1)
+			// write number of list items
+			int count = list.Count;
+			archive.Write(count);
+
+			// write list items
+			LinkedListNode<T> node = list.First;
+			while (node != null)
 			{
-				// write number of list items
-				int count = list.Count;
-				archive.Write(count);
-
-				// write list items
-				LinkedListNode<T> node = list.First;
-				while (node != null)
-				{
-					archive.Write(node.Value, archive.Context);
-					node = node.Next;
-				}
-
-				return;
+				archive.Write(node.Value, archive.Context);
+				node = node.Next;
 			}
 
-			throw new VersionNotSupportedException(archive);
+			return;
 		}
 
-		/// <summary>
-		/// Deserializes an object.
-		/// </summary>
-		/// <param name="archive">Archive containing the serialized object.</param>
-		/// <returns>The deserialized object.</returns>
-		/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
-		public override LinkedList<T> Deserialize(DeserializationArchive archive)
-		{
-			if (archive.Version == 1)
-			{
-				// read number of list items
-				int count = archive.ReadInt32();
-
-				// read items from the archive and put them into the list
-				var list = new LinkedList<T>();
-				for (int i = 0; i < count; i++)
-				{
-					var item = (T)archive.ReadObject(archive.Context);
-					list.AddLast(item);
-				}
-
-				return list;
-			}
-
-			throw new VersionNotSupportedException(archive);
-		}
+		throw new VersionNotSupportedException(archive);
 	}
 
+	/// <summary>
+	/// Deserializes an object.
+	/// </summary>
+	/// <param name="archive">Archive containing the serialized object.</param>
+	/// <returns>The deserialized object.</returns>
+	/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
+	public override LinkedList<T> Deserialize(DeserializationArchive archive)
+	{
+		// ReSharper disable once InvertIf
+		if (archive.Version == 1)
+		{
+			// read number of list items
+			int count = archive.ReadInt32();
+
+			// read items from the archive and put them into the list
+			var list = new LinkedList<T>();
+			for (int i = 0; i < count; i++)
+			{
+				var item = (T)archive.ReadObject(archive.Context);
+				list.AddLast(item);
+			}
+
+			return list;
+		}
+
+		throw new VersionNotSupportedException(archive);
+	}
 }

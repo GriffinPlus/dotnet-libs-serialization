@@ -5,43 +5,40 @@
 
 using System;
 
-namespace GriffinPlus.Lib.Serialization
-{
+namespace GriffinPlus.Lib.Serialization;
 
-	public partial class Serializer
+public partial class Serializer
+{
+	/// <summary>
+	/// Data structure storing an assembly-qualified type and the corresponding type object
+	/// (used to cache type information when deserializing types).
+	/// </summary>
+	private struct TypeItem
 	{
 		/// <summary>
-		/// Data structure storing an assembly-qualified type and the corresponding type object
-		/// (used to cache type information when deserializing types).
+		/// The assembly-qualified name of the type.
 		/// </summary>
-		private struct TypeItem
+		public readonly string Name;
+
+		/// <summary>
+		/// The type object the assembly-qualified type name was mapped to.
+		/// </summary>
+		public readonly Type Type;
+
+		/// <summary>
+		/// An empty type item.
+		/// </summary>
+		public static readonly TypeItem Empty = new();
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="TypeItem"/> class.
+		/// </summary>
+		/// <param name="name"></param>
+		/// <param name="type"></param>
+		public TypeItem(string name, Type type)
 		{
-			/// <summary>
-			/// The assembly-qualified name of the type.
-			/// </summary>
-			public readonly string Name;
-
-			/// <summary>
-			/// The type object the assembly-qualified type name was mapped to.
-			/// </summary>
-			public readonly Type Type;
-
-			/// <summary>
-			/// An empty type item.
-			/// </summary>
-			public static readonly TypeItem Empty = new TypeItem();
-
-			/// <summary>
-			/// Initializes a new instance of the <see cref="TypeItem"/> class.
-			/// </summary>
-			/// <param name="name"></param>
-			/// <param name="type"></param>
-			public TypeItem(string name, Type type)
-			{
-				Name = name;
-				Type = type;
-			}
+			Name = name;
+			Type = type;
 		}
 	}
-
 }

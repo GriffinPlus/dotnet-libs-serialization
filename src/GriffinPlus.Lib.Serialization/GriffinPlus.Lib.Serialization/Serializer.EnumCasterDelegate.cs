@@ -5,17 +5,14 @@
 
 using System;
 
-namespace GriffinPlus.Lib.Serialization
+namespace GriffinPlus.Lib.Serialization;
+
+public partial class Serializer
 {
-
-	public partial class Serializer
-	{
-		/// <summary>
-		/// Casts an integer to a specific enumeration type.
-		/// </summary>
-		/// <param name="value">Integer value to convert to the enumeration type.</param>
-		/// <returns>The resulting enumeration value.</returns>
-		private delegate Enum EnumCasterDelegate(long value);
-	}
-
+	/// <summary>
+	/// Casts an integer to a specific enumeration type.
+	/// </summary>
+	/// <param name="value">Integer value to convert to the enumeration type.</param>
+	/// <returns>The resulting enumeration value.</returns>
+	private delegate Enum EnumCasterDelegate(long value);
 }

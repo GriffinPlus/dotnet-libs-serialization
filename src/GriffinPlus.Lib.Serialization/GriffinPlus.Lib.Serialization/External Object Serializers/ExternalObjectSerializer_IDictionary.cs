@@ -5,69 +5,68 @@
 
 using System.Collections;
 
-namespace GriffinPlus.Lib.Serialization
+namespace GriffinPlus.Lib.Serialization;
+
+/// <summary>
+/// External object serializer for collections implementing the <see cref="IDictionary"/> interface.
+/// </summary>
+[ExternalObjectSerializer(1)]
+public class ExternalObjectSerializer_IDictionary : ExternalObjectSerializer<IDictionary>
 {
-
 	/// <summary>
-	/// External object serializer for collections implementing the <see cref="IDictionary"/> interface.
+	/// Serializes the object.
 	/// </summary>
-	[ExternalObjectSerializer(1)]
-	public class ExternalObjectSerializer_IDictionary : ExternalObjectSerializer<IDictionary>
+	/// <param name="archive">Archive to serialize into.</param>
+	/// <param name="dictionary">The dictionary to serialize.</param>
+	/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
+	public override void Serialize(SerializationArchive archive, IDictionary dictionary)
 	{
-		/// <summary>
-		/// Serializes the object.
-		/// </summary>
-		/// <param name="archive">Archive to serialize into.</param>
-		/// <param name="dictionary">The dictionary to serialize.</param>
-		/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
-		public override void Serialize(SerializationArchive archive, IDictionary dictionary)
+		// ReSharper disable once InvertIf
+		if (archive.Version == 1)
 		{
-			if (archive.Version == 1)
+			// write number of dictionary entries
+			int count = dictionary.Count;
+			archive.Write(count);
+
+			// write dictionary entries
+			foreach (DictionaryEntry entry in dictionary)
 			{
-				// write number of dictionary entries
-				int count = dictionary.Count;
-				archive.Write(count);
-
-				// write dictionary entries
-				foreach (DictionaryEntry entry in dictionary)
-				{
-					archive.Write(entry.Key, archive.Context);
-					archive.Write(entry.Value, archive.Context);
-				}
-
-				return;
+				archive.Write(entry.Key, archive.Context);
+				archive.Write(entry.Value, archive.Context);
 			}
 
-			throw new VersionNotSupportedException(archive);
+			return;
 		}
 
-		/// <summary>
-		/// Deserializes an object.
-		/// </summary>
-		/// <param name="archive">Archive containing the serialized object.</param>
-		/// <returns>The deserialized object.</returns>
-		/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
-		public override IDictionary Deserialize(DeserializationArchive archive)
-		{
-			if (archive.Version == 1)
-			{
-				// read number of dictionary entries
-				int count = archive.ReadInt32();
-
-				// read elements from the archive and put them into the list
-				var dictionary = (IDictionary)FastActivator.CreateInstance(archive.DataType);
-				for (int i = 0; i < count; i++)
-				{
-					object key = archive.ReadObject(archive.Context);
-					object value = archive.ReadObject(archive.Context);
-					dictionary.Add(key, value);
-				}
-
-				return dictionary;
-			}
-
-			throw new VersionNotSupportedException(archive);
-		}
+		throw new VersionNotSupportedException(archive);
 	}
 
+	/// <summary>
+	/// Deserializes an object.
+	/// </summary>
+	/// <param name="archive">Archive containing the serialized object.</param>
+	/// <returns>The deserialized object.</returns>
+	/// <exception cref="VersionNotSupportedException">Serializer version is not supported.</exception>
+	public override IDictionary Deserialize(DeserializationArchive archive)
+	{
+		// ReSharper disable once InvertIf
+		if (archive.Version == 1)
+		{
+			// read number of dictionary entries
+			int count = archive.ReadInt32();
+
+			// read elements from the archive and put them into the list
+			var dictionary = (IDictionary)FastActivator.CreateInstance(archive.DataType);
+			for (int i = 0; i < count; i++)
+			{
+				object key = archive.ReadObject(archive.Context);
+				object value = archive.ReadObject(archive.Context);
+				dictionary.Add(key, value);
+			}
+
+			return dictionary;
+		}
+
+		throw new VersionNotSupportedException(archive);
+	}
 }

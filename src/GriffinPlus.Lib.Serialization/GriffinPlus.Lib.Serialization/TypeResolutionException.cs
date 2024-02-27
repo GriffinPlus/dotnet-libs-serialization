@@ -8,56 +8,53 @@ using System;
 using System.Runtime.Serialization;
 #endif
 
-namespace GriffinPlus.Lib.Serialization
+namespace GriffinPlus.Lib.Serialization;
+
+/// <summary>
+/// Exception that is thrown when the serializer cannot resolve a type during deserialization.
+/// </summary>
+#if !NET8_0_OR_GREATER
+[Serializable]
+#endif
+public class TypeResolutionException : SerializationException
 {
-
 	/// <summary>
-	/// Exception that is thrown when the serializer cannot resolve a type during deserialization.
+	/// Initializes a new instance of the <see cref="TypeResolutionException"/> class.
 	/// </summary>
-#if !NET8_0_OR_GREATER
-	[Serializable]
-#endif
-	public class TypeResolutionException : SerializationException
+	/// <param name="message">Message describing why the exception is thrown.</param>
+	/// <param name="typeNameToResolve">Name of the type that failed resolution.</param>
+	public TypeResolutionException(string message, string typeNameToResolve) :
+		base(message)
 	{
-		/// <summary>
-		/// Initializes a new instance of the <see cref="TypeResolutionException"/> class.
-		/// </summary>
-		/// <param name="message">Message describing why the exception is thrown.</param>
-		/// <param name="typeNameToResolve">Name of the type that failed resolution.</param>
-		public TypeResolutionException(string message, string typeNameToResolve) :
-			base(message)
-		{
-			TypeNameToResolve = typeNameToResolve;
-		}
-
-#if !NET8_0_OR_GREATER
-		/// <summary>
-		/// Initializes a new instance of the <see cref="TypeResolutionException"/> class (used during deserialization).
-		/// </summary>
-		/// <param name="info">The <see cref="SerializationInfo"/> that receives the serialized object data about the object.</param>
-		/// <param name="context">The <see cref="StreamingContext"/> that contains contextual information about the source or destination.</param>
-		protected TypeResolutionException(SerializationInfo info, StreamingContext context) :
-			base(info, context)
-		{
-			TypeNameToResolve = (string)info.GetValue("TypeNameToResolve", typeof(string));
-		}
-
-		/// <summary>
-		/// Populates a <see cref="SerializationInfo"/> with the data needed to serialize the target object.
-		/// </summary>
-		/// <param name="info">The <see cref="SerializationInfo"/> that holds the serialized object data about the object.</param>
-		/// <param name="context">The <see cref="StreamingContext"/> that contains contextual information about the source or destination.</param>
-		public override void GetObjectData(SerializationInfo info, StreamingContext context)
-		{
-			base.GetObjectData(info, context);
-			info.AddValue("TypeNameToResolve", TypeNameToResolve);
-		}
-#endif
-
-		/// <summary>
-		/// Gets the name of the type that that failed resolution.
-		/// </summary>
-		public string TypeNameToResolve { get; }
+		TypeNameToResolve = typeNameToResolve;
 	}
 
+#if !NET8_0_OR_GREATER
+	/// <summary>
+	/// Initializes a new instance of the <see cref="TypeResolutionException"/> class (used during deserialization).
+	/// </summary>
+	/// <param name="info">The <see cref="SerializationInfo"/> that receives the serialized object data about the object.</param>
+	/// <param name="context">The <see cref="StreamingContext"/> that contains contextual information about the source or destination.</param>
+	protected TypeResolutionException(SerializationInfo info, StreamingContext context) :
+		base(info, context)
+	{
+		TypeNameToResolve = (string)info.GetValue("TypeNameToResolve", typeof(string));
+	}
+
+	/// <summary>
+	/// Populates a <see cref="SerializationInfo"/> with the data needed to serialize the target object.
+	/// </summary>
+	/// <param name="info">The <see cref="SerializationInfo"/> that holds the serialized object data about the object.</param>
+	/// <param name="context">The <see cref="StreamingContext"/> that contains contextual information about the source or destination.</param>
+	public override void GetObjectData(SerializationInfo info, StreamingContext context)
+	{
+		base.GetObjectData(info, context);
+		info.AddValue("TypeNameToResolve", TypeNameToResolve);
+	}
+#endif
+
+	/// <summary>
+	/// Gets the name of the type that that failed resolution.
+	/// </summary>
+	public string TypeNameToResolve { get; }
 }

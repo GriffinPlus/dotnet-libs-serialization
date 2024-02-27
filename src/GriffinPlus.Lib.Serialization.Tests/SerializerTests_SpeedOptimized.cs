@@ -3,27 +3,24 @@
 // The source code is licensed under the MIT license.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-namespace GriffinPlus.Lib.Serialization.Tests
+namespace GriffinPlus.Lib.Serialization.Tests;
+
+/// <summary>
+/// Tests for a <see cref="Serializer"/> that optimizes for speed.
+/// </summary>
+public class SerializerTests_SpeedOptimized : SerializerTests_Base
 {
-
 	/// <summary>
-	/// Tests for a <see cref="Serializer"/> that optimizes for speed.
+	/// Creates an instance of the <see cref="Serializer"/> class and configures it for the test.
 	/// </summary>
-	public class SerializerTests_SpeedOptimized : SerializerTests_Base
+	/// <returns>The <see cref="Serializer"/> instance to test.</returns>
+	protected override Serializer CreateSerializer()
 	{
-		/// <summary>
-		/// Creates an instance of the <see cref="Serializer"/> class and configures it for the test.
-		/// </summary>
-		/// <returns>The <see cref="Serializer"/> instance to test.</returns>
-		protected override Serializer CreateSerializer()
+		var serializer = new Serializer
 		{
-			var serializer = new Serializer
-			{
-				SerializationOptimization = SerializationOptimization.Speed
-			};
+			SerializationOptimization = SerializationOptimization.Speed
+		};
 
-			return serializer;
-		}
+		return serializer;
 	}
-
 }

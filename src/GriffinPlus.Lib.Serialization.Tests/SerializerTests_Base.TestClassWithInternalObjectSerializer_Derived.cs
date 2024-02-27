@@ -7,68 +7,65 @@
 // ReSharper disable UnusedMember.Global
 // ReSharper disable NonReadonlyMemberInGetHashCode
 
-namespace GriffinPlus.Lib.Serialization.Tests
+namespace GriffinPlus.Lib.Serialization.Tests;
+
+public partial class SerializerTests_Base
 {
-
-	public partial class SerializerTests_Base
+	[InternalObjectSerializer(1)]
+	public class TestClassWithInternalObjectSerializer_Derived : TestClassWithInternalObjectSerializer
 	{
-		[InternalObjectSerializer(1)]
-		public class TestClassWithInternalObjectSerializer_Derived : TestClassWithInternalObjectSerializer
+		public string AnotherString { get; set; }
+
+		public TestClassWithInternalObjectSerializer_Derived()
 		{
-			public string AnotherString { get; set; }
+			AnotherString = "The quick brown fox jumps over the lazy dog";
+		}
 
-			public TestClassWithInternalObjectSerializer_Derived()
+		public TestClassWithInternalObjectSerializer_Derived(DeserializationArchive archive) :
+			base(archive.PrepareBaseArchive())
+		{
+			if (archive.Version == 1)
 			{
-				AnotherString = "The quick brown fox jumps over the lazy dog";
+				AnotherString = archive.ReadString();
 			}
-
-			public TestClassWithInternalObjectSerializer_Derived(DeserializationArchive archive) :
-				base(archive.PrepareBaseArchive())
+			else
 			{
-				if (archive.Version == 1)
-				{
-					AnotherString = archive.ReadString();
-				}
-				else
-				{
-					throw new VersionNotSupportedException(archive);
-				}
-			}
-
-			public new void Serialize(SerializationArchive archive)
-			{
-				archive.WriteBaseArchive(null);
-
-				if (archive.Version == 1)
-				{
-					archive.Write(AnotherString);
-					return;
-				}
-
 				throw new VersionNotSupportedException(archive);
 			}
+		}
 
-			public override int GetHashCode()
+		public new void Serialize(SerializationArchive archive)
+		{
+			archive.WriteBaseArchive(null);
+
+			// ReSharper disable once InvertIf
+			if (archive.Version == 1)
 			{
-				unchecked
-				{
-					int hashCode = base.GetHashCode();
-					hashCode = (hashCode * 397) ^ (AnotherString != null ? AnotherString.GetHashCode() : 0);
-					return hashCode;
-				}
+				archive.Write(AnotherString);
+				return;
 			}
 
-			protected bool Equals(TestClassWithInternalObjectSerializer_Derived other)
-			{
-				return base.Equals(other) && AnotherString == other.AnotherString;
-			}
+			throw new VersionNotSupportedException(archive);
+		}
 
-			public override bool Equals(object obj)
+		public override int GetHashCode()
+		{
+			unchecked
 			{
-				if (!(obj is TestClassWithInternalObjectSerializer_Derived other)) return false;
-				return Equals(other);
+				int hashCode = base.GetHashCode();
+				hashCode = (hashCode * 397) ^ (AnotherString != null ? AnotherString.GetHashCode() : 0);
+				return hashCode;
 			}
 		}
-	}
 
+		protected bool Equals(TestClassWithInternalObjectSerializer_Derived other)
+		{
+			return base.Equals(other) && AnotherString == other.AnotherString;
+		}
+
+		public override bool Equals(object obj)
+		{
+			return obj is TestClassWithInternalObjectSerializer_Derived other && Equals(other);
+		}
+	}
 }
