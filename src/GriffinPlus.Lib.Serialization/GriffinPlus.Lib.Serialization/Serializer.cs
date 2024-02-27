@@ -1576,7 +1576,6 @@ public partial class Serializer
 	/// <param name="context">Context object to pass to the serializer of the specified object.</param>
 	/// <exception cref="VersionNotSupportedException">The serializer version of one of the objects in the specified object graph is not supported.</exception>
 	/// <exception cref="SerializationException">Serializing the object failed.</exception>
-	[Obsolete("Consider using the static Serialize() method instead to reduce the number of serializer instances.")]
 	public void Serialize(Stream stream, object obj, object context = null)
 	{
 		try
@@ -2136,7 +2135,6 @@ public partial class Serializer
 	/// Deserializing the object failed (the exception object contains a message describing the reason why
 	/// deserialization has failed).
 	/// </exception>
-	[Obsolete("Consider using the static Deserialize() method instead to reduce the number of serializer instances.")]
 	public object Deserialize(Stream stream, object context = null)
 	{
 		try
