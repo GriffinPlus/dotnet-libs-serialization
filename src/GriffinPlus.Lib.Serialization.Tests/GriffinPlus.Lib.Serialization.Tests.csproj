@@ -36,7 +36,7 @@
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net461'">
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.3" />
-		<PackageReference Include="xunit" Version="2.6.5" />
+		<PackageReference Include="xunit" Version="2.7.0" />
 		<PackageReference Include="xunit.runner.console" Version="2.6.5">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
@@ -49,7 +49,7 @@
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp2.2'">
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.3" />
-		<PackageReference Include="xunit" Version="2.6.5" />
+		<PackageReference Include="xunit" Version="2.7.0" />
 		<PackageReference Include="xunit.runner.console" Version="2.6.5">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
@@ -62,7 +62,7 @@
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
-		<PackageReference Include="xunit" Version="2.6.5" />
+		<PackageReference Include="xunit" Version="2.7.0" />
 		<PackageReference Include="xunit.runner.console" Version="2.6.5">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
@@ -75,7 +75,7 @@
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net5.0'">
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
-		<PackageReference Include="xunit" Version="2.6.5" />
+		<PackageReference Include="xunit" Version="2.7.0" />
 		<PackageReference Include="xunit.runner.console" Version="2.6.5">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
@@ -88,7 +88,7 @@
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0' or '$(TargetFramework)' == 'net7.0' or '$(TargetFramework)' == 'net8.0'">
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
-		<PackageReference Include="xunit" Version="2.6.5" />
+		<PackageReference Include="xunit" Version="2.7.0" />
 		<PackageReference Include="xunit.runner.console" Version="2.6.5">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
