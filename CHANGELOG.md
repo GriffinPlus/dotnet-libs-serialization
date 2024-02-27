@@ -9,6 +9,12 @@
 
 The serializer now provides built-in support for `System.DateOnly` and `System.TimeOnly` that have been introduced with .NET 6. The serialization of both types is optimized for speed and size - depending on the configuration of the serializer.
 
+### Other
+
+#### Update dependency on NuGet packages 
+
+- Updated `GriffinPlus.Lib.Common` package to version 3.4.0
+
 ---
 ## Release v2.2.0
 
