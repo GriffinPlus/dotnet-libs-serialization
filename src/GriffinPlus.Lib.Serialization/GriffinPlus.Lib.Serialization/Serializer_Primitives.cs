@@ -750,63 +750,63 @@ partial class Serializer
 	#region System.DateOnly (.NET 6+ only)
 
 #if NET6_0_OR_GREATER
-		/// <summary>
-		/// Writes a <see cref="System.DateOnly"/> object.
-		/// </summary>
-		/// <param name="value">Object to write.</param>
-		/// <param name="writer">Buffer writer to write the object to.</param>
-		internal void WritePrimitive_DateOnly(DateOnly value, IBufferWriter<byte> writer)
+	/// <summary>
+	/// Writes a <see cref="System.DateOnly"/> object.
+	/// </summary>
+	/// <param name="value">Object to write.</param>
+	/// <param name="writer">Buffer writer to write the object to.</param>
+	internal void WritePrimitive_DateOnly(DateOnly value, IBufferWriter<byte> writer)
+	{
+		int dayNumber = value.DayNumber;
+		if (SerializationOptimization == SerializationOptimization.Speed || !IsLeb128EncodingMoreEfficient(dayNumber))
 		{
-			int dayNumber = value.DayNumber;
-			if (SerializationOptimization == SerializationOptimization.Speed || !IsLeb128EncodingMoreEfficient(dayNumber))
-			{
-				// use native encoding
-				const int elementSize = sizeof(int);
-				Span<byte> buffer = writer.GetSpan(1 + elementSize);
-				buffer[0] = (byte)PayloadType.DateOnly_Native;
+			// use native encoding
+			const int elementSize = sizeof(int);
+			Span<byte> buffer = writer.GetSpan(1 + elementSize);
+			buffer[0] = (byte)PayloadType.DateOnly_Native;
 #if NET8_0_OR_GREATER
-				MemoryMarshal.Write(buffer[1..], in dayNumber);
+			MemoryMarshal.Write(buffer[1..], in dayNumber);
 #else
-				MemoryMarshal.Write(buffer[1..], ref dayNumber);
+			MemoryMarshal.Write(buffer[1..], ref dayNumber);
 #endif
-				writer.Advance(1 + elementSize);
-			}
-			else
-			{
-				// use LEB128 encoding
-				Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
-				buffer[0] = (byte)PayloadType.DateOnly_LEB128;
-				int count = Leb128EncodingHelper.Write(buffer[1..], dayNumber);
-				writer.Advance(1 + count);
-			}
+			writer.Advance(1 + elementSize);
 		}
-
-		/// <summary>
-		/// Reads a <see cref="System.DateOnly"/> value (native encoding).
-		/// </summary>
-		/// <param name="stream">Stream to read the value from.</param>
-		/// <returns>The read value.</returns>
-		internal DateOnly ReadPrimitive_DateOnly_Native(Stream stream)
+		else
 		{
-			const int elementSize = sizeof(int); // binary representation of a DateOnly
-			int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
-			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
-			int value = MemoryMarshal.Read<int>(TempBuffer_Buffer);
-			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-				EndiannessHelper.SwapBytes(ref value);
-			return DateOnly.FromDayNumber(value);
+			// use LEB128 encoding
+			Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor32BitValue);
+			buffer[0] = (byte)PayloadType.DateOnly_LEB128;
+			int count = Leb128EncodingHelper.Write(buffer[1..], dayNumber);
+			writer.Advance(1 + count);
 		}
+	}
 
-		/// <summary>
-		/// Reads a <see cref="System.DateOnly"/> value (LEB128 encoding).
-		/// </summary>
-		/// <param name="stream">Stream to read the value from.</param>
-		/// <returns>The read value.</returns>
-		internal DateOnly ReadPrimitive_DateOnly_LEB128(Stream stream)
-		{
-			int dayNumber = Leb128EncodingHelper.ReadInt32(stream);
-			return DateOnly.FromDayNumber(dayNumber);
-		}
+	/// <summary>
+	/// Reads a <see cref="System.DateOnly"/> value (native encoding).
+	/// </summary>
+	/// <param name="stream">Stream to read the value from.</param>
+	/// <returns>The read value.</returns>
+	internal DateOnly ReadPrimitive_DateOnly_Native(Stream stream)
+	{
+		const int elementSize = sizeof(int); // binary representation of a DateOnly
+		int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+		if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+		int value = MemoryMarshal.Read<int>(TempBuffer_Buffer);
+		if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			EndiannessHelper.SwapBytes(ref value);
+		return DateOnly.FromDayNumber(value);
+	}
+
+	/// <summary>
+	/// Reads a <see cref="System.DateOnly"/> value (LEB128 encoding).
+	/// </summary>
+	/// <param name="stream">Stream to read the value from.</param>
+	/// <returns>The read value.</returns>
+	internal DateOnly ReadPrimitive_DateOnly_LEB128(Stream stream)
+	{
+		int dayNumber = Leb128EncodingHelper.ReadInt32(stream);
+		return DateOnly.FromDayNumber(dayNumber);
+	}
 #endif
 
 	#endregion
@@ -814,63 +814,63 @@ partial class Serializer
 	#region System.TimeOnly (.NET 6+ only)
 
 #if NET6_0_OR_GREATER
-		/// <summary>
-		/// Writes a <see cref="System.TimeOnly"/> object.
-		/// </summary>
-		/// <param name="value">Object to write.</param>
-		/// <param name="writer">Buffer writer to write the object to.</param>
-		internal void WritePrimitive_TimeOnly(TimeOnly value, IBufferWriter<byte> writer)
+	/// <summary>
+	/// Writes a <see cref="System.TimeOnly"/> object.
+	/// </summary>
+	/// <param name="value">Object to write.</param>
+	/// <param name="writer">Buffer writer to write the object to.</param>
+	internal void WritePrimitive_TimeOnly(TimeOnly value, IBufferWriter<byte> writer)
+	{
+		long ticks = value.ToTimeSpan().Ticks;
+		if (SerializationOptimization == SerializationOptimization.Speed || !IsLeb128EncodingMoreEfficient(ticks))
 		{
-			long ticks = value.ToTimeSpan().Ticks;
-			if (SerializationOptimization == SerializationOptimization.Speed || !IsLeb128EncodingMoreEfficient(ticks))
-			{
-				// use native encoding
-				const int elementSize = sizeof(long);
-				Span<byte> buffer = writer.GetSpan(1 + elementSize);
-				buffer[0] = (byte)PayloadType.TimeOnly_Native;
+			// use native encoding
+			const int elementSize = sizeof(long);
+			Span<byte> buffer = writer.GetSpan(1 + elementSize);
+			buffer[0] = (byte)PayloadType.TimeOnly_Native;
 #if NET8_0_OR_GREATER
-				MemoryMarshal.Write(buffer[1..], in ticks);
+			MemoryMarshal.Write(buffer[1..], in ticks);
 #else
-				MemoryMarshal.Write(buffer[1..], ref ticks);
+			MemoryMarshal.Write(buffer[1..], ref ticks);
 #endif
-				writer.Advance(1 + elementSize);
-			}
-			else
-			{
-				// use LEB128 encoding
-				Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
-				buffer[0] = (byte)PayloadType.TimeOnly_LEB128;
-				int count = Leb128EncodingHelper.Write(buffer[1..], ticks);
-				writer.Advance(1 + count);
-			}
+			writer.Advance(1 + elementSize);
 		}
-
-		/// <summary>
-		/// Reads a <see cref="System.TimeOnly"/> value (native encoding).
-		/// </summary>
-		/// <param name="stream">Stream to read the value from.</param>
-		/// <returns>The read value.</returns>
-		internal TimeOnly ReadPrimitive_TimeOnly_Native(Stream stream)
+		else
 		{
-			const int elementSize = sizeof(long); // binary representation of a TimeOnly
-			int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
-			if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
-			long ticks = MemoryMarshal.Read<long>(TempBuffer_Buffer);
-			if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
-				EndiannessHelper.SwapBytes(ref ticks);
-			return TimeOnly.FromTimeSpan(TimeSpan.FromTicks(ticks));
+			// use LEB128 encoding
+			Span<byte> buffer = writer.GetSpan(1 + Leb128EncodingHelper.MaxBytesFor64BitValue);
+			buffer[0] = (byte)PayloadType.TimeOnly_LEB128;
+			int count = Leb128EncodingHelper.Write(buffer[1..], ticks);
+			writer.Advance(1 + count);
 		}
+	}
 
-		/// <summary>
-		/// Reads a <see cref="System.TimeOnly"/> value (LEB128 encoding).
-		/// </summary>
-		/// <param name="stream">Stream to read the value from.</param>
-		/// <returns>The read value.</returns>
-		internal TimeOnly ReadPrimitive_TimeOnly_LEB128(Stream stream)
-		{
-			long ticks = Leb128EncodingHelper.ReadInt64(stream);
-			return TimeOnly.FromTimeSpan(TimeSpan.FromTicks(ticks));
-		}
+	/// <summary>
+	/// Reads a <see cref="System.TimeOnly"/> value (native encoding).
+	/// </summary>
+	/// <param name="stream">Stream to read the value from.</param>
+	/// <returns>The read value.</returns>
+	internal TimeOnly ReadPrimitive_TimeOnly_Native(Stream stream)
+	{
+		const int elementSize = sizeof(long); // binary representation of a TimeOnly
+		int bytesRead = stream.Read(TempBuffer_Buffer, 0, elementSize);
+		if (bytesRead < elementSize) throw new SerializationException("Unexpected end of stream.");
+		long ticks = MemoryMarshal.Read<long>(TempBuffer_Buffer);
+		if (IsDeserializingLittleEndian != BitConverter.IsLittleEndian)
+			EndiannessHelper.SwapBytes(ref ticks);
+		return TimeOnly.FromTimeSpan(TimeSpan.FromTicks(ticks));
+	}
+
+	/// <summary>
+	/// Reads a <see cref="System.TimeOnly"/> value (LEB128 encoding).
+	/// </summary>
+	/// <param name="stream">Stream to read the value from.</param>
+	/// <returns>The read value.</returns>
+	internal TimeOnly ReadPrimitive_TimeOnly_LEB128(Stream stream)
+	{
+		long ticks = Leb128EncodingHelper.ReadInt64(stream);
+		return TimeOnly.FromTimeSpan(TimeSpan.FromTicks(ticks));
+	}
 #endif
 
 	#endregion

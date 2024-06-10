@@ -315,27 +315,27 @@ public partial class Serializer
 			});
 
 #if NET6_0_OR_GREATER
-			sSerializers.Add(
-				typeof(DateOnly),
-				(
-					serializer,
-					writer,
-					obj,
-					_) =>
-				{
-					serializer.WritePrimitive_DateOnly((DateOnly)obj, writer);
-				});
+		sSerializers.Add(
+			typeof(DateOnly),
+			(
+				serializer,
+				writer,
+				obj,
+				_) =>
+			{
+				serializer.WritePrimitive_DateOnly((DateOnly)obj, writer);
+			});
 
-			sSerializers.Add(
-				typeof(TimeOnly),
-				(
-					serializer,
-					writer,
-					obj,
-					_) =>
-				{
-					serializer.WritePrimitive_TimeOnly((TimeOnly)obj, writer);
-				});
+		sSerializers.Add(
+			typeof(TimeOnly),
+			(
+				serializer,
+				writer,
+				obj,
+				_) =>
+			{
+				serializer.WritePrimitive_TimeOnly((TimeOnly)obj, writer);
+			});
 #endif
 
 		sSerializers.Add(
@@ -689,10 +689,10 @@ public partial class Serializer
 		sDeserializersByPayloadType[(int)PayloadType.DateTime] = (serializer,       stream, _) => serializer.ReadPrimitive_DateTime(stream);
 		sDeserializersByPayloadType[(int)PayloadType.DateTimeOffset] = (serializer, stream, _) => serializer.ReadPrimitive_DateTimeOffset(stream);
 #if NET6_0_OR_GREATER
-			sDeserializersByPayloadType[(int)PayloadType.DateOnly_Native] = (serializer, stream, _) => serializer.ReadPrimitive_DateOnly_Native(stream);
-			sDeserializersByPayloadType[(int)PayloadType.DateOnly_LEB128] = (serializer, stream, _) => serializer.ReadPrimitive_DateOnly_LEB128(stream);
-			sDeserializersByPayloadType[(int)PayloadType.TimeOnly_Native] = (serializer, stream, _) => serializer.ReadPrimitive_TimeOnly_Native(stream);
-			sDeserializersByPayloadType[(int)PayloadType.TimeOnly_LEB128] = (serializer, stream, _) => serializer.ReadPrimitive_TimeOnly_LEB128(stream);
+		sDeserializersByPayloadType[(int)PayloadType.DateOnly_Native] = (serializer, stream, _) => serializer.ReadPrimitive_DateOnly_Native(stream);
+		sDeserializersByPayloadType[(int)PayloadType.DateOnly_LEB128] = (serializer, stream, _) => serializer.ReadPrimitive_DateOnly_LEB128(stream);
+		sDeserializersByPayloadType[(int)PayloadType.TimeOnly_Native] = (serializer, stream, _) => serializer.ReadPrimitive_TimeOnly_Native(stream);
+		sDeserializersByPayloadType[(int)PayloadType.TimeOnly_LEB128] = (serializer, stream, _) => serializer.ReadPrimitive_TimeOnly_LEB128(stream);
 #endif
 		sDeserializersByPayloadType[(int)PayloadType.Guid] = (serializer,       stream, _) => serializer.ReadPrimitive_Guid(stream);
 		sDeserializersByPayloadType[(int)PayloadType.Object] = (serializer,     _,      _) => serializer.ReadPrimitive_Object();
@@ -2749,7 +2749,7 @@ public partial class Serializer
 				copies[i] = obj;
 			}
 #else
-				Array.Fill(copies, obj);
+			Array.Fill(copies, obj);
 #endif
 
 			return copies;

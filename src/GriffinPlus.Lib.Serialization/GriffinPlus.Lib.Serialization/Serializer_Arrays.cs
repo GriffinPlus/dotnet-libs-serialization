@@ -1882,7 +1882,7 @@ partial class Serializer
 				decimal.GetBits(array[fromIndex++], intBuffer.Slice(4 * i, 4));
 			}
 #else
-			#error Unhandled .NET framework
+#error Unhandled .NET framework
 #endif
 
 			writer.Advance(bytesToCopy);
@@ -4413,7 +4413,7 @@ partial class Serializer
 				Span<int> intBuffer = MemoryMarshal.Cast<byte, int>(buffer[bufferIndex..]);
 				decimal.GetBits(value, intBuffer);
 #else
-					#error Unhandled .NET framework
+#error Unhandled .NET framework
 #endif
 				IncrementArrayIndices(indices, array);
 				bufferIndex += elementSize;

@@ -759,38 +759,38 @@ public abstract partial class SerializerTests_Base
 	#region Serializing/Deserializing: System.DateOnly (.NET 6+ only)
 
 #if NET6_0_OR_GREATER
-		public static IEnumerable<object[]> SerializeAndDeserializeTestData_DateOnly
+	public static IEnumerable<object[]> SerializeAndDeserializeTestData_DateOnly
+	{
+		get
 		{
-			get
-			{
-				DateOnly[] data =
-				[
-					DateOnly.MinValue,
-					DateOnly.FromDateTime(DateTime.Today),
-					DateOnly.MaxValue
-				];
+			DateOnly[] data =
+			[
+				DateOnly.MinValue,
+				DateOnly.FromDateTime(DateTime.Today),
+				DateOnly.MaxValue
+			];
 
-				foreach (object[] record in GenerateTestData(data))
-				{
-					yield return record;
-				}
+			foreach (object[] record in GenerateTestData(data))
+			{
+				yield return record;
 			}
 		}
+	}
 
-		/// <summary>
-		/// Tests serializing and deserializing <see cref="System.DateOnly"/>.
-		/// </summary>
-		/// <param name="description">Test case description (for documentation purposes).</param>
-		/// <param name="type">Type of the object to test (for documentation purposes).</param>
-		/// <param name="obj">Object to test with.</param>
-		[Theory]
-		[MemberData(nameof(SerializeAndDeserializeTestData_DateOnly))]
-		public void SerializeAndDeserialize_DateOnly(string description, Type type, object obj)
-		{
-			object copy = SerializeAndDeserializeObject(obj);
-			Assert.IsType(type, obj);
-			Assert.Equal(obj, copy);
-		}
+	/// <summary>
+	/// Tests serializing and deserializing <see cref="System.DateOnly"/>.
+	/// </summary>
+	/// <param name="description">Test case description (for documentation purposes).</param>
+	/// <param name="type">Type of the object to test (for documentation purposes).</param>
+	/// <param name="obj">Object to test with.</param>
+	[Theory]
+	[MemberData(nameof(SerializeAndDeserializeTestData_DateOnly))]
+	public void SerializeAndDeserialize_DateOnly(string description, Type type, object obj)
+	{
+		object copy = SerializeAndDeserializeObject(obj);
+		Assert.IsType(type, obj);
+		Assert.Equal(obj, copy);
+	}
 
 #endif // NET6_0_OR_GREATER
 
@@ -799,38 +799,38 @@ public abstract partial class SerializerTests_Base
 	#region Serializing/Deserializing: System.TimeOnly (.NET 6+ only)
 
 #if NET6_0_OR_GREATER
-		public static IEnumerable<object[]> SerializeAndDeserializeTestData_TimeOnly
+	public static IEnumerable<object[]> SerializeAndDeserializeTestData_TimeOnly
+	{
+		get
 		{
-			get
-			{
-				TimeOnly[] data =
-				[
-					TimeOnly.MinValue,
-					TimeOnly.FromDateTime(DateTime.UtcNow),
-					TimeOnly.MaxValue
-				];
+			TimeOnly[] data =
+			[
+				TimeOnly.MinValue,
+				TimeOnly.FromDateTime(DateTime.UtcNow),
+				TimeOnly.MaxValue
+			];
 
-				foreach (object[] record in GenerateTestData(data))
-				{
-					yield return record;
-				}
+			foreach (object[] record in GenerateTestData(data))
+			{
+				yield return record;
 			}
 		}
+	}
 
-		/// <summary>
-		/// Tests serializing and deserializing <see cref="System.TimeOnly"/>.
-		/// </summary>
-		/// <param name="description">Test case description (for documentation purposes).</param>
-		/// <param name="type">Type of the object to test (for documentation purposes).</param>
-		/// <param name="obj">Object to test with.</param>
-		[Theory]
-		[MemberData(nameof(SerializeAndDeserializeTestData_DateOnly))]
-		public void SerializeAndDeserialize_TimeOnly(string description, Type type, object obj)
-		{
-			object copy = SerializeAndDeserializeObject(obj);
-			Assert.IsType(type, obj);
-			Assert.Equal(obj, copy);
-		}
+	/// <summary>
+	/// Tests serializing and deserializing <see cref="System.TimeOnly"/>.
+	/// </summary>
+	/// <param name="description">Test case description (for documentation purposes).</param>
+	/// <param name="type">Type of the object to test (for documentation purposes).</param>
+	/// <param name="obj">Object to test with.</param>
+	[Theory]
+	[MemberData(nameof(SerializeAndDeserializeTestData_DateOnly))]
+	public void SerializeAndDeserialize_TimeOnly(string description, Type type, object obj)
+	{
+		object copy = SerializeAndDeserializeObject(obj);
+		Assert.IsType(type, obj);
+		Assert.Equal(obj, copy);
+	}
 
 #endif // NET6_0_OR_GREATER
 

@@ -36,8 +36,8 @@ public partial class SerializerTests_Base
 		internal DateTime       DateTime       { get; set; }
 		internal DateTimeOffset DateTimeOffset { get; set; }
 #if NET6_0_OR_GREATER
-			internal DateOnly DateOnly { get; set; }
-			internal TimeOnly TimeOnly { get; set; }
+		internal DateOnly DateOnly { get; set; }
+		internal TimeOnly TimeOnly { get; set; }
 #endif
 		internal Guid         Guid                         { get; set; }
 		internal Type         NonGenericType               { get; set; }
@@ -76,8 +76,8 @@ public partial class SerializerTests_Base
 			DateTime = DateTime.Now;
 			DateTimeOffset = DateTimeOffset.Now;
 #if NET6_0_OR_GREATER
-				DateOnly = DateOnly.FromDateTime(DateTime);
-				TimeOnly = TimeOnly.FromDateTime(DateTime);
+			DateOnly = DateOnly.FromDateTime(DateTime);
+			TimeOnly = TimeOnly.FromDateTime(DateTime);
 #endif
 			Guid = Guid.NewGuid();
 			NonGenericType = typeof(int);
@@ -119,8 +119,8 @@ public partial class SerializerTests_Base
 				DateTime = archive.ReadDateTime();
 				DateTimeOffset = archive.ReadDateTimeOffset();
 #if NET6_0_OR_GREATER
-					DateOnly = archive.ReadDateOnly();
-					TimeOnly = archive.ReadTimeOnly();
+				DateOnly = archive.ReadDateOnly();
+				TimeOnly = archive.ReadTimeOnly();
 #endif
 				Guid = archive.ReadGuid();
 				NonGenericType = archive.ReadType();
@@ -180,8 +180,8 @@ public partial class SerializerTests_Base
 				archive.Write(DateTime);
 				archive.Write(DateTimeOffset);
 #if NET6_0_OR_GREATER
-					archive.Write(DateOnly);
-					archive.Write(TimeOnly);
+				archive.Write(DateOnly);
+				archive.Write(TimeOnly);
 #endif
 				archive.Write(Guid);
 				archive.Write(NonGenericType);
@@ -233,8 +233,8 @@ public partial class SerializerTests_Base
 				hashCode = (hashCode * 397) ^ DateTime.GetHashCode();
 				hashCode = (hashCode * 397) ^ DateTimeOffset.GetHashCode();
 #if NET6_0_OR_GREATER
-					hashCode = (hashCode * 397) ^ DateOnly.GetHashCode();
-					hashCode = (hashCode * 397) ^ TimeOnly.GetHashCode();
+				hashCode = (hashCode * 397) ^ DateOnly.GetHashCode();
+				hashCode = (hashCode * 397) ^ TimeOnly.GetHashCode();
 #endif
 				hashCode = (hashCode * 397) ^ Guid.GetHashCode();
 				hashCode = (hashCode * 397) ^ NonGenericType.GetHashCode();
@@ -275,8 +275,8 @@ public partial class SerializerTests_Base
 			       DateTime == other.DateTime &&
 			       DateTimeOffset == other.DateTimeOffset &&
 #if NET6_0_OR_GREATER
-				       DateOnly == other.DateOnly &&
-				       TimeOnly == other.TimeOnly &&
+			       DateOnly == other.DateOnly &&
+			       TimeOnly == other.TimeOnly &&
 #endif
 			       Guid == other.Guid &&
 			       NonGenericType == other.NonGenericType &&
