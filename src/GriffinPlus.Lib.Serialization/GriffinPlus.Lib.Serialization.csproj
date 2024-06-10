@@ -8,7 +8,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="GriffinPlus.Lib.Common" Version="3.4.0" />
+		<PackageReference Include="GriffinPlus.Lib.Common" Version="4.0.0" />
 		<PackageReference Include="GriffinPlus.Lib.FastActivator" Version="1.1.1" />
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
 		<PackageReference Include="PolySharp" Version="1.14.1">
