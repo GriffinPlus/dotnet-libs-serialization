@@ -1,6 +1,16 @@
 # Changelog
 ---
 
+## Release v3.0.0
+
+### Other
+
+#### Update dependency on NuGet packages 
+
+- Updated `GriffinPlus.Lib.Common` package to version 4.0.0
+
+---
+
 ## Release v2.3.0
 
 ### Features
