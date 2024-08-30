@@ -101,8 +101,8 @@ public partial class Serializer
 
 			// hook up the event that is raised when an assembly is loaded into the application domain
 			// and run the event handler for already loaded assemblies to find custom serializers
-			RuntimeMetadata.LoadAssembliesInApplicationBaseDirectory();
-			AppDomain.CurrentDomain.AssemblyLoad += (_, args) => ScanAssemblyForCustomSerializers(args.LoadedAssembly);
+			RuntimeMetadata.LoadAssembliesInApplicationBaseDirectory(true);
+			RuntimeMetadata.AssemblyScanned += (_, args) => ScanAssemblyForCustomSerializers(args.Assembly);
 			foreach (Assembly assembly in RuntimeMetadata.AssembliesByFullName.Select(x => x.Value))
 			{
 				ScanAssemblyForCustomSerializers(assembly);

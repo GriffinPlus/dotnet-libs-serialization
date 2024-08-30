@@ -1,6 +1,16 @@
 # Changelog
 ---
 
+## Release v3.0.1
+
+### Other
+
+#### Update dependency on NuGet packages 
+
+- Updated `GriffinPlus.Lib.Common` package to version 4.1.4 to fix race conditions in `GriffinPlus.Lib.RuntimeMetadata` class.
+
+---
+
 ## Release v3.0.0
 
 ### Other
