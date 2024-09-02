@@ -1,0 +1,4 @@
+﻿.\GriffinPlus.Lib.Serialization.deps.json
+.\GriffinPlus.Lib.Serialization.dll
+.\GriffinPlus.Lib.Serialization.pdb
+.\GriffinPlus.Lib.Serialization.xml

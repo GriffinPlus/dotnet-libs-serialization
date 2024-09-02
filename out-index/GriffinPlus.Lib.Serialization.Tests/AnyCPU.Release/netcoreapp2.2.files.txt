@@ -1,0 +1,13 @@
+﻿.\GriffinPlus.Lib.Serialization.dll
+.\GriffinPlus.Lib.Serialization.pdb
+.\GriffinPlus.Lib.Serialization.Tests.deps.json
+.\GriffinPlus.Lib.Serialization.Tests.dll
+.\GriffinPlus.Lib.Serialization.Tests.pdb
+.\GriffinPlus.Lib.Serialization.Tests.runtimeconfig.dev.json
+.\GriffinPlus.Lib.Serialization.Tests.runtimeconfig.json
+.\GriffinPlus.Lib.Serialization.xml
+.\testhost.dll
+.\testhost.exe
+.\xunit.runner.reporters.netcoreapp10.dll
+.\xunit.runner.utility.netcoreapp10.dll
+.\xunit.runner.visualstudio.dotnetcore.testadapter.dll

@@ -9,11 +9,11 @@
 .\GriffinPlus.Lib.Serialization.xml
 .\Microsoft.VisualStudio.CodeCoverage.Shim.dll
 .\System.Buffers.dll
-.\System.Collections.Immutable.dll
 .\System.Memory.dll
 .\System.Numerics.Vectors.dll
 .\System.Runtime.CompilerServices.Unsafe.dll
 .\System.Threading.Tasks.Extensions.dll
+.\System.ValueTuple.dll
 .\xunit.abstractions.dll
 .\xunit.assert.dll
 .\xunit.core.dll
