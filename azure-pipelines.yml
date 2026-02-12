@@ -6,14 +6,10 @@
 #
 # - Windows Server 2022, .NET 4.6.1      (tests with build for .NET Framework 4.6.1)
 # - Windows Server 2022, .NET 4.8        (tests with build for .NET Framework 4.8)
-# - Windows Server 2022, .NET Core 2.2   (tests with build for .NET Standard 2.0)
-# - Windows Server 2022, .NET Core 3.1   (tests with build for .NET Standard 2.1)
 # - Windows Server 2022, .NET 5.0        (tests with build for .NET 5.0)
 # - Windows Server 2022, .NET 6.0        (tests with build for .NET 6.0)
 # - Windows Server 2022, .NET 7.0        (tests with build for .NET 7.0)
 # - Windows Server 2022, .NET 8.0        (tests with build for .NET 8.0)
-# - Ubuntu 22.04, .NET Core 2.2          (tests with build for .NET Standard 2.0)
-# - Ubuntu 22.04, .NET Core 3.1          (tests with build for .NET Standard 2.1)
 # - Ubuntu 22.04, .NET 5.0               (tests with build for .NET 5.0)
 # - Ubuntu 22.04, .NET 6.0               (tests with build for .NET 6.0)
 # - Ubuntu 22.04, .NET 7.0               (tests with build for .NET 7.0)
@@ -47,18 +43,6 @@ stages:
   ######################################################################################################################
   - job: 'Build'
     steps:
-    - task: UseDotNet@2
-      displayName: 'Use .NET Core 2.2 SDK'
-      inputs:
-        packageType: 'sdk'
-        version: '2.2.x'
-        installationPath: '$(Agent.ToolsDirectory)/dotnet'
-    - task: UseDotNet@2
-      displayName: 'Use .NET Core 3.1 SDK'
-      inputs:
-        packageType: 'sdk'
-        version: '3.1.x'
-        installationPath: '$(Agent.ToolsDirectory)/dotnet'
     - task: UseDotNet@2
       displayName: 'Use .NET 5.0 SDK'
       inputs:
@@ -148,8 +132,6 @@ stages:
   # Job:
   # - .NET Framework 4.6.1 on Windows Server 2022
   # - .NET Framework 4.8 on Windows Server 2022
-  # - .NET Core 2.2 on Windows Server 2022 and Ubuntu 22.04
-  # - .NET Core 3.1 on Windows Server 2022 and Ubuntu 22.04
   # - .NET 5.0 on Windows Server 2022 and Ubuntu 22.04
   # - .NET 6.0 on Windows Server 2022 and Ubuntu 22.04
   # - .NET 7.0 on Windows Server 2022 and Ubuntu 22.04
@@ -167,18 +149,6 @@ stages:
     pool:
       vmImage: '$(VmImage)'
     steps:
-    - task: UseDotNet@2
-      displayName: 'Use .NET Core 2.2 SDK'
-      inputs:
-        packageType: 'sdk'
-        version: '2.2.x'
-        installationPath: '$(Agent.ToolsDirectory)/dotnet'
-    - task: UseDotNet@2
-      displayName: 'Use .NET Core 3.1 SDK'
-      inputs:
-        packageType: 'sdk'
-        version: '3.1.x'
-        installationPath: '$(Agent.ToolsDirectory)/dotnet'
     - task: UseDotNet@2
       displayName: 'Use .NET 5.0 SDK'
       inputs:
@@ -228,20 +198,6 @@ stages:
         projects: '**/*Tests/*.csproj'
         nobuild: true
         arguments: '--framework net48'
-    - task: DotNetCoreCLI@2
-      displayName: 'Test .NET Core 2.2'
-      inputs:
-        command: 'test'
-        projects: '**/*Tests/*.csproj'
-        nobuild: true
-        arguments: '--framework netcoreapp2.2'
-    - task: DotNetCoreCLI@2
-      displayName: 'Test .NET Core 3.1'
-      inputs:
-        command: 'test'
-        projects: '**/*Tests/*.csproj'
-        nobuild: true
-        arguments: '--framework netcoreapp3.1'
     - task: DotNetCoreCLI@2
       displayName: 'Test .NET 5.0'
       inputs:
