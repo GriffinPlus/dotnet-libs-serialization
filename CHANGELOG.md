@@ -1,6 +1,35 @@
 # Changelog
 ---
 
+## Release v3.1.0
+
+### Features
+
+#### Add built-in support for immutable collections
+
+The serializer now provides built-in support for the following immutable collection types from `System.Collections.Immutable`:
+
+- `System.Collections.Immutable.ImmutableArray<T>`
+- `System.Collections.Immutable.ImmutableDictionary<TKey,TValue>`
+- `System.Collections.Immutable.ImmutableHashSet<T>`
+- `System.Collections.Immutable.ImmutableList<T>`
+- `System.Collections.Immutable.ImmutableQueue<T>`
+- `System.Collections.Immutable.ImmutableSortedDictionary<TKey,TValue>`
+- `System.Collections.Immutable.ImmutableSortedSet<T>`
+- `System.Collections.Immutable.ImmutableStack<T>`
+
+### Other
+
+#### Update dependency on NuGet packages
+
+- Updated `GriffinPlus.Lib.Common` package to version 4.3.0.
+
+#### Remove obsolete .NET Core test targets
+
+Removed `netcoreapp2.2` and `netcoreapp3.1` from the test project as both runtimes have reached end of life. The `netstandard2.0` and `netstandard2.1` library builds are still tested via the remaining target frameworks.
+
+---
+
 ## Release v3.0.1
 
 ### Other

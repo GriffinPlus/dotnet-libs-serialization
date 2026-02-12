@@ -53,6 +53,15 @@ The *Griffin+ Serialization Library* provides a serializer for almost all .NET o
     - `System.Collection.Generic.SortedDictionary<TKey,TValue>`
     - `System.Collection.Generic.SortedList<TKey,TValue>`
     - `System.Collection.Generic.Stack<T>`
+  - Immutable collections from `System.Collections.Immutable`
+    - `System.Collections.Immutable.ImmutableArray<T>`
+    - `System.Collections.Immutable.ImmutableDictionary<TKey,TValue>`
+    - `System.Collections.Immutable.ImmutableHashSet<T>`
+    - `System.Collections.Immutable.ImmutableList<T>`
+    - `System.Collections.Immutable.ImmutableQueue<T>`
+    - `System.Collections.Immutable.ImmutableSortedDictionary<TKey,TValue>`
+    - `System.Collections.Immutable.ImmutableSortedSet<T>`
+    - `System.Collections.Immutable.ImmutableStack<T>`
   - Collections that provide a parameterless constructor and implement at least one of the following interfaces (ordered by preference):
     - `System.Collections.Generic.IDictionary<TKey,TValue>`
     - `System.Collections.Generic.IList<T>`
@@ -80,8 +89,6 @@ Therefore it should work on the following platforms (or higher):
 The library is tested automatically on the following frameworks and operating systems:
 - .NET Framework 4.6.1: Tests with library built for .NET Framework 4.6.1 (Windows Server 2022)
 - .NET Framework 4.8: Tests with library built for .NET Framework 4.6.1 (Windows Server 2022)
-- .NET Core 2.2: Tests with library built for .NET Standard 2.0 (Windows Server 2022 and Ubuntu 22.04)
-- .NET Core 3.1: Tests with library built for .NET Standard 2.1 (Windows Server 2022 and Ubuntu 22.04)
 - .NET 5.0: Tests with library built for .NET 5.0 (Windows Server 2022 and Ubuntu 22.04)
 - .NET 6.0: Tests with library built for .NET 6.0 (Windows Server 2022 and Ubuntu 22.04)
 - .NET 7.0: Tests with library built for .NET 7.0 (Windows Server 2022 and Ubuntu 22.04)
@@ -185,7 +192,7 @@ A type (class/struct) with an *Internal Object Serializer* has the following cha
 - Class annotation: The type is annotated with the `GriffinPlus.Lib.Serialization.InternalObjectSerializer` attribute specifying the maximum version supported by the serializer. The implemented internal object serializer must support all versions from `1` up to the specified version number to allow deserializing older versions as well.
 - Interface implementation: The type implements the `GriffinPlus.Lib.Serialization.IInternalObjectSerializer` interface.
 - Deserialization constructor: The type provides a special constructor taking a `DeserializationArchive` which acts as an abstract userfriendly interface to the deserialization stream. The constructor is called by the serializer when deserializing an object of this type from a stream. If a serializer version is requested, but not supported, a `GriffinPlus.Lib.Serialization.VersionNotSupportedException` should be thrown. The serializer also takes care of checking the maximum supported version as specified by the `InternalObjectSerializer` attribute. It does not call the deserialization constructor if the requested serializer version is greater than the maximum version specified by the attribute. If you can be sure that the maximum supported version and the versions actually implemented are consistent, you can omit throwing the exception.
-- Serialization method: The type provides an implementation of the `IInternalObjectSerializer.Serialize()` method that takes care of writing an object of the type to a stream. The `Serialize()` method takes a `SerializationArchive` exposing an userfriendly abstraction of the serialization stream. The method can be implemented public as well, but it is not recommended as this method is only meaningful in conjunction with the serializer. If a serializer version is requested, but not supported, a `GriffinPlus.Lib.Serialization.VersionNotSupportedException` should be thrown. Same here, you can omit throwing the exception if you are sure that the announced maximum supported serializer version and the actually implemented versions are consistent.
+- Serialization method: The type provides an implementation of the `IInternalObjectSerializer.Serialize()` method that takes care of writing an object of the type to a stream. The `Serialize()` method takes a `SerializationArchive` exposing an userfriendly abstraction of the serialization stream. The method can be implemented public as well, but it is not recommended as this method is only meaningful in conjunction with the serializer. If a serializer version is requested, but not supported, a `GriffinPlus.Lib.Serialization.VersionNotSupportedException` should be thrown. Same here, you can omit throwing the exception if you are sure that the announced maximum supported version and the actually implemented versions are consistent.
 
 Using an internal object serializer allows to serialize derived classes by delegating serialization/deserialization to the base class. The following example shows a very rudimentary class deriving from the example class above:
 
